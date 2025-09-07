@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 const LoginPage = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -20,6 +22,9 @@ const LoginPage = () => {
     e.preventDefault();
     // Handle login logic here
     console.log('Login attempt:', formData);
+    // TODO: Add actual authentication logic
+    // For now, redirect to dashboard on any login attempt
+    navigate('/dashboard');
   };
 
   return (
@@ -112,12 +117,12 @@ const LoginPage = () => {
           <div className="text-center pt-4">
             <p className="text-sm text-gray-600 font-['Roboto']">
               Don't have an account?{' '}
-              <a 
-                href="#" 
+              <Link 
+                to="/signup" 
                 className="text-black hover:underline font-semibold transition-colors"
               >
                 Sign up
-              </a>
+              </Link>
             </p>
           </div>
         </form>
