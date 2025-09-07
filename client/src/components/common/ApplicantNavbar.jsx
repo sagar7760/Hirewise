@@ -1,14 +1,19 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import hirewiseLogo from '../../assets/hirewise.svg';
 
 const ApplicantNavbar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isClicked, setIsClicked] = useState(false);
+  const dropdownRef = useRef(null);
+  const hoverTimeoutRef = useRef(null);
   
   const navItems = [
     { name: 'Home', path: '/dashboard' },
     { name: 'Jobs', path: '/jobs' },
-    { name: 'My Applications', path: '/my-applications' },
   ];
 
   const isActivePath = (path) => {
@@ -16,6 +21,60 @@ const ApplicantNavbar = () => {
       return location.pathname === '/' || location.pathname === '/dashboard';
     }
     return location.pathname.startsWith(path);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsProfileDropdownOpen(false);
+        setIsClicked(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Handle hover behavior
+  const handleMouseEnter = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    setIsHovered(true);
+    if (!isClicked) {
+      setIsProfileDropdownOpen(true);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    if (!isClicked) {
+      hoverTimeoutRef.current = setTimeout(() => {
+        setIsProfileDropdownOpen(false);
+      }, 200); // Small delay to prevent flickering
+    }
+  };
+
+  const handleClick = () => {
+    setIsClicked(!isClicked);
+    setIsProfileDropdownOpen(!isProfileDropdownOpen);
+  };
+
+  const handleProfileMenuClick = (action) => {
+    console.log(`Clicked: ${action}`);
+    setIsProfileDropdownOpen(false);
+    setIsClicked(false);
+    
+    // Navigate based on the action
+    if (action === 'Profile') {
+      navigate('/profile');
+    } else if (action === 'My Applications') {
+      navigate('/my-applications');
+    }
+    // TODO: Implement navigation for other menu items when pages are created
   };
 
   return (
@@ -65,8 +124,18 @@ const ApplicantNavbar = () => {
             </button>
 
             {/* Profile */}
-            <div className="relative">
-              <button className="bg-gray-800 flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black">
+            <div 
+              className="relative" 
+              ref={dropdownRef}
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+            >
+              <button 
+                onClick={handleClick}
+                className={`bg-gray-800 flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-all duration-200 hover:ring-2 hover:ring-gray-300 ${
+                  isProfileDropdownOpen ? 'ring-2 ring-gray-400' : ''
+                }`}
+              >
                 <span className="sr-only">Open user menu</span>
                 <img
                   className="h-8 w-8 rounded-full"
@@ -74,6 +143,66 @@ const ApplicantNavbar = () => {
                   alt="Profile"
                 />
               </button>
+
+              {/* Profile Dropdown with Animation */}
+              <div className={`absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 transition-all duration-200 ease-out transform origin-top-right ${
+                isProfileDropdownOpen 
+                  ? 'opacity-100 scale-100 translate-y-0' 
+                  : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
+              }`}>
+                {/* User Info */}
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <p className="text-sm font-medium text-gray-900 font-['Open_Sans']">John Doe</p>
+                  <p className="text-sm text-gray-500 font-['Roboto']">john.doe@example.com</p>
+                </div>
+
+                {/* Menu Items */}
+                <div className="py-1">
+                  <button
+                    onClick={() => handleProfileMenuClick('Profile')}
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 font-['Roboto'] transition-colors duration-150"
+                  >
+                    <svg className="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    Profile
+                  </button>
+                  
+                  <button
+                    onClick={() => handleProfileMenuClick('My Applications')}
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 font-['Roboto'] transition-colors duration-150"
+                  >
+                    <svg className="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    My Applications
+                  </button>
+                  
+                  <button
+                    onClick={() => handleProfileMenuClick('Saved Jobs')}
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 font-['Roboto'] transition-colors duration-150"
+                  >
+                    <svg className="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                    Saved Jobs
+                  </button>
+                </div>
+
+                {/* Divider */}
+                <div className="border-t border-gray-100 my-1"></div>
+
+                {/* Sign Out */}
+                <button
+                  onClick={() => handleProfileMenuClick('Sign Out')}
+                  className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-['Roboto'] transition-colors duration-150"
+                >
+                  <svg className="w-4 h-4 mr-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Sign Out
+                </button>
+              </div>
             </div>
           </div>
         </div>

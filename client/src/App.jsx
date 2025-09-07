@@ -14,7 +14,9 @@ import UnauthorizedPage from './pages/global/UnauthorizedPage'
 // Applicant Pages
 import ApplicantDashboard from './pages/applicant/ApplicantDashboard'
 import JobsPage from './pages/applicant/JobsPage'
+import JobDetailsPage from './pages/applicant/JobDetailsPage'
 import MyApplicationsPage from './pages/applicant/MyApplicationsPage'
+import ProfilePage from './pages/applicant/ProfilePage'
 
 function App() {
   return (
@@ -40,7 +42,9 @@ function App() {
         {/* Applicant Dashboard Routes */}
         <Route path="/dashboard" element={<ApplicantDashboard />} />
         <Route path="/jobs" element={<JobsPage />} />
+        <Route path="/jobs/:jobId" element={<JobDetailsPage />} />
         <Route path="/my-applications" element={<MyApplicationsPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
 
         {/* Error Pages */}
         <Route path="/unauthorized" element={
