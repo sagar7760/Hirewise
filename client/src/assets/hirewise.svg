@@ -1,0 +1,55 @@
+<svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="100" height="100" fill="white" rx="12"/>
+  
+  <!-- Green network pattern (top part of H) -->
+  <g fill="#10B981" stroke="#10B981" stroke-width="1.5">
+    <!-- Nodes -->
+    <circle cx="25" cy="20" r="2"/>
+    <circle cx="35" cy="25" r="2"/>
+    <circle cx="45" cy="20" r="2"/>
+    <circle cx="25" cy="35" r="2"/>
+    <circle cx="35" cy="40" r="2"/>
+    <circle cx="45" cy="35" r="2"/>
+    
+    <!-- Connections -->
+    <line x1="25" y1="20" x2="35" y2="25"/>
+    <line x1="35" y1="25" x2="45" y2="20"/>
+    <line x1="25" y1="20" x2="25" y2="35"/>
+    <line x1="45" y1="20" x2="45" y2="35"/>
+    <line x1="25" y1="35" x2="35" y2="40"/>
+    <line x1="35" y1="40" x2="45" y2="35"/>
+    <line x1="35" y1="25" x2="35" y2="40"/>
+  </g>
+  
+  <!-- Blue network pattern (bottom part of H) -->
+  <g fill="#1E40AF" stroke="#1E40AF" stroke-width="1.5">
+    <!-- Nodes -->
+    <circle cx="25" cy="65" r="2"/>
+    <circle cx="35" cy="60" r="2"/>
+    <circle cx="45" cy="65" r="2"/>
+    <circle cx="25" cy="80" r="2"/>
+    <circle cx="35" cy="75" r="2"/>
+    <circle cx="45" cy="80" r="2"/>
+    
+    <!-- Connections -->
+    <line x1="25" y1="65" x2="35" y2="60"/>
+    <line x1="35" y1="60" x2="45" y2="65"/>
+    <line x1="25" y1="65" x2="25" y2="80"/>
+    <line x1="45" y1="65" x2="45" y2="80"/>
+    <line x1="25" y1="80" x2="35" y2="75"/>
+    <line x1="35" y1="75" x2="45" y2="80"/>
+    <line x1="35" y1="60" x2="35" y2="75"/>
+  </g>
+  
+  <!-- Middle connector (H crossbar) -->
+  <g stroke="#374151" stroke-width="2">
+    <line x1="25" y1="50" x2="45" y2="50"/>
+  </g>
+  
+  <!-- Right side geometric shape -->
+  <g fill="#1E3A8A">
+    <polygon points="65,25 85,15 85,45 75,55 65,45"/>
+    <polygon points="75,55 85,45 85,75 75,85 65,75"/>
+  </g>
+</svg>
