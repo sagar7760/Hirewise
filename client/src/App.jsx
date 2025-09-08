@@ -20,6 +20,14 @@ import ProfilePage from './pages/applicant/ProfilePage'
 import JobApplicationPage from './pages/applicant/JobApplicationPage'
 import NotificationsPage from './pages/applicant/NotificationsPage'
 
+// Admin Pages
+import AdminDashboard from './pages/admin/AdminDashboard'
+import HRManagementPage from './pages/admin/HRManagementPage'
+import InterviewerManagementPage from './pages/admin/InterviewerManagementPage'
+import OrganizationSettingsPage from './pages/admin/OrganizationSettingsPage'
+import AllJobsPage from './pages/admin/AllJobsPage'
+import AdminProfile from './pages/admin/AdminProfile'
+
 function App() {
   return (
     <Router>
@@ -49,6 +57,15 @@ function App() {
         <Route path="/my-applications" element={<MyApplicationsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
+
+        {/* Admin Routes */}
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/hr-management" element={<HRManagementPage />} />
+        <Route path="/admin/interviewer-management" element={<InterviewerManagementPage />} />
+        <Route path="/admin/jobs" element={<AllJobsPage />} />
+        <Route path="/admin/organization" element={<OrganizationSettingsPage />} />
+        <Route path="/admin/profile" element={<AdminProfile />} />
 
         {/* Error Pages */}
         <Route path="/unauthorized" element={
