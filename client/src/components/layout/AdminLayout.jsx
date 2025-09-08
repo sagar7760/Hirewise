@@ -8,7 +8,7 @@ const AdminLayout = ({ children }) => {
       <main className="flex-1">
         {children}
       </main>
-      <footer className="py-4 text-center border-t border-gray-200 bg-white">
+      <footer className="py-1 text-center border-t border-gray-200 bg-white">
         <p className="text-sm text-gray-600 font-['Roboto']">
           © 2025 HireWise. All rights reserved.
         </p>

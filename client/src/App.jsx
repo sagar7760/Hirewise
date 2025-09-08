@@ -28,6 +28,12 @@ import OrganizationSettingsPage from './pages/admin/OrganizationSettingsPage'
 import AllJobsPage from './pages/admin/AllJobsPage'
 import AdminProfile from './pages/admin/AdminProfile'
 
+// HR Pages
+import HRDashboard from './pages/hr/HRDashboard'
+import HRJobManagement from './pages/hr/HRJobManagement'
+import HRApplicationManagement from './pages/hr/HRApplicationManagement'
+import HRInterviewManagement from './pages/hr/HRInterviewManagement'
+
 function App() {
   return (
     <Router>
@@ -66,6 +72,13 @@ function App() {
         <Route path="/admin/jobs" element={<AllJobsPage />} />
         <Route path="/admin/organization" element={<OrganizationSettingsPage />} />
         <Route path="/admin/profile" element={<AdminProfile />} />
+
+        {/* HR Routes */}
+        <Route path="/hr" element={<HRDashboard />} />
+        <Route path="/hr/dashboard" element={<HRDashboard />} />
+        <Route path="/hr/jobs" element={<HRJobManagement />} />
+        <Route path="/hr/applications" element={<HRApplicationManagement />} />
+        <Route path="/hr/interviews" element={<HRInterviewManagement />} />
 
         {/* Error Pages */}
         <Route path="/unauthorized" element={
