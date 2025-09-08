@@ -17,6 +17,8 @@ import JobsPage from './pages/applicant/JobsPage'
 import JobDetailsPage from './pages/applicant/JobDetailsPage'
 import MyApplicationsPage from './pages/applicant/MyApplicationsPage'
 import ProfilePage from './pages/applicant/ProfilePage'
+import JobApplicationPage from './pages/applicant/JobApplicationPage'
+import NotificationsPage from './pages/applicant/NotificationsPage'
 
 function App() {
   return (
@@ -43,8 +45,10 @@ function App() {
         <Route path="/dashboard" element={<ApplicantDashboard />} />
         <Route path="/jobs" element={<JobsPage />} />
         <Route path="/jobs/:jobId" element={<JobDetailsPage />} />
+        <Route path="/jobs/:jobId/apply" element={<JobApplicationPage />} />
         <Route path="/my-applications" element={<MyApplicationsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
 
         {/* Error Pages */}
         <Route path="/unauthorized" element={

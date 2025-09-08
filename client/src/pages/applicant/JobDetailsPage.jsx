@@ -35,8 +35,7 @@ const JobDetailsPage = () => {
   };
 
   const handleApply = () => {
-    console.log('Apply to job:', jobId);
-    // TODO: Implement apply logic
+    navigate(`/jobs/${jobId}/apply`);
   };
 
   const handleSave = () => {

@@ -190,8 +190,7 @@ const JobsPage = () => {
 
   const handleApply = (e, jobId) => {
     e.stopPropagation();
-    console.log('Apply to job:', jobId);
-    // TODO: Implement apply logic
+    navigate(`/jobs/${jobId}/apply`);
   };
 
   const handleSearch = (e) => {

@@ -212,7 +212,7 @@ const ProfilePage = () => {
                     name="fullName"
                     value={formData.fullName}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto']"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] text-gray-900"
                   />
                 ) : (
                   <p className="text-gray-900 font-['Roboto'] py-2">{formData.fullName}</p>
@@ -230,7 +230,7 @@ const ProfilePage = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto']"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] text-gray-900"
                   />
                 ) : (
                   <p className="text-gray-900 font-['Roboto'] py-2">{formData.email}</p>
@@ -248,7 +248,7 @@ const ProfilePage = () => {
                     name="phone"
                     value={formData.phone}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto']"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] text-gray-900"
                   />
                 ) : (
                   <p className="text-gray-900 font-['Roboto'] py-2">{formData.phone}</p>
@@ -266,7 +266,7 @@ const ProfilePage = () => {
                     name="location"
                     value={formData.location}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto']"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] text-gray-900"
                   />
                 ) : (
                   <p className="text-gray-900 font-['Roboto'] py-2">{formData.location}</p>
@@ -285,7 +285,7 @@ const ProfilePage = () => {
                   value={formData.summary}
                   onChange={handleInputChange}
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] resize-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] resize-none text-gray-900"
                 />
               ) : (
                 <p className="text-gray-900 font-['Roboto'] py-2 leading-relaxed">{formData.summary}</p>
@@ -454,7 +454,7 @@ const ProfilePage = () => {
                   type="text"
                   value={formData.skills.join(', ')}
                   onChange={handleSkillsChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto']"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] text-gray-900"
                   placeholder="e.g., JavaScript, React, Node.js"
                 />
               </div>

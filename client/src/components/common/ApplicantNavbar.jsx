@@ -6,15 +6,53 @@ const ApplicantNavbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isNotificationDropdownOpen, setIsNotificationDropdownOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
+  const [isNotificationHovered, setIsNotificationHovered] = useState(false);
+  const [isNotificationClicked, setIsNotificationClicked] = useState(false);
   const dropdownRef = useRef(null);
+  const notificationDropdownRef = useRef(null);
   const hoverTimeoutRef = useRef(null);
+  const notificationHoverTimeoutRef = useRef(null);
   
   const navItems = [
     { name: 'Home', path: '/dashboard' },
     { name: 'Jobs', path: '/jobs' },
   ];
+
+  // Mock notification data
+  const mockNotifications = [
+    {
+      id: 1,
+      type: 'application',
+      title: 'Application Received',
+      message: 'Your application for Senior Software Engineer has been received.',
+      time: '2 hours ago',
+      read: false,
+      icon: 'document'
+    },
+    {
+      id: 2,
+      type: 'interview',
+      title: 'Interview Scheduled',
+      message: 'Interview scheduled for Product Manager position.',
+      time: '1 day ago',
+      read: false,
+      icon: 'calendar'
+    },
+    {
+      id: 3,
+      type: 'message',
+      title: 'New Message',
+      message: 'You have a new message from HR.',
+      time: '2 days ago',
+      read: true,
+      icon: 'mail'
+    }
+  ];
+
+  const unreadNotifications = mockNotifications.filter(n => !n.read);
 
   const isActivePath = (path) => {
     if (path === '/dashboard') {
@@ -29,6 +67,10 @@ const ApplicantNavbar = () => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsProfileDropdownOpen(false);
         setIsClicked(false);
+      }
+      if (notificationDropdownRef.current && !notificationDropdownRef.current.contains(event.target)) {
+        setIsNotificationDropdownOpen(false);
+        setIsNotificationClicked(false);
       }
     };
 
@@ -77,6 +119,72 @@ const ApplicantNavbar = () => {
     // TODO: Implement navigation for other menu items when pages are created
   };
 
+  // Notification dropdown handlers
+  const handleNotificationMouseEnter = () => {
+    if (notificationHoverTimeoutRef.current) {
+      clearTimeout(notificationHoverTimeoutRef.current);
+    }
+    setIsNotificationHovered(true);
+    if (!isNotificationClicked) {
+      setIsNotificationDropdownOpen(true);
+    }
+  };
+
+  const handleNotificationMouseLeave = () => {
+    setIsNotificationHovered(false);
+    if (!isNotificationClicked) {
+      notificationHoverTimeoutRef.current = setTimeout(() => {
+        setIsNotificationDropdownOpen(false);
+      }, 200);
+    }
+  };
+
+  const handleNotificationClick = () => {
+    setIsNotificationClicked(!isNotificationClicked);
+    setIsNotificationDropdownOpen(!isNotificationDropdownOpen);
+  };
+
+  const handleNotificationItemClick = (notificationId) => {
+    console.log(`Clicked notification: ${notificationId}`);
+    setIsNotificationDropdownOpen(false);
+    setIsNotificationClicked(false);
+  };
+
+  const handleViewAllNotifications = () => {
+    navigate('/notifications');
+    setIsNotificationDropdownOpen(false);
+    setIsNotificationClicked(false);
+  };
+
+  const getNotificationIcon = (iconType) => {
+    switch (iconType) {
+      case 'document':
+        return (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        );
+      case 'calendar':
+        return (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        );
+      case 'mail':
+        return (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        );
+      default:
+        return (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+        );
+    }
+  };
+
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -116,12 +224,117 @@ const ApplicantNavbar = () => {
 
           {/* Notifications and Profile */}
           <div className="flex items-center space-x-4">
-            {/* Bell Icon for Notifications */}
-            <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-            </button>
+            {/* Notifications Dropdown */}
+            <div 
+              className="relative" 
+              ref={notificationDropdownRef}
+              onMouseEnter={handleNotificationMouseEnter}
+              onMouseLeave={handleNotificationMouseLeave}
+            >
+              <button 
+                onClick={handleNotificationClick}
+                className={`relative p-2 text-gray-400 hover:text-gray-600 transition-colors duration-200 rounded-full hover:bg-gray-100 ${
+                  isNotificationDropdownOpen ? 'text-gray-600 bg-gray-100' : ''
+                }`}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                {/* Notification Badge */}
+                {unreadNotifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                    {unreadNotifications.length}
+                  </span>
+                )}
+              </button>
+
+              {/* Notifications Dropdown */}
+              <div className={`absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 transition-all duration-200 ease-out transform origin-top-right ${
+                isNotificationDropdownOpen 
+                  ? 'opacity-100 scale-100 translate-y-0' 
+                  : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
+              }`}>
+                {/* Header */}
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium text-gray-900 font-['Open_Sans']">Notifications</h3>
+                    {unreadNotifications.length > 0 && (
+                      <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-medium">
+                        {unreadNotifications.length} unread
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Notification Items */}
+                <div className="max-h-96 overflow-y-auto">
+                  {mockNotifications.length > 0 ? (
+                    mockNotifications.slice(0, 4).map((notification) => (
+                      <button
+                        key={notification.id}
+                        onClick={() => handleNotificationItemClick(notification.id)}
+                        className={`w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-b-0 ${
+                          !notification.read ? 'bg-blue-50' : ''
+                        }`}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
+                            !notification.read ? 'bg-white shadow-sm' : 'bg-gray-100'
+                          } ${notification.type === 'application' ? 'text-blue-500' : 
+                             notification.type === 'interview' ? 'text-green-500' : 
+                             notification.type === 'message' ? 'text-purple-500' : 'text-gray-500'}`}>
+                            {getNotificationIcon(notification.icon)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className={`text-sm font-medium font-['Open_Sans'] ${
+                                  !notification.read ? 'text-gray-900' : 'text-gray-700'
+                                }`}>
+                                  {notification.title}
+                                  {!notification.read && (
+                                    <span className="ml-2 w-2 h-2 bg-blue-500 rounded-full inline-block"></span>
+                                  )}
+                                </p>
+                                <p className={`mt-1 text-xs font-['Roboto'] ${
+                                  !notification.read ? 'text-gray-600' : 'text-gray-500'
+                                } line-clamp-2`}>
+                                  {notification.message}
+                                </p>
+                              </div>
+                              <p className="text-xs text-gray-500 font-['Roboto'] flex-shrink-0 ml-2">
+                                {notification.time}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-8 text-center">
+                      <div className="text-gray-400 mb-2">
+                        <svg className="mx-auto h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                      </div>
+                      <p className="text-sm text-gray-500 font-['Roboto']">No notifications</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer */}
+                {mockNotifications.length > 0 && (
+                  <div className="border-t border-gray-100 px-4 py-3">
+                    <button
+                      onClick={handleViewAllNotifications}
+                      className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium font-['Roboto'] transition-colors"
+                    >
+                      View all notifications
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* Profile */}
             <div 
