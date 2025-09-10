@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import hirewiseLogo from '../../assets/hirewise.svg';
 
@@ -7,7 +7,15 @@ const HRNavbar = () => {
   const location = useLocation();
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isNotificationDropdownOpen, setIsNotificationDropdownOpen] = useState(false);
+  const [isNotificationHovered, setIsNotificationHovered] = useState(false);
   const [isNotificationClicked, setIsNotificationClicked] = useState(false);
+  const [isProfileHovered, setIsProfileHovered] = useState(false);
+  const [isProfileClicked, setIsProfileClicked] = useState(false);
+  
+  const notificationDropdownRef = useRef(null);
+  const profileDropdownRef = useRef(null);
+  const notificationHoverTimeoutRef = useRef(null);
+  const profileHoverTimeoutRef = useRef(null);
 
   // Sample notifications for HR
   const [notifications] = useState([
@@ -17,7 +25,7 @@ const HRNavbar = () => {
       title: 'New Application Received',
       message: 'Maria Garcia applied for Senior Frontend Developer',
       time: '5 minutes ago',
-      unread: true,
+      read: false,
       icon: 'user'
     },
     {
@@ -26,7 +34,7 @@ const HRNavbar = () => {
       title: 'Interview Scheduled',
       message: 'Interview with John Smith scheduled for tomorrow 10:00 AM',
       time: '1 hour ago',
-      unread: true,
+      read: false,
       icon: 'calendar'
     },
     {
@@ -35,12 +43,13 @@ const HRNavbar = () => {
       title: 'Interview Feedback Submitted',
       message: 'Sarah Johnson submitted feedback for Alex Rodriguez',
       time: '2 hours ago',
-      unread: false,
+      read: true,
       icon: 'check'
     }
   ]);
 
-  const unreadCount = notifications.filter(n => n.unread).length;
+  const unreadNotifications = notifications.filter(n => !n.read);
+  const unreadCount = unreadNotifications.length;
 
   // Navigation items for HR
   const navigationItems = [
@@ -53,9 +62,13 @@ const HRNavbar = () => {
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (!event.target.closest('.dropdown-container')) {
-        setIsProfileDropdownOpen(false);
+      if (notificationDropdownRef.current && !notificationDropdownRef.current.contains(event.target)) {
         setIsNotificationDropdownOpen(false);
+        setIsNotificationClicked(false);
+      }
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
+        setIsProfileDropdownOpen(false);
+        setIsProfileClicked(false);
       }
     };
 
@@ -70,18 +83,59 @@ const HRNavbar = () => {
     setIsProfileDropdownOpen(false);
     setIsNotificationDropdownOpen(false);
     setIsNotificationClicked(false);
+    setIsProfileClicked(false);
   }, [location.pathname]);
 
-  // Handle notification click
-  const handleNotificationClick = () => {
-    setIsNotificationDropdownOpen(!isNotificationDropdownOpen);
-    setIsProfileDropdownOpen(false); // Close profile dropdown if open
+  // Notification dropdown handlers
+  const handleNotificationMouseEnter = () => {
+    if (notificationHoverTimeoutRef.current) {
+      clearTimeout(notificationHoverTimeoutRef.current);
+    }
+    setIsNotificationHovered(true);
+    if (!isNotificationClicked) {
+      setIsNotificationDropdownOpen(true);
+    }
   };
 
-  // Handle profile click
+  const handleNotificationMouseLeave = () => {
+    setIsNotificationHovered(false);
+    if (!isNotificationClicked) {
+      notificationHoverTimeoutRef.current = setTimeout(() => {
+        setIsNotificationDropdownOpen(false);
+      }, 200);
+    }
+  };
+
+  const handleNotificationClick = () => {
+    setIsNotificationClicked(!isNotificationClicked);
+    setIsNotificationDropdownOpen(!isNotificationDropdownOpen);
+    setIsProfileDropdownOpen(false);
+  };
+
+  // Profile dropdown handlers
+  const handleProfileMouseEnter = () => {
+    if (profileHoverTimeoutRef.current) {
+      clearTimeout(profileHoverTimeoutRef.current);
+    }
+    setIsProfileHovered(true);
+    if (!isProfileClicked) {
+      setIsProfileDropdownOpen(true);
+    }
+  };
+
+  const handleProfileMouseLeave = () => {
+    setIsProfileHovered(false);
+    if (!isProfileClicked) {
+      profileHoverTimeoutRef.current = setTimeout(() => {
+        setIsProfileDropdownOpen(false);
+      }, 200);
+    }
+  };
+
   const handleProfileClick = () => {
+    setIsProfileClicked(!isProfileClicked);
     setIsProfileDropdownOpen(!isProfileDropdownOpen);
-    setIsNotificationDropdownOpen(false); // Close notification dropdown if open
+    setIsNotificationDropdownOpen(false);
   };
 
   const handleProfileMenuClick = (action) => {
@@ -181,7 +235,12 @@ const HRNavbar = () => {
           {/* Right side - Notifications and Profile */}
           <div className="flex items-center space-x-4">
             {/* Notifications */}
-            <div className="relative dropdown-container">
+            <div 
+              className="relative" 
+              ref={notificationDropdownRef}
+              onMouseEnter={handleNotificationMouseEnter}
+              onMouseLeave={handleNotificationMouseLeave}
+            >
               <button
                 onClick={handleNotificationClick}
                 className={`p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors relative ${
@@ -199,59 +258,91 @@ const HRNavbar = () => {
               </button>
 
               {/* Notifications Dropdown */}
-              {isNotificationDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50">
-                  <div className="p-4 border-b border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900 font-['Open_Sans']">Notifications</h3>
-                  </div>
-                  <div className="max-h-64 overflow-y-auto">
-                    {notifications.map((notification) => (
-                      <div
-                        key={notification.id}
-                        onClick={() => handleNotificationItemClick(notification)}
-                        className={`p-4 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 ${
-                          notification.unread ? 'bg-gray-50' : ''
-                        }`}
-                      >
-                        <div className="flex items-start">
-                          <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                            notification.unread ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-600'
-                          }`}>
-                            {getNotificationIcon(notification.icon)}
-                          </div>
-                          <div className="ml-3 flex-1">
-                            <p className={`text-sm font-medium font-['Open_Sans'] ${
-                              notification.unread ? 'text-gray-900' : 'text-gray-700'
-                            }`}>
-                              {notification.title}
-                            </p>
-                            <p className="text-sm text-gray-600 font-['Roboto']">{notification.message}</p>
-                            <p className="text-xs text-gray-500 mt-1 font-['Roboto']">{notification.time}</p>
-                          </div>
-                          {notification.unread && (
-                            <div className="w-2 h-2 bg-black rounded-full"></div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="p-4 border-t border-gray-200">
-                    <Link
-                      to="/hr/notifications"
-                      className="text-sm text-gray-600 hover:text-gray-900 font-['Roboto'] transition-colors"
-                    >
-                      View all notifications →
-                    </Link>
+              <div className={`absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 transition-all duration-200 ease-out transform origin-top-right ${
+                isNotificationDropdownOpen 
+                  ? 'opacity-100 scale-100 translate-y-0' 
+                  : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
+              }`}>
+                {/* Header */}
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium text-gray-900 font-['Open_Sans']">HR Notifications</h3>
+                    {unreadNotifications.length > 0 && (
+                      <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full font-medium">
+                        {unreadNotifications.length} unread
+                      </span>
+                    )}
                   </div>
                 </div>
-              )}
+
+                {/* Notification Items */}
+                <div className="max-h-96 overflow-y-auto">
+                  {notifications.map((notification) => (
+                    <button
+                      key={notification.id}
+                      onClick={() => handleNotificationItemClick(notification.id)}
+                      className={`w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-b-0 ${
+                        !notification.read ? 'bg-gray-50' : ''
+                      }`}
+                    >
+                      <div className="flex items-start space-x-3">
+                        <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
+                          !notification.read ? 'bg-white shadow-sm' : 'bg-gray-100'
+                        } ${notification.type === 'application' ? 'text-gray-700' : 
+                           notification.type === 'interview' ? 'text-gray-700' : 
+                           notification.type === 'feedback' ? 'text-gray-700' : 'text-gray-500'}`}>
+                          {getNotificationIcon(notification.icon)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <p className={`text-sm font-medium font-['Open_Sans'] ${
+                                !notification.read ? 'text-gray-900' : 'text-gray-700'
+                              }`}>
+                                {notification.title}
+                                {!notification.read && (
+                                  <span className="ml-2 w-2 h-2 bg-gray-800 rounded-full inline-block"></span>
+                                )}
+                              </p>
+                              <p className={`mt-1 text-xs font-['Roboto'] ${
+                                !notification.read ? 'text-gray-600' : 'text-gray-500'
+                              } line-clamp-2`}>
+                                {notification.message}
+                              </p>
+                            </div>
+                            <p className="text-xs text-gray-500 font-['Roboto'] flex-shrink-0 ml-2">
+                              {notification.time}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                
+                {/* Footer with View All link */}
+                <div className="border-t border-gray-100 px-4 py-3">
+                  <Link
+                    to="/hr/notifications"
+                    onClick={() => setIsNotificationDropdownOpen(false)}
+                    className="text-sm text-gray-600 hover:text-gray-900 font-['Roboto'] transition-colors"
+                  >
+                    View all notifications →
+                  </Link>
+                </div>
+              </div>
             </div>
 
             {/* Profile */}
-            <div className="relative dropdown-container">
+            <div 
+              className="relative" 
+              ref={profileDropdownRef}
+              onMouseEnter={handleProfileMouseEnter}
+              onMouseLeave={handleProfileMouseLeave}
+            >
               <button
                 onClick={handleProfileClick}
-                className={`flex items-center text-sm rounded-full focus:outline-none transition-all ${
+                className={`flex items-center text-sm rounded-full focus:outline-none transition-all duration-200 hover:ring-2 hover:ring-gray-300 ${
                   isProfileDropdownOpen ? 'ring-2 ring-gray-400' : ''
                 }`}
               >
@@ -263,57 +354,51 @@ const HRNavbar = () => {
               </button>
 
               {/* Profile Dropdown */}
-              {isProfileDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 py-1 z-50">
-                  <div className="px-4 py-2 border-b border-gray-100">
-                    <p className="text-sm font-medium text-gray-900 font-['Open_Sans']">HR Manager</p>
-                    <p className="text-xs text-gray-500 font-['Roboto']">hr.manager@hirewise.com</p>
-                  </div>
-                  <button
-                    onClick={() => handleProfileMenuClick('Profile')}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors font-['Roboto']"
-                  >
-                    <div className="flex items-center">
-                      <svg className="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      Profile
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => handleProfileMenuClick('Settings')}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors font-['Roboto']"
-                  >
-                    <div className="flex items-center">
-                      <svg className="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      Settings
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => handleProfileMenuClick('Logout')}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors font-['Roboto']"
-                  >
-                    <div className="flex items-center">
-                      <svg className="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                      </svg>
-                      Logout
-                    </div>
-                  </button>
+              <div className={`absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 transition-all duration-200 ease-out transform origin-top-right ${
+                isProfileDropdownOpen 
+                  ? 'opacity-100 scale-100 translate-y-0' 
+                  : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
+              }`}>
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <p className="text-sm font-medium text-gray-900 font-['Open_Sans']">HR Manager</p>
+                  <p className="text-xs text-gray-500 font-['Roboto']">hr.manager@hirewise.com</p>
                 </div>
-              )}
-            </div>
-
-            {/* Mobile menu button */}
-            <div className="md:hidden">
-              <button className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100">
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
+                <button
+                  onClick={() => handleProfileMenuClick('Profile')}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors font-['Roboto']"
+                >
+                  <div className="flex items-center">
+                    <svg className="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    Profile
+                  </div>
+                </button>
+                <button
+                  onClick={() => handleProfileMenuClick('Settings')}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors font-['Roboto']"
+                >
+                  <div className="flex items-center">
+                    <svg className="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Settings
+                  </div>
+                </button>
+                <hr className="my-1 border-gray-100" />
+                <button
+                  onClick={() => handleProfileMenuClick('Logout')}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors font-['Roboto']"
+                >
+                  <div className="flex items-center">
+                    <svg className="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    Sign out
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
         </div>

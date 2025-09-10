@@ -27,12 +27,16 @@ import InterviewerManagementPage from './pages/admin/InterviewerManagementPage'
 import OrganizationSettingsPage from './pages/admin/OrganizationSettingsPage'
 import AllJobsPage from './pages/admin/AllJobsPage'
 import AdminProfile from './pages/admin/AdminProfile'
+import AdminNotifications from './pages/admin/AdminNotifications'
 
 // HR Pages
 import HRDashboard from './pages/hr/HRDashboard'
 import HRJobManagement from './pages/hr/HRJobManagement'
 import HRApplicationManagement from './pages/hr/HRApplicationManagement'
 import HRInterviewManagement from './pages/hr/HRInterviewManagement'
+import HRProfile from './pages/hr/HRProfile'
+import HRCreateJob from './pages/hr/HRCreateJob'
+import HRNotifications from './pages/hr/HRNotifications'
 
 function App() {
   return (
@@ -71,14 +75,18 @@ function App() {
         <Route path="/admin/interviewer-management" element={<InterviewerManagementPage />} />
         <Route path="/admin/jobs" element={<AllJobsPage />} />
         <Route path="/admin/organization" element={<OrganizationSettingsPage />} />
+        <Route path="/admin/notifications" element={<AdminNotifications />} />
         <Route path="/admin/profile" element={<AdminProfile />} />
 
         {/* HR Routes */}
         <Route path="/hr" element={<HRDashboard />} />
         <Route path="/hr/dashboard" element={<HRDashboard />} />
         <Route path="/hr/jobs" element={<HRJobManagement />} />
+        <Route path="/hr/jobs/create" element={<HRCreateJob />} />
         <Route path="/hr/applications" element={<HRApplicationManagement />} />
         <Route path="/hr/interviews" element={<HRInterviewManagement />} />
+        <Route path="/hr/notifications" element={<HRNotifications />} />
+        <Route path="/hr/profile" element={<HRProfile />} />
 
         {/* Error Pages */}
         <Route path="/unauthorized" element={

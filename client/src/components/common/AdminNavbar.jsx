@@ -308,6 +308,17 @@ const AdminNavbar = () => {
                     </button>
                   ))}
                 </div>
+                
+                {/* Footer with View All link */}
+                <div className="border-t border-gray-100 px-4 py-3">
+                  <Link
+                    to="/admin/notifications"
+                    onClick={() => setIsNotificationDropdownOpen(false)}
+                    className="text-sm text-gray-600 hover:text-gray-900 font-['Roboto'] transition-colors"
+                  >
+                    View all notifications →
+                  </Link>
+                </div>
               </div>
             </div>
 
