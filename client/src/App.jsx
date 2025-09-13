@@ -21,7 +21,7 @@ import JobApplicationPage from './pages/applicant/JobApplicationPage.jsx'
 import NotificationsPage from './pages/applicant/NotificationsPage.jsx'
 
 // Admin Pages
-import AdminDashboard from './pages/admin/adminDashboard.jsx'
+import AdminDashboard from './pages/admin/AdminDashboard.jsx'
 import HRManagementPage from './pages/admin/HRManagementPage.jsx'
 import InterviewerManagementPage from './pages/admin/InterviewerManagementPage.jsx'
 import OrganizationSettingsPage from './pages/admin/OrganizationSettingsPage.jsx'
