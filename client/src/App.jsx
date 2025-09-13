@@ -38,6 +38,13 @@ import HRProfile from './pages/hr/HRProfile'
 import HRCreateJob from './pages/hr/HRCreateJob'
 import HRNotifications from './pages/hr/HRNotifications'
 
+// Interviewer Pages
+import InterviewerDashboard from './pages/interviewer/InterviewerDashboard'
+import TodaysInterviews from './pages/interviewer/TodaysInterviews'
+import UpcomingInterviews from './pages/interviewer/UpcomingInterviews'
+import PendingFeedback from './pages/interviewer/PendingFeedback'
+import PastInterviews from './pages/interviewer/PastInterviews'
+
 function App() {
   return (
     <Router>
@@ -87,6 +94,14 @@ function App() {
         <Route path="/hr/interviews" element={<HRInterviewManagement />} />
         <Route path="/hr/notifications" element={<HRNotifications />} />
         <Route path="/hr/profile" element={<HRProfile />} />
+
+        {/* Interviewer Routes */}
+        <Route path="/interviewer" element={<InterviewerDashboard />} />
+        <Route path="/interviewer/dashboard" element={<InterviewerDashboard />} />
+        <Route path="/interviewer/today" element={<TodaysInterviews />} />
+        <Route path="/interviewer/upcoming" element={<UpcomingInterviews />} />
+        <Route path="/interviewer/feedback" element={<PendingFeedback />} />
+        <Route path="/interviewer/past" element={<PastInterviews />} />
 
         {/* Error Pages */}
         <Route path="/unauthorized" element={
