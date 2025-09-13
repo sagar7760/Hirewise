@@ -21,13 +21,13 @@ import JobApplicationPage from './pages/applicant/JobApplicationPage.jsx'
 import NotificationsPage from './pages/applicant/NotificationsPage.jsx'
 
 // Admin Pages
-import AdminDashboard from './pages/admin/AdminDashboard.jsx'
-import HRManagementPage from './pages/admin/HRManagementPage.jsx'
-import InterviewerManagementPage from './pages/admin/InterviewerManagementPage.jsx'
-import OrganizationSettingsPage from './pages/admin/OrganizationSettingsPage.jsx'
-import AllJobsPage from './pages/admin/AllJobsPage.jsx'
-import AdminProfile from './pages/admin/AdminProfile.jsx'
-import AdminNotifications from './pages/admin/AdminNotifications.jsx'
+import AdminDashboard from './pages/Admin/AdminDashboard.jsx'
+import HRManagementPage from './pages/Admin/HRManagementPage.jsx'
+import InterviewerManagementPage from './pages/Admin/InterviewerManagementPage.jsx'
+import OrganizationSettingsPage from './pages/Admin/OrganizationSettingsPage.jsx'
+import AllJobsPage from './pages/Admin/AllJobsPage.jsx'
+import AdminProfile from './pages/Admin/AdminProfile.jsx'
+import AdminNotifications from './pages/Admin/AdminNotifications.jsx'
 
 // HR Pages
 import HRDashboard from './pages/hr/HRDashboard.jsx'
