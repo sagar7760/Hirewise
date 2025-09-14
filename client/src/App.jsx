@@ -40,10 +40,10 @@ import HRNotifications from './pages/hr/HRNotifications.jsx'
 
 // Interviewer Pages
 import InterviewerDashboard from './pages/interviewer/InterviewerDashboard.jsx'
-import TodaysInterviews from './pages/interviewer/TodaysInterviews.jsx'
-import UpcomingInterviews from './pages/interviewer/UpcomingInterviews.jsx'
+import InterviewManagement from './pages/interviewer/InterviewManagement.jsx'
 import PendingFeedback from './pages/interviewer/PendingFeedback.jsx'
-import PastInterviews from './pages/interviewer/PastInterviews.jsx'
+import InterviewerNotifications from './pages/interviewer/InterviewerNotifications.jsx'
+import InterviewerProfile from './pages/interviewer/InterviewerProfile.jsx'
 
 function App() {
   return (
@@ -98,10 +98,10 @@ function App() {
         {/* Interviewer Routes */}
         <Route path="/interviewer" element={<InterviewerDashboard />} />
         <Route path="/interviewer/dashboard" element={<InterviewerDashboard />} />
-        <Route path="/interviewer/today" element={<TodaysInterviews />} />
-        <Route path="/interviewer/upcoming" element={<UpcomingInterviews />} />
+        <Route path="/interviewer/interviews" element={<InterviewManagement />} />
         <Route path="/interviewer/feedback" element={<PendingFeedback />} />
-        <Route path="/interviewer/past" element={<PastInterviews />} />
+        <Route path="/interviewer/notifications" element={<InterviewerNotifications />} />
+        <Route path="/interviewer/profile" element={<InterviewerProfile />} />
 
         {/* Error Pages */}
         <Route path="/unauthorized" element={

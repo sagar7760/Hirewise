@@ -389,7 +389,7 @@ const PendingFeedback = () => {
                       Key Strengths
                     </label>
                     <textarea
-                      className="w-full h-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto']"
+                      className="w-full h-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-black placeholder-gray-500"
                       placeholder="What did the candidate do well?"
                       value={feedbackForm.strengths}
                       onChange={(e) => handleInputChange('strengths', e.target.value)}
@@ -400,7 +400,7 @@ const PendingFeedback = () => {
                       Areas for Improvement
                     </label>
                     <textarea
-                      className="w-full h-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto']"
+                      className="w-full h-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-black placeholder-gray-500"
                       placeholder="What areas need development?"
                       value={feedbackForm.improvements}
                       onChange={(e) => handleInputChange('improvements', e.target.value)}
@@ -413,7 +413,7 @@ const PendingFeedback = () => {
                     Detailed Feedback
                   </label>
                   <textarea
-                    className="w-full h-40 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto']"
+                    className="w-full h-40 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-black placeholder-gray-500"
                     placeholder="Provide detailed feedback about the candidate's performance during the interview..."
                     value={feedbackForm.detailedFeedback}
                     onChange={(e) => handleInputChange('detailedFeedback', e.target.value)}
@@ -426,7 +426,7 @@ const PendingFeedback = () => {
                       Recommendation
                     </label>
                     <select
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto']"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-black bg-white"
                       value={feedbackForm.recommendation}
                       onChange={(e) => handleInputChange('recommendation', e.target.value)}
                     >
@@ -443,7 +443,7 @@ const PendingFeedback = () => {
                       Next Steps
                     </label>
                     <select
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto']"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-black bg-white"
                       value={feedbackForm.nextSteps}
                       onChange={(e) => handleInputChange('nextSteps', e.target.value)}
                     >

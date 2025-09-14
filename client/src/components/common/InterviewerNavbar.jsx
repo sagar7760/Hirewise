@@ -51,13 +51,11 @@ const InterviewerNavbar = () => {
   const unreadNotifications = notifications.filter(n => !n.read);
   const unreadCount = unreadNotifications.length;
 
-  // Navigation items for Interviewer
+  // Navigation items for Interviewer (simplified)
   const navigationItems = [
     { name: 'Dashboard', href: '/interviewer/dashboard' },
-    { name: 'Today\'s Interviews', href: '/interviewer/today' },
-    { name: 'Upcoming', href: '/interviewer/upcoming' },
-    { name: 'Pending Feedback', href: '/interviewer/feedback' },
-    { name: 'Past Interviews', href: '/interviewer/past' }
+    { name: 'Interviews', href: '/interviewer/interviews' },
+    { name: 'Pending Feedback', href: '/interviewer/feedback' }
   ];
 
   // Close dropdowns when clicking outside
@@ -146,8 +144,6 @@ const InterviewerNavbar = () => {
 
     if (action === 'Profile') {
       navigate('/interviewer/profile');
-    } else if (action === 'Settings') {
-      navigate('/interviewer/settings');
     } else if (action === 'Logout') {
       // Handle logout logic
       navigate('/login');
@@ -193,16 +189,19 @@ const InterviewerNavbar = () => {
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
-          {/* Left side - Logo and Navigation */}
+          {/* Left side - Logo only */}
           <div className="flex items-center">
             <Link to="/interviewer/dashboard" className="flex items-center">
               <img src={hirewiseLogo} alt="HireWise" className="h-8 w-auto" />
               <span className="ml-2 text-xl font-bold text-black font-['Open_Sans']">HireWise</span>
               <span className="ml-2 text-sm text-gray-500 font-['Roboto']">Interviewer</span>
             </Link>
+          </div>
 
+          {/* Right side - Navigation, Notifications and Profile */}
+          <div className="flex items-center space-x-4">
             {/* Navigation Menu */}
-            <div className="hidden md:ml-10 md:flex md:space-x-8">
+            <div className="hidden md:flex md:space-x-8 mr-4">
               {navigationItems.map((item) => {
                 const isActive = location.pathname === item.href || 
                   (item.href !== '/interviewer/dashboard' && location.pathname.startsWith(item.href));
@@ -222,10 +221,6 @@ const InterviewerNavbar = () => {
                 );
               })}
             </div>
-          </div>
-
-          {/* Right side - Notifications and Profile */}
-          <div className="flex items-center space-x-4">
             {/* Notifications */}
             <div 
               className="relative" 
@@ -364,18 +359,6 @@ const InterviewerNavbar = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                     Profile
-                  </div>
-                </button>
-                <button
-                  onClick={() => handleProfileMenuClick('Settings')}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors font-['Roboto']"
-                >
-                  <div className="flex items-center">
-                    <svg className="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    Settings
                   </div>
                 </button>
                 <hr className="my-1 border-gray-100" />

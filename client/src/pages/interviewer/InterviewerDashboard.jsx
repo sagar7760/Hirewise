@@ -71,7 +71,7 @@ const InterviewerDashboard = () => {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Link to="/interviewer/today" className="block">
+          <Link to="/interviewer/interviews" className="block">
             <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
               <div className="flex items-center">
                 <div className="p-3 bg-gray-100 rounded-lg">
@@ -87,7 +87,7 @@ const InterviewerDashboard = () => {
             </div>
           </Link>
 
-          <Link to="/interviewer/upcoming" className="block">
+          <Link to="/interviewer/interviews" className="block">
             <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
               <div className="flex items-center">
                 <div className="p-3 bg-gray-100 rounded-lg">
@@ -119,7 +119,7 @@ const InterviewerDashboard = () => {
             </div>
           </Link>
 
-          <Link to="/interviewer/past" className="block">
+          <Link to="/interviewer/interviews" className="block">
             <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
               <div className="flex items-center">
                 <div className="p-3 bg-gray-100 rounded-lg">
@@ -142,7 +142,7 @@ const InterviewerDashboard = () => {
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-black font-['Open_Sans']">Today's Schedule</h2>
               <Link 
-                to="/interviewer/today" 
+                to="/interviewer/interviews" 
                 className="text-sm text-black hover:text-gray-700 font-['Roboto'] font-medium"
               >
                 View All →
@@ -205,10 +205,10 @@ const InterviewerDashboard = () => {
           <h3 className="text-lg font-medium text-black font-['Open_Sans'] mb-4">Quick Actions</h3>
           <div className="flex flex-wrap gap-4">
             <Link 
-              to="/interviewer/today"
+              to="/interviewer/interviews"
               className="bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors font-['Roboto']"
             >
-              View Today's Schedule
+              View Interview Schedule
             </Link>
             <Link 
               to="/interviewer/feedback"
@@ -217,10 +217,10 @@ const InterviewerDashboard = () => {
               Complete Feedback
             </Link>
             <Link 
-              to="/interviewer/upcoming"
+              to="/interviewer/interviews"
               className="bg-white text-black border border-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors font-['Roboto']"
             >
-              Review Upcoming
+              Review Interviews
             </Link>
           </div>
         </div>

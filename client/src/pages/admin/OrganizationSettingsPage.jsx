@@ -201,7 +201,7 @@ const OrganizationSettingsPage = () => {
                   <select
                     value={editedData.industry}
                     onChange={(e) => setEditedData({ ...editedData, industry: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
                   >
                     {industries.map(industry => (
                       <option key={industry} value={industry}>{industry}</option>
@@ -222,7 +222,7 @@ const OrganizationSettingsPage = () => {
                     value={editedData.description}
                     onChange={(e) => setEditedData({ ...editedData, description: e.target.value })}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
                   />
                 ) : (
                   <p className="text-gray-900 font-['Roboto'] py-2">{organizationData.description}</p>
@@ -239,10 +239,10 @@ const OrganizationSettingsPage = () => {
                     type="url"
                     value={editedData.website}
                     onChange={(e) => setEditedData({ ...editedData, website: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
                   />
                 ) : (
-                  <a href={organizationData.website} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:text-purple-700 font-['Roboto'] py-2 block">
+                  <a href={organizationData.website} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-400 font-['Roboto'] py-2 block">
                     {organizationData.website}
                   </a>
                 )}
@@ -310,7 +310,7 @@ const OrganizationSettingsPage = () => {
                         ...editedData,
                         address: { ...editedData.address, street: e.target.value }
                       })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
                     />
                     <input
                       type="text"
@@ -320,7 +320,7 @@ const OrganizationSettingsPage = () => {
                         ...editedData,
                         address: { ...editedData.address, city: e.target.value }
                       })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
                     />
                     <input
                       type="text"
@@ -330,7 +330,7 @@ const OrganizationSettingsPage = () => {
                         ...editedData,
                         address: { ...editedData.address, state: e.target.value }
                       })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
                     />
                     <input
                       type="text"
@@ -340,7 +340,7 @@ const OrganizationSettingsPage = () => {
                         ...editedData,
                         address: { ...editedData.address, zipCode: e.target.value }
                       })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
                     />
                   </div>
                 ) : (

@@ -184,7 +184,7 @@ const AdminNavbar = () => {
     <nav className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
-          {/* Logo */}
+          {/* Logo only */}
           <div className="flex items-center">
             <Link to="/admin/dashboard" className="flex items-center">
               <div className="flex-shrink-0">
@@ -203,25 +203,24 @@ const AdminNavbar = () => {
             </Link>
           </div>
 
-          {/* Navigation Links */}
-          <div className="hidden md:flex items-center space-x-8">
-            {navItems.map((item) => (
-              <Link
-                key={item.name}
-                to={item.path}
-                className={`inline-flex items-center px-1 pt-1 text-sm font-medium transition-colors font-['Roboto'] ${
-                  isActivePath(item.path)
-                    ? 'text-gray-900 border-b-2 border-gray-900'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {item.name}
-              </Link>
-            ))}
-          </div>
-
-          {/* Notifications and Profile */}
+          {/* Navigation Links, Notifications and Profile */}
           <div className="flex items-center space-x-4">
+            {/* Navigation Links */}
+            <div className="hidden md:flex items-center space-x-8 mr-4">
+              {navItems.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.path}
+                  className={`inline-flex items-center px-1 pt-1 text-sm font-medium transition-colors font-['Roboto'] ${
+                    isActivePath(item.path)
+                      ? 'text-gray-900 border-b-2 border-gray-900'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {item.name}
+                </Link>
+              ))}
+            </div>
             {/* Notifications Dropdown */}
             <div 
               className="relative" 
@@ -331,16 +330,15 @@ const AdminNavbar = () => {
             >
               <button 
                 onClick={handleClick}
-                className={`bg-gray-800 flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-all duration-200 hover:ring-2 hover:ring-gray-300 ${
+                className={`flex items-center text-sm rounded-full focus:outline-none transition-all duration-200 hover:ring-2 hover:ring-gray-300 ${
                   isProfileDropdownOpen ? 'ring-2 ring-gray-400' : ''
                 }`}
               >
-                <span className="sr-only">Open admin menu</span>
-                <img
-                  className="h-8 w-8 rounded-full"
-                  src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                  alt="Admin Profile"
-                />
+                <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
               </button>
 
               {/* Profile Dropdown */}
