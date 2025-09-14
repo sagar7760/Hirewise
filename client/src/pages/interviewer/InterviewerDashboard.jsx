@@ -73,15 +73,15 @@ const InterviewerDashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Link to="/interviewer/today" className="block">
             <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 font-['Roboto']">Today's Interviews</p>
-                  <p className="text-2xl font-bold text-black font-['Open_Sans']">{dashboardData.summaryStats.todaysInterviews}</p>
-                </div>
-                <div className="p-3 bg-gray-100 rounded-full">
-                  <svg className="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex items-center">
+                <div className="p-3 bg-gray-100 rounded-lg">
+                  <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 font-['Roboto']">Today's Interviews</p>
+                  <p className="text-2xl font-bold text-black font-['Open_Sans']">{dashboardData.summaryStats.todaysInterviews}</p>
                 </div>
               </div>
             </div>
@@ -89,15 +89,15 @@ const InterviewerDashboard = () => {
 
           <Link to="/interviewer/upcoming" className="block">
             <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 font-['Roboto']">Upcoming</p>
-                  <p className="text-2xl font-bold text-black font-['Open_Sans']">{dashboardData.summaryStats.upcomingInterviews}</p>
-                </div>
-                <div className="p-3 bg-gray-100 rounded-full">
-                  <svg className="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex items-center">
+                <div className="p-3 bg-gray-100 rounded-lg">
+                  <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 font-['Roboto']">Upcoming</p>
+                  <p className="text-2xl font-bold text-black font-['Open_Sans']">{dashboardData.summaryStats.upcomingInterviews}</p>
                 </div>
               </div>
             </div>
@@ -105,15 +105,15 @@ const InterviewerDashboard = () => {
 
           <Link to="/interviewer/feedback" className="block">
             <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 font-['Roboto']">Pending Feedback</p>
-                  <p className="text-2xl font-bold text-black font-['Open_Sans']">{dashboardData.summaryStats.pendingFeedback}</p>
-                </div>
-                <div className="p-3 bg-gray-100 rounded-full">
-                  <svg className="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex items-center">
+                <div className="p-3 bg-gray-100 rounded-lg">
+                  <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 font-['Roboto']">Pending Feedback</p>
+                  <p className="text-2xl font-bold text-black font-['Open_Sans']">{dashboardData.summaryStats.pendingFeedback}</p>
                 </div>
               </div>
             </div>
@@ -121,15 +121,15 @@ const InterviewerDashboard = () => {
 
           <Link to="/interviewer/past" className="block">
             <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 font-['Roboto']">Total Interviews</p>
-                  <p className="text-2xl font-bold text-black font-['Open_Sans']">{dashboardData.summaryStats.totalInterviews}</p>
-                </div>
-                <div className="p-3 bg-gray-100 rounded-full">
-                  <svg className="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex items-center">
+                <div className="p-3 bg-gray-100 rounded-lg">
+                  <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 font-['Roboto']">Total Interviews</p>
+                  <p className="text-2xl font-bold text-black font-['Open_Sans']">{dashboardData.summaryStats.totalInterviews}</p>
                 </div>
               </div>
             </div>
