@@ -1,37 +1,194 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import officeHero from '../../assets/images/office-hero.png';
 
 const HomePage = () => {
+  const observerRef = useRef(null);
+
+  useEffect(() => {
+    // Create intersection observer for animations
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('animate-in');
+          }
+        });
+      },
+      {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+      }
+    );
+
+    // Observe all elements with animation classes
+    const animatedElements = document.querySelectorAll('.fade-up, .fade-left, .fade-right, .scale-in, .slide-up');
+    animatedElements.forEach((el) => {
+      observerRef.current.observe(el);
+    });
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, []);
+
   return (
     <>
+      {/* Animation Styles */}
+      <style>{`
+        .fade-up {
+          opacity: 0;
+          transform: translateY(30px);
+          transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .fade-up.animate-in {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        .fade-left {
+          opacity: 0;
+          transform: translateX(-30px);
+          transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+        .fade-left.animate-in {
+          opacity: 1;
+          transform: translateX(0);
+        }
+        .fade-right {
+          opacity: 0;
+          transform: translateX(30px);
+          transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+        .fade-right.animate-in {
+          opacity: 1;
+          transform: translateX(0);
+        }
+        .scale-in {
+          opacity: 0;
+          transform: scale(0.95);
+          transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .scale-in.animate-in {
+          opacity: 1;
+          transform: scale(1);
+        }
+        .slide-up {
+          opacity: 0;
+          transform: translateY(40px);
+          transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+        }
+        .slide-up.animate-in {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        .delay-100 { transition-delay: 0.1s; }
+        .delay-200 { transition-delay: 0.2s; }
+        .delay-300 { transition-delay: 0.3s; }
+        .delay-400 { transition-delay: 0.4s; }
+
+        /* Hover Animations */
+        .hover-lift {
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .hover-lift:hover {
+          transform: translateY(-8px);
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .hover-scale {
+          transition: transform 0.2s ease;
+        }
+        .hover-scale:hover {
+          transform: scale(1.05);
+        }
+        
+        .hover-glow {
+          transition: box-shadow 0.3s ease, transform 0.2s ease;
+        }
+        .hover-glow:hover {
+          box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+          transform: translateY(-2px);
+        }
+        
+        .hover-slide {
+          position: relative;
+          overflow: hidden;
+          transition: transform 0.2s ease;
+        }
+        .hover-slide:hover {
+          transform: translateX(5px);
+        }
+        .hover-slide::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+          transition: left 0.5s;
+        }
+        .hover-slide:hover::before {
+          left: 100%;
+        }
+        
+        .hover-bounce {
+          transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        .hover-bounce:hover {
+          transform: scale(1.1);
+        }
+        
+        .hover-rotate {
+          transition: transform 0.3s ease;
+        }
+        .hover-rotate:hover {
+          transform: rotate(5deg) scale(1.02);
+        }
+        
+        .hover-gradient {
+          background: linear-gradient(45deg, #000000, #333333);
+          background-size: 200% 200%;
+          transition: background-position 0.3s ease, transform 0.2s ease;
+        }
+        .hover-gradient:hover {
+          background-position: 100% 100%;
+          transform: translateY(-2px);
+        }
+        
+        .cursor-pointer {
+          cursor: pointer;
+        }
+      `}</style>
       {/* Hero Section */}
       <section className="px-6 py-20 bg-white">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-8">
-            <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight font-['Open_Sans']">
+            <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight font-['Open_Sans'] fade-up">
               Smarter Hiring with AI.{' '}
               <span className="block">Faster. Fairer.</span>
               <span className="block">Better.</span>
             </h1>
-            <p className="text-xl text-gray-600 leading-relaxed font-['Roboto']">
+            <p className="text-xl text-gray-600 leading-relaxed font-['Roboto'] fade-up delay-200">
               Transform your recruitment process with AI-powered tools that help you find, evaluate, and hire the best candidates efficiently.
             </p>
-            <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-              <button className="bg-black text-white hover:bg-gray-800 px-8 py-4 rounded-lg text-lg font-semibold font-['Open_Sans'] transition-colors">
+            <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 fade-up delay-300">
+              <button className="bg-black text-white hover:bg-gray-800 px-8 py-4 rounded-lg text-lg font-semibold font-['Open_Sans'] transition-colors hover-gradient hover-glow cursor-pointer">
                 Get Started
               </button>
-              <button className="border-2 border-black text-black hover:bg-black hover:text-white px-8 py-4 rounded-lg text-lg font-semibold font-['Open_Sans'] transition-colors">
+              <button className="border-2 border-black text-black hover:bg-black hover:text-white px-8 py-4 rounded-lg text-lg font-semibold font-['Open_Sans'] transition-colors hover-slide cursor-pointer">
                 Watch Demo
               </button>
             </div>
           </div>
           
-          <div className="relative">
-            <div>
+          <div className="relative fade-right">
+            <div className="hover-scale cursor-pointer">
               <img 
                 src={officeHero} 
                 alt="AI-Powered Hiring Platform - Modern office with professionals collaborating" 
-                className="w-full h-80 object-cover rounded-xl"
+                className="w-full h-80 object-cover rounded-xl hover-glow"
               />
             </div>
           </div>
@@ -41,15 +198,15 @@ const HomePage = () => {
       {/* How it Works Section */}
       <section className="px-6 py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
+          <div className="text-center mb-16 fade-up">
             <h2 className="text-4xl font-bold text-gray-900 mb-4 font-['Open_Sans']">How it Works</h2>
             <p className="text-xl text-gray-600 font-['Roboto']">Simple steps to revolutionize your hiring process</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Step 1 */}
-            <div className="text-center space-y-6">
-              <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto flex items-center justify-center">
+            <div className="text-center space-y-6 fade-up delay-100 hover-lift cursor-pointer p-6 rounded-xl">
+              <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto flex items-center justify-center hover-bounce">
                 <span className="text-2xl font-bold text-black">1</span>
               </div>
               <h3 className="text-xl font-semibold text-gray-900 font-['Open_Sans']">Upload Resume</h3>
@@ -57,8 +214,8 @@ const HomePage = () => {
             </div>
 
             {/* Step 2 */}
-            <div className="text-center space-y-6">
-              <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto flex items-center justify-center">
+            <div className="text-center space-y-6 fade-up delay-200 hover-lift cursor-pointer p-6 rounded-xl">
+              <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto flex items-center justify-center hover-bounce">
                 <span className="text-2xl font-bold text-black">2</span>
               </div>
               <h3 className="text-xl font-semibold text-gray-900 font-['Open_Sans']">AI Screening</h3>
@@ -66,8 +223,8 @@ const HomePage = () => {
             </div>
 
             {/* Step 3 */}
-            <div className="text-center space-y-6">
-              <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto flex items-center justify-center">
+            <div className="text-center space-y-6 fade-up delay-300 hover-lift cursor-pointer p-6 rounded-xl">
+              <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto flex items-center justify-center hover-bounce">
                 <span className="text-2xl font-bold text-black">3</span>
               </div>
               <h3 className="text-xl font-semibold text-gray-900 font-['Open_Sans']">Intelligent Ranking</h3>
@@ -80,15 +237,15 @@ const HomePage = () => {
       {/* Features Section */}
       <section className="px-6 py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
+          <div className="text-center mb-16 fade-up">
             <h2 className="text-4xl font-bold text-gray-900 mb-4 font-['Open_Sans']">Why Choose HireWise?</h2>
             <p className="text-xl text-gray-600 font-['Roboto']">Powerful features that transform your hiring process</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* Feature 1 */}
-            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
-              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mb-6">
+            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200 scale-in hover-lift cursor-pointer">
+              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mb-6 hover-rotate">
                 <svg className="w-6 h-6 text-black" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
@@ -98,8 +255,8 @@ const HomePage = () => {
             </div>
 
             {/* Feature 2 */}
-            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
-              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mb-6">
+            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200 scale-in delay-100 hover-lift cursor-pointer">
+              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mb-6 hover-rotate">
                 <svg className="w-6 h-6 text-black" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
                 </svg>
@@ -109,8 +266,8 @@ const HomePage = () => {
             </div>
 
             {/* Feature 3 */}
-            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
-              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mb-6">
+            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200 scale-in delay-200 hover-lift cursor-pointer">
+              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mb-6 hover-rotate">
                 <svg className="w-6 h-6 text-black" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
                   <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
@@ -121,8 +278,8 @@ const HomePage = () => {
             </div>
 
             {/* Feature 4 */}
-            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
-              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mb-6">
+            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200 scale-in delay-300 hover-lift cursor-pointer">
+              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mb-6 hover-rotate">
                 <svg className="w-6 h-6 text-black" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"/>
                 </svg>
@@ -132,8 +289,8 @@ const HomePage = () => {
             </div>
 
             {/* Feature 5 */}
-            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
-              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mb-6">
+            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200 scale-in delay-400 hover-lift cursor-pointer">
+              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mb-6 hover-rotate">
                 <svg className="w-6 h-6 text-black" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
                 </svg>
@@ -143,8 +300,8 @@ const HomePage = () => {
             </div>
 
             {/* Feature 6 */}
-            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
-              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mb-6">
+            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200 scale-in hover-lift cursor-pointer">
+              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mb-6 hover-rotate">
                 <svg className="w-6 h-6 text-black" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd"/>
                 </svg>
@@ -160,19 +317,19 @@ const HomePage = () => {
       <section className="px-6 py-20 bg-gray">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* For HR and Recruiters */}
-          <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
+          <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200 fade-left hover-lift cursor-pointer">
             <h3 className="text-2xl font-bold text-gray-900 mb-4 font-['Open_Sans']">For HR And Recruiters.</h3>
             <p className="text-gray-600 mb-6 font-['Roboto']">Streamline your hiring process with AI-powered tools that help you find, evaluate, and hire the best candidates.</p>
-            <button className="bg-black text-white hover:bg-gray-800 px-6 py-3 rounded-lg font-semibold font-['Open_Sans'] transition-colors">
+            <button className="bg-black text-white hover:bg-gray-800 px-6 py-3 rounded-lg font-semibold font-['Open_Sans'] transition-colors hover-glow cursor-pointer">
               Learn More
             </button>
           </div>
 
           {/* For Job Seekers */}
-          <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
+          <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200 fade-right hover-lift cursor-pointer">
             <h3 className="text-2xl font-bold text-gray-900 mb-4 font-['Open_Sans']">For Job Seekers.</h3>
             <p className="text-gray-600 mb-6 font-['Roboto']">Get discovered by top companies. Receive personalized job recommendations and stand out with AI-optimized profiles.</p>
-            <button className="bg-black text-white hover:bg-gray-800 px-6 py-3 rounded-lg font-semibold font-['Open_Sans'] transition-colors">
+            <button className="bg-black text-white hover:bg-gray-800 px-6 py-3 rounded-lg font-semibold font-['Open_Sans'] transition-colors hover-glow cursor-pointer">
               Join Now
             </button>
           </div>
@@ -182,15 +339,15 @@ const HomePage = () => {
 
       {/* Final CTA */}
       <section className="px-6 py-20 bg-gray">
-        <div className="max-w-4xl mx-auto text-center">
+        <div className="max-w-4xl mx-auto text-center slide-up">
           <h2 className="text-4xl font-bold text-gray-900 mb-6 font-['Open_Sans']">Ready to hire smarter?</h2>
           <p className="text-xl text-gray-600 mb-8 font-['Roboto']">Join thousands of companies that trust HireWise for their recruitment needs.</p>
           <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-            <button className="bg-black text-white hover:bg-gray-800 px-8 py-4 rounded-lg text-lg font-semibold font-['Open_Sans'] transition-colors">
+            <button className="bg-black text-white hover:bg-gray-800 px-8 py-4 rounded-lg text-lg font-semibold font-['Open_Sans'] transition-colors hover-gradient hover-glow cursor-pointer">
               Get Started Free
             </button>
-            <button className="border-2 border-black text-black hover:bg-black hover:text-white px-8 py-4 rounded-lg text-lg font-semibold font-['Open_Sans'] transition-colors">
-              Expolre Jobs - Candidates
+            <button className="border-2 border-black text-black hover:bg-black hover:text-white px-8 py-4 rounded-lg text-lg font-semibold font-['Open_Sans'] transition-colors hover-slide cursor-pointer">
+              Explore Jobs - Candidates
             </button>
           </div>
         </div>
