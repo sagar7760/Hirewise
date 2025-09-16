@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/layout/AdminLayout';
 import { useAuth } from '../../contexts/AuthContext';
+import { useApiRequest } from '../../hooks/useApiRequest';
 
 // Helper function to get the full image URL
 const getImageUrl = (imagePath) => {
@@ -10,7 +12,8 @@ const getImageUrl = (imagePath) => {
 };
 
 const OrganizationSettingsPage = () => {
-  const { user, apiRequest } = useAuth();
+  const { user } = useAuth();
+  const { makeRequest, makeJsonRequest } = useApiRequest();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
@@ -52,15 +55,13 @@ const OrganizationSettingsPage = () => {
         setError('');
 
         // Fetch organization data from API
-        const response = await apiRequest('/api/admin/organization', {
+        const data = await makeJsonRequest('/api/admin/organization', {
           method: 'GET',
         });
 
-        const data = await response.json();
-
         console.log('Organization API response:', data); // Debug log
 
-        if (data.success) {
+        if (data && data.success) {
           const companyData = {
             name: data.data.name || '',
             industry: data.data.industry || '',
@@ -95,7 +96,10 @@ const OrganizationSettingsPage = () => {
         }
       } catch (err) {
         console.error('Error loading organization data:', err);
-        setError('Failed to load organization data. Please try again.');
+        // Authentication errors are handled by useApiRequest hook
+        if (err.message !== 'Authentication required') {
+          setError('Failed to load organization data. Please try again.');
+        }
       } finally {
         setLoading(false);
       }
@@ -104,7 +108,7 @@ const OrganizationSettingsPage = () => {
     if (user) {
       loadOrganizationData();
     }
-  }, [user, apiRequest]);
+  }, [user, makeJsonRequest]);
 
   const industries = [
     'Information Technology',
@@ -165,13 +169,9 @@ const OrganizationSettingsPage = () => {
         formData.append('logo', editedData.logoFile);
       }
 
-      // For FormData uploads, we need to make a direct fetch call to avoid Content-Type conflicts
-      const response = await fetch('/api/admin/organization', {
+      // Use makeRequest which now properly handles FormData
+      const response = await makeRequest('/api/admin/organization', {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-          // Don't set Content-Type header - let browser set it with boundary for FormData
-        },
         body: formData
       });
 
@@ -196,7 +196,10 @@ const OrganizationSettingsPage = () => {
       
     } catch (error) {
       console.error('Error saving organization data:', error);
-      setError('Failed to save organization data. Please try again.');
+      // Authentication errors are handled by useApiRequest hook
+      if (error.message !== 'Authentication required') {
+        setError('Failed to save organization data. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

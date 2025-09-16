@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 const AuthContext = createContext();
 
@@ -65,12 +65,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setToken(null);
     setUser(null);
-  };
+  }, []);
 
   const updateUser = (updatedUser) => {
     setUser(updatedUser);
@@ -101,11 +101,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Function to make authenticated API requests
-  const apiRequest = async (url, options = {}) => {
+  const apiRequest = useCallback(async (url, options = {}) => {
     const config = {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
+        // Only set Content-Type for non-FormData requests
+        ...(!(options.body instanceof FormData) && { 'Content-Type': 'application/json' }),
         ...(token && { Authorization: `Bearer ${token}` }),
         ...options.headers
       }
@@ -116,12 +117,11 @@ export const AuthProvider = ({ children }) => {
     // Handle token expiration
     if (response.status === 401) {
       logout();
-      window.location.href = '/login';
-      return;
+      throw new Error('Authentication required');
     }
 
     return response;
-  };
+  }, [token, logout]); // Include logout in dependencies
 
   const value = {
     user,
