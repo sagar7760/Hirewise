@@ -1,10 +1,10 @@
 const express = require('express');
 const { query, body, validationResult } = require('express-validator');
-const Job = require('../models/Job');
-const Application = require('../models/Application');
-const Interview = require('../models/Interview');
-const User = require('../models/User');
-const { auth, authorize } = require('../middleware/auth');
+const Job = require('../../models/Job');
+const Application = require('../../models/Application');
+const Interview = require('../../models/Interview');
+const User = require('../../models/User');
+const { auth, authorize, requireCompany } = require('../../middleware/auth');
 const mongoose = require('mongoose');
 
 const router = express.Router();
@@ -12,16 +12,18 @@ const router = express.Router();
 // @route   GET /api/hr/dashboard/stats
 // @desc    Get HR dashboard statistics
 // @access  Private (HR, Admin)
-router.get('/dashboard/stats', async (req, res) => {
+router.get('/dashboard/stats', auth, authorize('hr', 'admin'), requireCompany, async (req, res) => {
   try {
-    // Get total jobs posted by HR
+    // Get total jobs posted by this HR in their company
     const totalJobs = await Job.countDocuments({ 
-      postedBy: req.user?.id || new mongoose.Types.ObjectId() // Mock for now
+      postedBy: req.user.id,
+      companyId: req.user.companyId
     });
 
     // Get total applications across all HR's jobs
     const hrJobs = await Job.find({ 
-      postedBy: req.user?.id || new mongoose.Types.ObjectId() 
+      postedBy: req.user.id,
+      companyId: req.user.companyId
     }).select('_id');
     const hrJobIds = hrJobs.map(job => job._id);
 
@@ -88,7 +90,7 @@ router.get('/dashboard/stats', async (req, res) => {
 // @route   GET /api/hr/dashboard/recent-jobs
 // @desc    Get recent jobs posted by HR
 // @access  Private (HR, Admin)
-router.get('/dashboard/recent-jobs', [
+router.get('/dashboard/recent-jobs', auth, authorize('hr', 'admin'), requireCompany, [
   query('limit').optional().isInt({ min: 1, max: 20 }).withMessage('Limit must be between 1 and 20')
 ], async (req, res) => {
   try {
@@ -104,7 +106,8 @@ router.get('/dashboard/recent-jobs', [
     const limit = parseInt(req.query.limit) || 5;
 
     const recentJobs = await Job.find({ 
-      postedBy: req.user?.id || new mongoose.Types.ObjectId() 
+      postedBy: req.user.id,
+      companyId: req.user.companyId
     })
     .sort({ createdAt: -1 })
     .limit(limit)
@@ -137,7 +140,7 @@ router.get('/dashboard/recent-jobs', [
 // @route   GET /api/hr/dashboard/upcoming-interviews
 // @desc    Get upcoming interviews for HR's jobs
 // @access  Private (HR, Admin)
-router.get('/dashboard/upcoming-interviews', [
+router.get('/dashboard/upcoming-interviews', auth, authorize('hr', 'admin'), requireCompany, [
   query('limit').optional().isInt({ min: 1, max: 20 }).withMessage('Limit must be between 1 and 20')
 ], async (req, res) => {
   try {
@@ -152,9 +155,10 @@ router.get('/dashboard/upcoming-interviews', [
 
     const limit = parseInt(req.query.limit) || 10;
 
-    // Get HR's jobs
+    // Get HR's jobs from their company
     const hrJobs = await Job.find({ 
-      postedBy: req.user?.id || new mongoose.Types.ObjectId() 
+      postedBy: req.user.id,
+      companyId: req.user.companyId
     }).select('_id');
     const hrJobIds = hrJobs.map(job => job._id);
 

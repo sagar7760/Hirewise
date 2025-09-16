@@ -1,9 +1,9 @@
 const express = require('express');
 const { query, body, param, validationResult } = require('express-validator');
-const Job = require('../models/Job');
-const Application = require('../models/Application');
-const User = require('../models/User');
-const { auth, authorize } = require('../middleware/auth');
+const Job = require('../../models/Job');
+const Application = require('../../models/Application');
+const User = require('../../models/User');
+const { auth, authorize, requireCompany } = require('../../middleware/auth');
 const mongoose = require('mongoose');
 
 const router = express.Router();
@@ -11,7 +11,7 @@ const router = express.Router();
 // @route   GET /api/hr/jobs
 // @desc    Get all jobs posted by HR with pagination, filtering, and search
 // @access  Private (HR, Admin)
-router.get('/', [
+router.get('/', auth, authorize('hr', 'admin'), requireCompany, [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit').optional().isInt({ min: 1, max: 50 }).withMessage('Limit must be between 1 and 50'),
   query('search').optional().isLength({ min: 1, max: 200 }).withMessage('Search term must be between 1 and 200 characters'),

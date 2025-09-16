@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
-
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   const handleInputChange = (e) => {
@@ -18,13 +21,42 @@ const LoginPage = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log('Login attempt:', formData);
-    // TODO: Add actual authentication logic
-    // For now, redirect to dashboard on any login attempt
-    navigate('/dashboard');
+    
+    if (!formData.email || !formData.password) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const user = await login(formData.email, formData.password);
+      
+      // Navigate based on user role
+      switch (user.role) {
+        case 'admin':
+          navigate('/admin/dashboard');
+          break;
+        case 'hr':
+          navigate('/hr/dashboard');
+          break;
+        case 'interviewer':
+          navigate('/interviewer/dashboard');
+          break;
+        case 'applicant':
+          navigate('/applicant/dashboard');
+          break;
+        default:
+          navigate('/dashboard');
+      }
+    } catch (error) {
+      setError(error.message || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -105,12 +137,24 @@ const LoginPage = () => {
             </a>
           </div>
 
+          {/* Error Display */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm font-['Roboto']">
+              {error}
+            </div>
+          )}
+
           {/* Sign In Button */}
           <button
             type="submit"
-            className="w-full bg-black text-white hover:bg-gray-800 py-3 px-4 rounded-lg text-lg font-semibold font-['Open_Sans'] transition-colors"
+            disabled={loading}
+            className={`w-full py-3 px-4 rounded-lg text-lg font-semibold font-['Open_Sans'] transition-colors ${
+              loading 
+                ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                : 'bg-black text-white hover:bg-gray-800'
+            }`}
           >
-            Sign in
+            {loading ? 'Signing in...' : 'Sign in'}
           </button>
 
           {/* Sign Up Link */}

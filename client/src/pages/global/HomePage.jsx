@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import officeHero from '../../assets/images/office-hero.png';
 
 const HomePage = () => {
@@ -174,12 +175,18 @@ const HomePage = () => {
               Transform your recruitment process with AI-powered tools that help you find, evaluate, and hire the best candidates efficiently.
             </p>
             <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 fade-up delay-300">
-              <button className="bg-black text-white hover:bg-gray-800 px-8 py-4 rounded-lg text-lg font-semibold font-['Open_Sans'] transition-colors hover-gradient hover-glow cursor-pointer">
-                Get Started
-              </button>
-              <button className="border-2 border-black text-black hover:bg-black hover:text-white px-8 py-4 rounded-lg text-lg font-semibold font-['Open_Sans'] transition-colors hover-slide cursor-pointer">
-                Watch Demo
-              </button>
+              <Link 
+                to="/company/signup"
+                className="bg-black text-white hover:bg-gray-800 px-8 py-4 rounded-lg text-lg font-semibold font-['Open_Sans'] transition-colors hover-gradient hover-glow cursor-pointer text-center"
+              >
+                Start Hiring
+              </Link>
+              <Link 
+                to="/signup"
+                className="border-2 border-black text-black hover:bg-black hover:text-white px-8 py-4 rounded-lg text-lg font-semibold font-['Open_Sans'] transition-colors hover-slide cursor-pointer text-center"
+              >
+                Find Jobs
+              </Link>
             </div>
           </div>
           
@@ -320,18 +327,24 @@ const HomePage = () => {
           <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200 fade-left hover-lift cursor-pointer">
             <h3 className="text-2xl font-bold text-gray-900 mb-4 font-['Open_Sans']">For HR And Recruiters.</h3>
             <p className="text-gray-600 mb-6 font-['Roboto']">Streamline your hiring process with AI-powered tools that help you find, evaluate, and hire the best candidates.</p>
-            <button className="bg-black text-white hover:bg-gray-800 px-6 py-3 rounded-lg font-semibold font-['Open_Sans'] transition-colors hover-glow cursor-pointer">
-              Learn More
-            </button>
+            <Link 
+              to="/company/signup"
+              className="bg-black text-white hover:bg-gray-800 px-6 py-3 rounded-lg font-semibold font-['Open_Sans'] transition-colors hover-glow cursor-pointer inline-block text-center"
+            >
+              Register Company
+            </Link>
           </div>
 
           {/* For Job Seekers */}
           <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200 fade-right hover-lift cursor-pointer">
             <h3 className="text-2xl font-bold text-gray-900 mb-4 font-['Open_Sans']">For Job Seekers.</h3>
             <p className="text-gray-600 mb-6 font-['Roboto']">Get discovered by top companies. Receive personalized job recommendations and stand out with AI-optimized profiles.</p>
-            <button className="bg-black text-white hover:bg-gray-800 px-6 py-3 rounded-lg font-semibold font-['Open_Sans'] transition-colors hover-glow cursor-pointer">
+            <Link 
+              to="/signup"
+              className="bg-black text-white hover:bg-gray-800 px-6 py-3 rounded-lg font-semibold font-['Open_Sans'] transition-colors hover-glow cursor-pointer inline-block text-center"
+            >
               Join Now
-            </button>
+            </Link>
           </div>
         </div>
       </section>
@@ -343,12 +356,18 @@ const HomePage = () => {
           <h2 className="text-4xl font-bold text-gray-900 mb-6 font-['Open_Sans']">Ready to hire smarter?</h2>
           <p className="text-xl text-gray-600 mb-8 font-['Roboto']">Join thousands of companies that trust HireWise for their recruitment needs.</p>
           <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-            <button className="bg-black text-white hover:bg-gray-800 px-8 py-4 rounded-lg text-lg font-semibold font-['Open_Sans'] transition-colors hover-gradient hover-glow cursor-pointer">
-              Get Started Free
-            </button>
-            <button className="border-2 border-black text-black hover:bg-black hover:text-white px-8 py-4 rounded-lg text-lg font-semibold font-['Open_Sans'] transition-colors hover-slide cursor-pointer">
-              Explore Jobs - Candidates
-            </button>
+            <Link 
+              to="/login"
+              className="bg-black text-white hover:bg-gray-800 px-8 py-4 rounded-lg text-lg font-semibold font-['Open_Sans'] transition-colors hover-gradient hover-glow cursor-pointer text-center"
+            >
+              Sign in
+            </Link>
+            <Link 
+              to="/company/signup"
+              className="border-2 border-black text-black hover:bg-black hover:text-white px-8 py-4 rounded-lg text-lg font-semibold font-['Open_Sans'] transition-colors hover-slide cursor-pointer text-center"
+            >
+              Register Company
+            </Link>
           </div>
         </div>
       </section>

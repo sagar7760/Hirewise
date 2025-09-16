@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import hirewiseLogo from '../../assets/hirewise.svg';
 
 const AdminNavbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isNotificationDropdownOpen, setIsNotificationDropdownOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -117,6 +119,9 @@ const AdminNavbar = () => {
       navigate('/admin/profile');
     } else if (action === 'Organization Settings') {
       navigate('/admin/organization');
+    } else if (action === 'Sign Out') {
+      logout();
+      navigate('/login');
     }
   };
 
@@ -349,9 +354,25 @@ const AdminNavbar = () => {
               }`}>
                 {/* User Info */}
                 <div className="px-4 py-3 border-b border-gray-100">
-                  <p className="text-sm font-medium text-gray-900 font-['Open_Sans']">Admin User</p>
-                  <p className="text-sm text-gray-500 font-['Roboto']">admin@company.com</p>
-                  <p className="text-xs text-gray-600 font-['Roboto'] mt-1">Organization Administrator</p>
+                  <p className="text-sm font-medium text-gray-900 font-['Open_Sans']">
+                    {user?.firstName && user?.lastName 
+                      ? `${user.firstName} ${user.lastName}` 
+                      : 'Admin User'
+                    }
+                  </p>
+                  <p className="text-sm text-gray-500 font-['Roboto']">
+                    {user?.email || 'admin@company.com'}
+                  </p>
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-xs text-gray-600 font-['Roboto']">
+                      {user?.isCompanyAdmin ? 'Company Administrator' : 'Organization Administrator'}
+                    </p>
+                    {user?.company && (
+                      <p className="text-xs text-gray-500 font-['Roboto'] truncate ml-2">
+                        {user.company.name}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Menu Items */}

@@ -7,6 +7,10 @@ const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Import company registration routes
+const companyRoutes = require('./auth/company');
+router.use('/company', companyRoutes);
+
 // @route   POST /api/auth/register
 // @desc    Register user
 // @access  Public
@@ -104,8 +108,8 @@ router.post('/login', [
 
     const { email, password } = req.body;
 
-    // Check for user
-    const user = await User.findOne({ email }).select('+password');
+    // Check for user and populate company information
+    const user = await User.findOne({ email }).select('+password').populate('companyId');
     if (!user) {
       return res.status(400).json({
         success: false,
@@ -122,10 +126,12 @@ router.post('/login', [
       });
     }
 
-    // Create JWT token
+    // Create JWT token with company context
     const payload = {
       id: user.id,
-      role: user.role
+      role: user.role,
+      companyId: user.companyId?._id,
+      isCompanyAdmin: user.isCompanyAdmin
     };
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
@@ -141,7 +147,13 @@ router.post('/login', [
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        role: user.role
+        role: user.role,
+        isCompanyAdmin: user.isCompanyAdmin,
+        company: user.companyId ? {
+          id: user.companyId._id,
+          name: user.companyId.name,
+          domain: user.companyId.domain
+        } : null
       }
     });
 
@@ -159,10 +171,22 @@ router.post('/login', [
 // @access  Private
 router.get('/me', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).populate('companyId');
     res.json({
       success: true,
-      data: user
+      data: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        isCompanyAdmin: user.isCompanyAdmin,
+        company: user.companyId ? {
+          id: user.companyId._id,
+          name: user.companyId.name,
+          domain: user.companyId.domain
+        } : null
+      }
     });
   } catch (error) {
     console.error('Get user error:', error);

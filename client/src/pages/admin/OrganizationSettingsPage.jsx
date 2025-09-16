@@ -1,23 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/layout/AdminLayout';
+import { useAuth } from '../../contexts/AuthContext';
+
+// Helper function to get the full image URL
+const getImageUrl = (imagePath) => {
+  if (!imagePath) return null;
+  if (imagePath.startsWith('http')) return imagePath; // Already a full URL
+  return `http://localhost:5000${imagePath}`; // Add server prefix
+};
 
 const OrganizationSettingsPage = () => {
+  const { user, apiRequest } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  
   const [organizationData, setOrganizationData] = useState({
-    name: 'TechCorp Solutions',
-    industry: 'Technology',
-    description: 'Leading technology solutions provider specializing in software development and digital transformation.',
-    website: 'https://techcorp.com',
+    name: '',
+    industry: '',
+    description: '',
+    website: '',
     logo: null,
     address: {
-      street: '123 Tech Street',
-      city: 'San Francisco',
-      state: 'CA',
-      zipCode: '94105',
-      country: 'United States'
+      street: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      country: ''
     },
     contact: {
-      phone: '+1 (555) 123-4567',
-      email: 'info@techcorp.com'
+      phone: '',
+      email: ''
     },
     settings: {
       autoApproveApplications: false,
@@ -32,9 +44,84 @@ const OrganizationSettingsPage = () => {
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [transferEmail, setTransferEmail] = useState('');
 
+  // Load company data on component mount
+  useEffect(() => {
+    const loadOrganizationData = async () => {
+      try {
+        setLoading(true);
+        setError('');
+
+        // Fetch organization data from API
+        const response = await apiRequest('/api/admin/organization', {
+          method: 'GET',
+        });
+
+        const data = await response.json();
+
+        console.log('Organization API response:', data); // Debug log
+
+        if (data.success) {
+          const companyData = {
+            name: data.data.name || '',
+            industry: data.data.industry || '',
+            description: data.data.description || '',
+            website: data.data.website || '',
+            logo: getImageUrl(data.data.logo), // Use helper function for logo URL
+            address: {
+              street: data.data.address?.street || '',
+              city: data.data.address?.city || '',
+              state: data.data.address?.state || '',
+              zipCode: data.data.address?.zipCode || '',
+              country: data.data.address?.country || 'India'
+            },
+            contact: {
+              phone: data.data.contact?.phone || '',
+              email: data.data.contact?.email || ''
+            },
+            settings: {
+              autoApproveApplications: data.data.settings?.autoApproveApplications ?? false,
+              allowPublicJobPosting: data.data.settings?.allowPublicJobPosting ?? true,
+              enableEmailNotifications: data.data.settings?.enableEmailNotifications ?? true,
+              requireInterviewFeedback: data.data.settings?.requireInterviewFeedback ?? true
+            }
+          };
+          
+          console.log('Processed company data contact:', companyData.contact); // Debug log
+          
+          setOrganizationData(companyData);
+          setEditedData(companyData);
+        } else {
+          setError(data.message || 'Failed to load organization data');
+        }
+      } catch (err) {
+        console.error('Error loading organization data:', err);
+        setError('Failed to load organization data. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user) {
+      loadOrganizationData();
+    }
+  }, [user, apiRequest]);
+
   const industries = [
-    'Technology', 'Healthcare', 'Finance', 'Education', 'Manufacturing',
-    'Retail', 'Consulting', 'Real Estate', 'Media', 'Non-profit', 'Other'
+    'Information Technology',
+    'Financial Services', 
+    'Healthcare',
+    'Manufacturing',
+    'E-commerce',
+    'Education',
+    'Consulting',
+    'Real Estate',
+    'Media & Entertainment',
+    'Automotive',
+    'Retail',
+    'Food & Beverage',
+    'Telecommunications',
+    'Energy',
+    'Other'
   ];
 
   const handleEdit = () => {
@@ -42,11 +129,77 @@ const OrganizationSettingsPage = () => {
     setEditedData({ ...organizationData });
   };
 
-  const handleSave = () => {
-    setOrganizationData({ ...editedData });
-    setIsEditing(false);
-    // TODO: Save to backend
-    console.log('Organization data saved:', editedData);
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      // Create FormData for file upload support
+      const formData = new FormData();
+      
+      // Add all text fields
+      formData.append('name', editedData.name);
+      formData.append('industry', editedData.industry);
+      formData.append('description', editedData.description || '');
+      formData.append('website', editedData.website || '');
+      
+      // Add address fields
+      formData.append('addressStreet', editedData.address.street || '');
+      formData.append('addressCity', editedData.address.city || '');
+      formData.append('addressState', editedData.address.state || '');
+      formData.append('addressZipCode', editedData.address.zipCode || '');
+      formData.append('addressCountry', editedData.address.country || 'India');
+      
+      // Add contact fields
+      formData.append('contactPhone', editedData.contact.phone || '');
+      formData.append('contactEmail', editedData.contact.email || '');
+      
+      // Add settings fields
+      formData.append('autoApproveApplications', editedData.settings.autoApproveApplications.toString());
+      formData.append('allowPublicJobPosting', editedData.settings.allowPublicJobPosting.toString());
+      formData.append('enableEmailNotifications', editedData.settings.enableEmailNotifications.toString());
+      formData.append('requireInterviewFeedback', editedData.settings.requireInterviewFeedback.toString());
+      
+      // Add logo file if it was uploaded
+      if (editedData.logoFile) {
+        formData.append('logo', editedData.logoFile);
+      }
+
+      // For FormData uploads, we need to make a direct fetch call to avoid Content-Type conflicts
+      const response = await fetch('/api/admin/organization', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          // Don't set Content-Type header - let browser set it with boundary for FormData
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update local state with the response data, including the new logo URL if uploaded
+        const updatedData = { ...editedData };
+        if (data.data.logo) {
+          updatedData.logo = getImageUrl(data.data.logo);
+          updatedData.logoFile = undefined; // Clear the file object after successful upload
+        }
+        setOrganizationData(updatedData);
+        setEditedData(updatedData);
+        setIsEditing(false);
+        
+        // Show success message (you can add a toast notification here)
+        console.log('Organization data saved successfully');
+      } else {
+        setError(data.message || 'Failed to save organization data. Please try again.');
+      }
+      
+    } catch (error) {
+      console.error('Error saving organization data:', error);
+      setError('Failed to save organization data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancel = () => {
@@ -57,12 +210,27 @@ const OrganizationSettingsPage = () => {
   const handleLogoUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
-      // TODO: Upload file to server
-      console.log('Logo uploaded:', file);
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+      if (!allowedTypes.includes(file.type)) {
+        setError('Please select a valid image file (JPG, JPEG, or PNG).');
+        return;
+      }
+      
+      // Validate file size (2MB max)
+      if (file.size > 2 * 1024 * 1024) {
+        setError('Logo file size must be less than 2MB.');
+        return;
+      }
+
+      // Store the file for upload and create preview URL
       setEditedData({
         ...editedData,
-        logo: URL.createObjectURL(file)
+        logo: URL.createObjectURL(file),
+        logoFile: file // Store the actual file for upload
       });
+      
+      setError(''); // Clear any previous errors
     }
   };
 
@@ -88,17 +256,40 @@ const OrganizationSettingsPage = () => {
   return (
     <AdminLayout>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 font-['Open_Sans'] mb-2">
-                Organization Settings
-              </h1>
-              <p className="text-gray-600 font-['Roboto']">
-                Manage your organization's profile and configuration.
-              </p>
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            <span className="ml-2 text-gray-600 font-['Roboto']">Loading organization data...</span>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {error}
             </div>
+          </div>
+        )}
+
+        {/* Content - only show when not loading */}
+        {!loading && (
+          <>
+            {/* Header */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 font-['Open_Sans'] mb-2">
+                    Organization Settings
+                  </h1>
+                  <p className="text-gray-600 font-['Roboto']">
+                    Manage your organization's profile and configuration.
+                  </p>
+                </div>
             {!isEditing ? (
               <button
                 onClick={handleEdit}
@@ -485,6 +676,8 @@ const OrganizationSettingsPage = () => {
               </div>
             </div>
           </div>
+        )}
+          </>
         )}
       </div>
     </AdminLayout>

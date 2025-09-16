@@ -6,8 +6,9 @@ const fs = require('fs');
 const uploadsDir = path.join(__dirname, '..', 'uploads');
 const resumesDir = path.join(uploadsDir, 'resumes');
 const profilePicsDir = path.join(uploadsDir, 'profile-pictures');
+const companyLogosDir = path.join(uploadsDir, 'company-logos');
 
-[uploadsDir, resumesDir, profilePicsDir].forEach(dir => {
+[uploadsDir, resumesDir, profilePicsDir, companyLogosDir].forEach(dir => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
@@ -38,6 +39,19 @@ const profilePicStorage = multer.diskStorage({
     const userId = req.user.id;
     const ext = path.extname(file.originalname);
     cb(null, `profile_${userId}_${uniqueSuffix}${ext}`);
+  }
+});
+
+// Storage configuration for company logos
+const companyLogoStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, companyLogosDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const companyName = req.body.companyName ? req.body.companyName.replace(/[^a-zA-Z0-9]/g, '_') : 'company';
+    const ext = path.extname(file.originalname);
+    cb(null, `logo_${companyName}_${uniqueSuffix}${ext}`);
   }
 });
 
@@ -88,6 +102,14 @@ const uploadProfilePic = multer({
   fileFilter: imageFileFilter
 });
 
+const uploadCompanyLogo = multer({
+  storage: companyLogoStorage,
+  limits: {
+    fileSize: 2 * 1024 * 1024 // 2MB for company logos
+  },
+  fileFilter: imageFileFilter
+});
+
 // Utility function to delete file
 const deleteFile = (filePath) => {
   if (fs.existsSync(filePath)) {
@@ -98,8 +120,10 @@ const deleteFile = (filePath) => {
 module.exports = {
   uploadResume,
   uploadProfilePic,
+  uploadCompanyLogo,
   deleteFile,
   uploadsDir,
   resumesDir,
-  profilePicsDir
+  profilePicsDir,
+  companyLogosDir
 };

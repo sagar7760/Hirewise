@@ -1,13 +1,19 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 
+// Context Providers
+import { AuthProvider } from './contexts/AuthContext.jsx'
+
 // Layout Components
 import Layout from './components/layout/Layout.jsx'
+import ProtectedRoute from './components/common/ProtectedRoute.jsx'
 
 // Global Pages
 import HomePage from './pages/global/HomePage.jsx'
 import LoginPage from './pages/global/LoginPage.jsx'
 import SignupPage from './pages/global/SignupPage.jsx'
+import CompanySignupPage from './pages/global/CompanySignupPage.jsx'
+import CompanyVerificationPage from './pages/global/CompanyVerificationPage.jsx'
 import NotFoundPage from './pages/global/NotFoundPage.jsx'
 import UnauthorizedPage from './pages/global/UnauthorizedPage.jsx'
 
@@ -47,75 +53,203 @@ import InterviewerProfile from './pages/interviewer/InterviewerProfile.jsx'
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        {/* Public Routes (Marketing Site) */}
-        <Route path="/" element={
-          <Layout>
-            <HomePage />
-          </Layout>
-        } />
-        <Route path="/login" element={
-          <Layout showFooter={false}>
-            <LoginPage />
-          </Layout>
-        } />
-        <Route path="/signup" element={
-          <Layout showFooter={false}>
-            <SignupPage />
-          </Layout>
-        } />
+    <AuthProvider>
+      <Router>
+        <Routes>
+          {/* Public Routes (Marketing Site) */}
+          <Route path="/" element={
+            <Layout>
+              <HomePage />
+            </Layout>
+          } />
+          <Route path="/login" element={
+            <Layout showFooter={false}>
+              <LoginPage />
+            </Layout>
+          } />
+          <Route path="/signup" element={
+            <Layout showFooter={false}>
+              <SignupPage />
+            </Layout>
+          } />
+          <Route path="/company/signup" element={
+            <Layout showFooter={false}>
+              <CompanySignupPage />
+            </Layout>
+          } />
+          <Route path="/company/verification-sent" element={
+            <Layout showFooter={false}>
+              <CompanyVerificationPage />
+            </Layout>
+          } />
 
-        {/* Applicant Dashboard Routes */}
-        <Route path="/dashboard" element={<ApplicantDashboard />} />
-        <Route path="/jobs" element={<JobsPage />} />
-        <Route path="/jobs/:jobId" element={<JobDetailsPage />} />
-        <Route path="/jobs/:jobId/apply" element={<JobApplicationPage />} />
-        <Route path="/my-applications" element={<MyApplicationsPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/notifications" element={<NotificationsPage />} />
+          {/* Applicant Dashboard Routes */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute roles={['applicant']}>
+              <ApplicantDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/jobs" element={
+            <ProtectedRoute roles={['applicant']}>
+              <JobsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/jobs/:jobId" element={
+            <ProtectedRoute roles={['applicant']}>
+              <JobDetailsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/jobs/:jobId/apply" element={
+            <ProtectedRoute roles={['applicant']}>
+              <JobApplicationPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/my-applications" element={
+            <ProtectedRoute roles={['applicant']}>
+              <MyApplicationsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute roles={['applicant']}>
+              <ProfilePage />
+            </ProtectedRoute>
+          } />
+          <Route path="/notifications" element={
+            <ProtectedRoute roles={['applicant']}>
+              <NotificationsPage />
+            </ProtectedRoute>
+          } />
 
-        {/* Admin Routes */}
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/admin/hr-management" element={<HRManagementPage />} />
-        <Route path="/admin/interviewer-management" element={<InterviewerManagementPage />} />
-        <Route path="/admin/jobs" element={<AllJobsPage />} />
-        <Route path="/admin/organization" element={<OrganizationSettingsPage />} />
-        <Route path="/admin/notifications" element={<AdminNotifications />} />
-        <Route path="/admin/profile" element={<AdminProfile />} />
+          {/* Admin Routes */}
+          <Route path="/admin" element={
+            <ProtectedRoute roles={['admin']} requireCompany={true}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/dashboard" element={
+            <ProtectedRoute roles={['admin']} requireCompany={true}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/hr-management" element={
+            <ProtectedRoute roles={['admin']} requireCompany={true} requireCompanyAdmin={true}>
+              <HRManagementPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/interviewer-management" element={
+            <ProtectedRoute roles={['admin']} requireCompany={true} requireCompanyAdmin={true}>
+              <InterviewerManagementPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/jobs" element={
+            <ProtectedRoute roles={['admin']} requireCompany={true}>
+              <AllJobsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/organization" element={
+            <ProtectedRoute roles={['admin']} requireCompany={true} requireCompanyAdmin={true}>
+              <OrganizationSettingsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/notifications" element={
+            <ProtectedRoute roles={['admin']} requireCompany={true}>
+              <AdminNotifications />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/profile" element={
+            <ProtectedRoute roles={['admin']} requireCompany={true}>
+              <AdminProfile />
+            </ProtectedRoute>
+          } />
 
-        {/* HR Routes */}
-        <Route path="/hr" element={<HRDashboard />} />
-        <Route path="/hr/dashboard" element={<HRDashboard />} />
-        <Route path="/hr/jobs" element={<HRJobManagement />} />
-        <Route path="/hr/jobs/create" element={<HRCreateJob />} />
-        <Route path="/hr/applications" element={<HRApplicationManagement />} />
-        <Route path="/hr/interviews" element={<HRInterviewManagement />} />
-        <Route path="/hr/notifications" element={<HRNotifications />} />
-        <Route path="/hr/profile" element={<HRProfile />} />
+          {/* HR Routes */}
+          <Route path="/hr" element={
+            <ProtectedRoute roles={['hr']} requireCompany={true}>
+              <HRDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/hr/dashboard" element={
+            <ProtectedRoute roles={['hr']} requireCompany={true}>
+              <HRDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/hr/jobs" element={
+            <ProtectedRoute roles={['hr']} requireCompany={true}>
+              <HRJobManagement />
+            </ProtectedRoute>
+          } />
+          <Route path="/hr/jobs/create" element={
+            <ProtectedRoute roles={['hr']} requireCompany={true}>
+              <HRCreateJob />
+            </ProtectedRoute>
+          } />
+          <Route path="/hr/applications" element={
+            <ProtectedRoute roles={['hr']} requireCompany={true}>
+              <HRApplicationManagement />
+            </ProtectedRoute>
+          } />
+          <Route path="/hr/interviews" element={
+            <ProtectedRoute roles={['hr']} requireCompany={true}>
+              <HRInterviewManagement />
+            </ProtectedRoute>
+          } />
+          <Route path="/hr/notifications" element={
+            <ProtectedRoute roles={['hr']} requireCompany={true}>
+              <HRNotifications />
+            </ProtectedRoute>
+          } />
+          <Route path="/hr/profile" element={
+            <ProtectedRoute roles={['hr']} requireCompany={true}>
+              <HRProfile />
+            </ProtectedRoute>
+          } />
 
-        {/* Interviewer Routes */}
-        <Route path="/interviewer" element={<InterviewerDashboard />} />
-        <Route path="/interviewer/dashboard" element={<InterviewerDashboard />} />
-        <Route path="/interviewer/interviews" element={<InterviewManagement />} />
-        <Route path="/interviewer/feedback" element={<PendingFeedback />} />
-        <Route path="/interviewer/notifications" element={<InterviewerNotifications />} />
-        <Route path="/interviewer/profile" element={<InterviewerProfile />} />
+          {/* Interviewer Routes */}
+          <Route path="/interviewer" element={
+            <ProtectedRoute roles={['interviewer']} requireCompany={true}>
+              <InterviewerDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/interviewer/dashboard" element={
+            <ProtectedRoute roles={['interviewer']} requireCompany={true}>
+              <InterviewerDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/interviewer/interviews" element={
+            <ProtectedRoute roles={['interviewer']} requireCompany={true}>
+              <InterviewManagement />
+            </ProtectedRoute>
+          } />
+          <Route path="/interviewer/feedback" element={
+            <ProtectedRoute roles={['interviewer']} requireCompany={true}>
+              <PendingFeedback />
+            </ProtectedRoute>
+          } />
+          <Route path="/interviewer/notifications" element={
+            <ProtectedRoute roles={['interviewer']} requireCompany={true}>
+              <InterviewerNotifications />
+            </ProtectedRoute>
+          } />
+          <Route path="/interviewer/profile" element={
+            <ProtectedRoute roles={['interviewer']} requireCompany={true}>
+              <InterviewerProfile />
+            </ProtectedRoute>
+          } />
 
-        {/* Error Pages */}
-        <Route path="/unauthorized" element={
-          <Layout showFooter={false}>
-            <UnauthorizedPage />
-          </Layout>
-        } />
-        <Route path="*" element={
-          <Layout showFooter={false}>
-            <NotFoundPage />
-          </Layout>
-        } />
-      </Routes>
-    </Router>
+          {/* Error Pages */}
+          <Route path="/unauthorized" element={
+            <Layout showFooter={false}>
+              <UnauthorizedPage />
+            </Layout>
+          } />
+          <Route path="*" element={
+            <Layout showFooter={false}>
+              <NotFoundPage />
+            </Layout>
+          } />
+        </Routes>
+      </Router>
+    </AuthProvider>
   )
 }
 

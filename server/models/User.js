@@ -47,6 +47,100 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+
+  // Company Association (for admin, hr, interviewer roles)
+  companyId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Company',
+    default: null,
+    required: function() {
+      return ['admin', 'hr', 'interviewer'].includes(this.role);
+    }
+  },
+  isCompanyAdmin: {
+    type: Boolean,
+    default: false,
+    required: function() {
+      return this.role === 'admin';
+    }
+  },
+
+  // User Status & Verification
+  accountStatus: {
+    type: String,
+    enum: ['pending_verification', 'active', 'suspended', 'inactive'],
+    default: function() {
+      return this.role === 'applicant' ? 'active' : 'pending_verification';
+    }
+  },
+  emailVerifiedAt: {
+    type: Date,
+    default: null
+  },
+  
+  // Admin/HR/Interviewer specific fields
+  permissions: {
+    canManageUsers: {
+      type: Boolean,
+      default: false
+    },
+    canManageJobs: {
+      type: Boolean,
+      default: false
+    },
+    canManageCompany: {
+      type: Boolean,
+      default: false
+    },
+    canViewReports: {
+      type: Boolean,
+      default: false
+    },
+    canManageInterviewers: {
+      type: Boolean,
+      default: false
+    }
+  },
+
+  // Interviewer specific fields
+  assignedCompanies: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Company'
+  }],
+  interviewerProfile: {
+    expertise: [String],
+    experienceYears: Number,
+    availability: {
+      monday: { available: Boolean, timeSlots: [String] },
+      tuesday: { available: Boolean, timeSlots: [String] },
+      wednesday: { available: Boolean, timeSlots: [String] },
+      thursday: { available: Boolean, timeSlots: [String] },
+      friday: { available: Boolean, timeSlots: [String] },
+      saturday: { available: Boolean, timeSlots: [String] },
+      sunday: { available: Boolean, timeSlots: [String] }
+    }
+  },
+
+  // User preferences
+  preferences: {
+    emailNotifications: {
+      type: Boolean,
+      default: true
+    },
+    pushNotifications: {
+      type: Boolean,
+      default: true
+    },
+    language: {
+      type: String,
+      default: 'en'
+    },
+    timezone: {
+      type: String,
+      default: 'Asia/Kolkata'
+    }
+  },
+
   isActive: {
     type: Boolean,
     default: true
@@ -113,10 +207,79 @@ const userSchema = new mongoose.Schema({
 // Index for better performance
 userSchema.index({ email: 1 });
 userSchema.index({ role: 1 });
+userSchema.index({ companyId: 1 });
+userSchema.index({ accountStatus: 1 });
+userSchema.index({ isCompanyAdmin: 1 });
 
 // Virtual for full name
 userSchema.virtual('fullName').get(function() {
   return `${this.firstName} ${this.lastName}`;
+});
+
+// Virtual to check if user is company-related
+userSchema.virtual('isCompanyUser').get(function() {
+  return ['admin', 'hr', 'interviewer'].includes(this.role);
+});
+
+// Static methods
+userSchema.statics.findByCompany = function(companyId) {
+  return this.find({ companyId });
+};
+
+userSchema.statics.findCompanyAdmin = function(companyId) {
+  return this.findOne({ companyId, isCompanyAdmin: true });
+};
+
+userSchema.statics.findActiveUsers = function(role = null) {
+  const query = { accountStatus: 'active' };
+  if (role) query.role = role;
+  return this.find(query);
+};
+
+// Instance methods
+userSchema.methods.isAdmin = function() {
+  return this.role === 'admin';
+};
+
+userSchema.methods.isHR = function() {
+  return this.role === 'hr';
+};
+
+userSchema.methods.isInterviewer = function() {
+  return this.role === 'interviewer';
+};
+
+userSchema.methods.isApplicant = function() {
+  return this.role === 'applicant';
+};
+
+userSchema.methods.isVerified = function() {
+  return this.accountStatus === 'active' && this.emailVerifiedAt !== null;
+};
+
+userSchema.methods.canManageCompany = function() {
+  return this.isCompanyAdmin && this.permissions.canManageCompany;
+};
+
+// Pre-save middleware
+userSchema.pre('save', function(next) {
+  // Set admin permissions for company admin
+  if (this.role === 'admin' && this.isCompanyAdmin) {
+    this.permissions = {
+      canManageUsers: true,
+      canManageJobs: true,
+      canManageCompany: true,
+      canViewReports: true,
+      canManageInterviewers: true
+    };
+  }
+  
+  // Set default HR permissions
+  if (this.role === 'hr' && !this.permissions.canManageJobs) {
+    this.permissions.canManageJobs = true;
+  }
+  
+  next();
 });
 
 // Ensure virtual fields are serialized
