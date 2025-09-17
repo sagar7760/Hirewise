@@ -24,6 +24,8 @@ const hrInterviewRoutes = require('./routes/hr/hr-interviews');
 
 // Admin routes
 const adminOrganizationRoutes = require('./routes/admin/organization');
+const adminProfileRoutes = require('./routes/admin/profile');
+const adminHRRoutes = require('./routes/admin/hr');
 
 const app = express();
 
@@ -74,6 +76,8 @@ app.use('/api/hr/interviews', hrInterviewRoutes);
 
 // Admin API Routes
 app.use('/api/admin/organization', adminOrganizationRoutes);
+app.use('/api/admin/profile', adminProfileRoutes);
+app.use('/api/admin/hr', adminHRRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

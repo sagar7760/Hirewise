@@ -47,6 +47,129 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  avatar: {
+    type: String,
+    default: null
+  },
+
+  // Additional profile fields
+  dateOfBirth: {
+    type: Date,
+    default: null
+  },
+  jobTitle: {
+    type: String,
+    trim: true
+  },
+  department: {
+    type: String,
+    trim: true
+  },
+  employeeId: {
+    type: String,
+    trim: true
+  },
+  joiningDate: {
+    type: Date,
+    default: null
+  },
+  reportingTo: {
+    type: String,
+    trim: true
+  },
+  workLocation: {
+    type: String,
+    trim: true
+  },
+
+  // Contact information
+  address: {
+    type: String,
+    trim: true
+  },
+  city: {
+    type: String,
+    trim: true
+  },
+  state: {
+    type: String,
+    trim: true
+  },
+  zipCode: {
+    type: String,
+    trim: true
+  },
+  country: {
+    type: String,
+    trim: true,
+    default: 'United States'
+  },
+
+  // Emergency contact
+  emergencyContactName: {
+    type: String,
+    trim: true
+  },
+  emergencyContactRelationship: {
+    type: String,
+    trim: true
+  },
+  emergencyContactPhone: {
+    type: String,
+    trim: true
+  },
+
+  // Notification preferences
+  emailNotifications: {
+    type: Boolean,
+    default: true
+  },
+  smsNotifications: {
+    type: Boolean,
+    default: false
+  },
+  pushNotifications: {
+    type: Boolean,
+    default: true
+  },
+  weeklyReports: {
+    type: Boolean,
+    default: true
+  },
+
+  // User preferences
+  timezone: {
+    type: String,
+    default: 'America/Los_Angeles'
+  },
+  language: {
+    type: String,
+    default: 'English'
+  },
+  dateFormat: {
+    type: String,
+    default: 'MM/DD/YYYY'
+  },
+
+  // Security settings
+  twoFactorEnabled: {
+    type: Boolean,
+    default: false
+  },
+  lastPasswordChange: {
+    type: Date,
+    default: null
+  },
+  loginHistory: [{
+    date: String,
+    time: String,
+    location: String,
+    device: String,
+    timestamp: {
+      type: Date,
+      default: Date.now
+    }
+  }],
 
   // Company Association (for admin, hr, interviewer roles)
   companyId: {
@@ -118,26 +241,6 @@ const userSchema = new mongoose.Schema({
       friday: { available: Boolean, timeSlots: [String] },
       saturday: { available: Boolean, timeSlots: [String] },
       sunday: { available: Boolean, timeSlots: [String] }
-    }
-  },
-
-  // User preferences
-  preferences: {
-    emailNotifications: {
-      type: Boolean,
-      default: true
-    },
-    pushNotifications: {
-      type: Boolean,
-      default: true
-    },
-    language: {
-      type: String,
-      default: 'en'
-    },
-    timezone: {
-      type: String,
-      default: 'Asia/Kolkata'
     }
   },
 

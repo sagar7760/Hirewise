@@ -393,7 +393,7 @@ const InterviewerManagementPage = () => {
                       type="text"
                       value={newInterviewer.name}
                       onChange={(e) => setNewInterviewer({ ...newInterviewer, name: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
                       placeholder="Enter full name"
                     />
                   </div>
@@ -406,7 +406,7 @@ const InterviewerManagementPage = () => {
                       type="email"
                       value={newInterviewer.email}
                       onChange={(e) => setNewInterviewer({ ...newInterviewer, email: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
                       placeholder="Enter email address"
                     />
                   </div>
@@ -418,7 +418,7 @@ const InterviewerManagementPage = () => {
                     <select
                       value={newInterviewer.department}
                       onChange={(e) => setNewInterviewer({ ...newInterviewer, department: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
                     >
                       <option value="">Select department</option>
                       {departments.map(dept => (
@@ -437,7 +437,7 @@ const InterviewerManagementPage = () => {
                         value={expertiseInput}
                         onChange={(e) => setExpertiseInput(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && addExpertise()}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
                         placeholder="Add skill/expertise"
                       />
                       <button

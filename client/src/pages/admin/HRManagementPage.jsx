@@ -1,117 +1,247 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/layout/AdminLayout';
+import { useApiRequest } from '../../hooks/useApiRequest';
 
 const HRManagementPage = () => {
-  const [hrs, setHrs] = useState([
-    {
-      id: 1,
-      name: 'Sarah Johnson',
-      email: 'sarah.johnson@company.com',
-      dateJoined: '2024-01-15',
-      status: 'active',
-      jobsPosted: 12,
-      candidatesHired: 8
-    },
-    {
-      id: 2,
-      name: 'Michael Chen',
-      email: 'michael.chen@company.com',
-      dateJoined: '2024-02-10',
-      status: 'active',
-      jobsPosted: 8,
-      candidatesHired: 5
-    },
-    {
-      id: 3,
-      name: 'Emma Davis',
-      email: 'emma.davis@company.com',
-      dateJoined: '2024-03-05',
-      status: 'active',
-      jobsPosted: 6,
-      candidatesHired: 3
-    },
-    {
-      id: 4,
-      name: 'David Wilson',
-      email: 'david.wilson@company.com',
-      dateJoined: '2024-02-28',
-      status: 'inactive',
-      jobsPosted: 4,
-      candidatesHired: 2
-    }
-  ]);
+  const { makeJsonRequest } = useApiRequest();
+  const [hrs, setHrs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingHR, setEditingHR] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
   const [newHR, setNewHR] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
-    sendInvite: true
+    department: '',
+    customDepartment: '',
+    password: ''
   });
 
-  const handleAddHR = () => {
-    if (newHR.name && newHR.email) {
-      const newHRData = {
-        id: hrs.length + 1,
-        name: newHR.name,
-        email: newHR.email,
-        dateJoined: new Date().toISOString().split('T')[0],
-        status: 'active',
-        jobsPosted: 0,
-        candidatesHired: 0
-      };
-      setHrs([...hrs, newHRData]);
-      setNewHR({ name: '', email: '', sendInvite: true });
-      setShowAddModal(false);
-      
-      if (newHR.sendInvite) {
-        // TODO: Send invitation email
-        console.log(`Invitation sent to ${newHR.email}`);
+  // Predefined department options
+  const departmentOptions = [
+    'Human Resources',
+    'Engineering',
+    'Marketing',
+    'Sales',
+    'Finance',
+    'Operations',
+    'Customer Support',
+    'Product Management',
+    'Quality Assurance',
+    'Research & Development'
+  ];
+
+  // Load HR users from backend
+  const loadHRUsers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await makeJsonRequest('/api/admin/hr');
+      setHrs(response || []);
+    } catch (error) {
+      console.error('Error loading HR users:', error);
+      setError('Failed to load HR users. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load data on component mount
+  useEffect(() => {
+    loadHRUsers();
+  }, []);
+
+  // Function to generate a random password
+  const generatePassword = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%&*';
+    let password = '';
+    for (let i = 0; i < 12; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return password;
+  };
+
+  const handleGeneratePassword = () => {
+    const generatedPassword = generatePassword();
+    setNewHR({ ...newHR, password: generatedPassword });
+  };
+
+  const handleCopyPassword = () => {
+    if (newHR.password) {
+      navigator.clipboard.writeText(newHR.password);
+      // You could add a toast notification here
+      alert('Password copied to clipboard!');
+    }
+  };
+
+  const handleAddHR = async () => {
+    const department = newHR.department === 'custom' ? newHR.customDepartment : newHR.department;
+    
+    if (newHR.firstName && newHR.lastName && newHR.email && department && newHR.password) {
+      try {
+        setSubmitting(true);
+        setError(null);
+
+        const response = await makeJsonRequest('/api/admin/hr', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            firstName: newHR.firstName,
+            lastName: newHR.lastName,
+            email: newHR.email,
+            department: department,
+            password: newHR.password
+          })
+        });
+
+        if (response && response.hr) {
+          // Add the new HR to the local state
+          setHrs([...hrs, response.hr]);
+          
+          // Reset form and close modal
+          setNewHR({ firstName: '', lastName: '', email: '', department: '', customDepartment: '', password: '' });
+          setShowAddModal(false);
+          setShowPassword(false);
+          
+          alert('HR user created successfully!');
+        }
+      } catch (error) {
+        console.error('Error creating HR user:', error);
+        setError(error.message || 'Failed to create HR user. Please try again.');
+      } finally {
+        setSubmitting(false);
       }
+    } else {
+      alert('Please fill in all required fields including first name, last name, email, department and password');
     }
   };
 
   const handleEditHR = (hr) => {
     setEditingHR(hr);
+    const isCustomDepartment = !departmentOptions.includes(hr.department);
+    // Split the name back into firstName and lastName
+    const nameParts = hr.name.split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+    
     setNewHR({
-      name: hr.name,
+      firstName: firstName,
+      lastName: lastName,
       email: hr.email,
-      sendInvite: false
+      department: isCustomDepartment ? 'custom' : hr.department,
+      customDepartment: isCustomDepartment ? hr.department : '',
+      password: '', // Leave empty for editing - will only update if filled
     });
     setShowAddModal(true);
   };
 
-  const handleUpdateHR = () => {
-    if (newHR.name && newHR.email && editingHR) {
-      setHrs(hrs.map(hr => 
-        hr.id === editingHR.id 
-          ? { ...hr, name: newHR.name, email: newHR.email }
-          : hr
-      ));
-      setEditingHR(null);
-      setNewHR({ name: '', email: '', sendInvite: true });
-      setShowAddModal(false);
+  const handleUpdateHR = async () => {
+    const department = newHR.department === 'custom' ? newHR.customDepartment : newHR.department;
+    
+    if (newHR.firstName && newHR.lastName && newHR.email && department && editingHR) {
+      try {
+        setSubmitting(true);
+        setError(null);
+
+        const updateData = {
+          firstName: newHR.firstName,
+          lastName: newHR.lastName,
+          email: newHR.email,
+          department: department
+        };
+
+        // Only include password if it was provided
+        if (newHR.password) {
+          updateData.password = newHR.password;
+        }
+
+        const response = await makeJsonRequest(`/api/admin/hr/${editingHR.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(updateData)
+        });
+
+        if (response && response.hr) {
+          // Update the local state
+          setHrs(hrs.map(hr => 
+            hr.id === editingHR.id ? response.hr : hr
+          ));
+          
+          setEditingHR(null);
+          setNewHR({ firstName: '', lastName: '', email: '', department: '', customDepartment: '', password: '' });
+          setShowAddModal(false);
+          setShowPassword(false);
+          
+          alert('HR user updated successfully!');
+        }
+      } catch (error) {
+        console.error('Error updating HR user:', error);
+        setError(error.message || 'Failed to update HR user. Please try again.');
+      } finally {
+        setSubmitting(false);
+      }
+    } else {
+      alert('Please fill in all required fields (first name, last name, email, department)');
     }
   };
 
-  const handleRemoveHR = (hrId) => {
+  const handleRemoveHR = async (hrId) => {
     if (window.confirm('Are you sure you want to remove this HR? This action cannot be undone.')) {
-      setHrs(hrs.filter(hr => hr.id !== hrId));
+      try {
+        setError(null);
+        await makeJsonRequest(`/api/admin/hr/${hrId}`, {
+          method: 'DELETE'
+        });
+
+        // Remove from local state
+        setHrs(hrs.filter(hr => hr.id !== hrId));
+        alert('HR user removed successfully!');
+      } catch (error) {
+        console.error('Error removing HR user:', error);
+        setError(error.message || 'Failed to remove HR user. Please try again.');
+      }
     }
   };
 
-  const handleToggleStatus = (hrId) => {
-    setHrs(hrs.map(hr => 
-      hr.id === hrId 
-        ? { ...hr, status: hr.status === 'active' ? 'inactive' : 'active' }
-        : hr
-    ));
+  const handleToggleStatus = async (hrId) => {
+    try {
+      setError(null);
+      const hr = hrs.find(h => h.id === hrId);
+      const newStatus = hr.status === 'active' ? 'inactive' : 'active';
+      
+      const response = await makeJsonRequest(`/api/admin/hr/${hrId}/toggle-status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (response && response.hr) {
+        setHrs(hrs.map(hr => 
+          hr.id === hrId ? response.hr : hr
+        ));
+      }
+    } catch (error) {
+      console.error('Error toggling HR status:', error);
+      setError(error.message || 'Failed to update HR status. Please try again.');
+    }
   };
 
   const closeModal = () => {
     setShowAddModal(false);
     setEditingHR(null);
-    setNewHR({ name: '', email: '', sendInvite: true });
+    setNewHR({ firstName: '', lastName: '', email: '', department: '', customDepartment: '', password: '' });
+    setShowPassword(false);
+    setError(null);
   };
 
   const formatDate = (dateString) => {
@@ -152,7 +282,22 @@ const HRManagementPage = () => {
           </div>
         </div>
 
-        {/* Stats Cards */}
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            {error}
+          </div>
+        )}
+
+        {/* Loading State */}
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
+            <span className="ml-2 text-gray-600 font-['Roboto']">Loading HR users...</span>
+          </div>
+        ) : (
+          <>
+            {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="flex items-center">
@@ -334,18 +479,39 @@ const HRManagementPage = () => {
                   {editingHR ? 'Edit HR' : 'Add New HR'}
                 </h3>
                 
+                {/* Error Message in Modal */}
+                {error && (
+                  <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">
+                    {error}
+                  </div>
+                )}
+                
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
-                      Full Name
-                    </label>
-                    <input
-                      type="text"
-                      value={newHR.name}
-                      onChange={(e) => setNewHR({ ...newHR, name: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-['Roboto'] text-gray-900"
-                      placeholder="Enter full name"
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+                        First Name
+                      </label>
+                      <input
+                        type="text"
+                        value={newHR.firstName}
+                        onChange={(e) => setNewHR({ ...newHR, firstName: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
+                        placeholder="Enter first name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+                        Last Name
+                      </label>
+                      <input
+                        type="text"
+                        value={newHR.lastName}
+                        onChange={(e) => setNewHR({ ...newHR, lastName: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
+                        placeholder="Enter last name"
+                      />
+                    </div>
                   </div>
                   
                   <div>
@@ -356,25 +522,102 @@ const HRManagementPage = () => {
                       type="email"
                       value={newHR.email}
                       onChange={(e) => setNewHR({ ...newHR, email: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
                       placeholder="Enter email address"
                     />
                   </div>
-                  
-                  {!editingHR && (
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id="sendInvite"
-                        checked={newHR.sendInvite}
-                        onChange={(e) => setNewHR({ ...newHR, sendInvite: e.target.checked })}
-                        className="h-4 w-4 text-gray-700 focus:ring-gray-500 border-gray-300 rounded"
-                      />
-                      <label htmlFor="sendInvite" className="ml-2 text-sm text-gray-700 font-['Roboto']">
-                        Send invitation email
-                      </label>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+                      Department
+                    </label>
+                    <div className="space-y-3">
+                      <select
+                        value={newHR.department}
+                        onChange={(e) => setNewHR({ ...newHR, department: e.target.value, customDepartment: '' })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
+                      >
+                        <option value="">Select a department</option>
+                        {departmentOptions.map((dept) => (
+                          <option key={dept} value={dept}>{dept}</option>
+                        ))}
+                        <option value="custom">Other (specify below)</option>
+                      </select>
+                      
+                      {newHR.department === 'custom' && (
+                        <input
+                          type="text"
+                          value={newHR.customDepartment}
+                          onChange={(e) => setNewHR({ ...newHR, customDepartment: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
+                          placeholder="Enter custom department name"
+                        />
+                      )}
                     </div>
-                  )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+                      Password {editingHR && <span className="text-gray-500">(leave empty to keep current)</span>}
+                    </label>
+                    <div className="flex space-x-2">
+                      <div className="flex-1 relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          value={newHR.password}
+                          onChange={(e) => setNewHR({ ...newHR, password: e.target.value })}
+                          className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
+                          placeholder={editingHR ? "Enter new password (optional)" : "Enter password"}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                          title={showPassword ? "Hide password" : "Show password"}
+                        >
+                          {showPassword ? (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleGeneratePassword}
+                        className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium font-['Roboto'] transition-colors flex items-center"
+                        title="Generate secure password"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                      </button>
+                      {newHR.password && (
+                        <button
+                          type="button"
+                          onClick={handleCopyPassword}
+                          className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium font-['Roboto'] transition-colors flex items-center"
+                          title="Copy password to clipboard"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                    {newHR.password && (
+                      <div className="mt-2 text-xs text-gray-600 font-['Roboto']">
+                        Password strength: <span className="font-medium">
+                          {newHR.password.length >= 8 ? 'Strong' : 'Weak'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="flex justify-end space-x-3 mt-6">
@@ -386,14 +629,28 @@ const HRManagementPage = () => {
                   </button>
                   <button
                     onClick={editingHR ? handleUpdateHR : handleAddHR}
-                    className="bg-black hover:bg-gray-800 text-white px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
+                    disabled={
+                      submitting || 
+                      !newHR.firstName || 
+                      !newHR.lastName ||
+                      !newHR.email || 
+                      (newHR.department === 'custom' ? !newHR.customDepartment : !newHR.department) ||
+                      (!editingHR && !newHR.password)
+                    }
+                    className={`px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors ${
+                      (submitting || !newHR.firstName || !newHR.lastName || !newHR.email || (newHR.department === 'custom' ? !newHR.customDepartment : !newHR.department) || (!editingHR && !newHR.password))
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-black hover:bg-gray-800 text-white'
+                    }`}
                   >
-                    {editingHR ? 'Update HR' : 'Add HR'}
+                    {submitting ? (editingHR ? 'Updating...' : 'Adding...') : (editingHR ? 'Update HR' : 'Add HR')}
                   </button>
                 </div>
               </div>
             </div>
           </div>
+        )}
+          </>
         )}
       </div>
     </AdminLayout>

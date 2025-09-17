@@ -1,37 +1,69 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/layout/AdminLayout';
+import { useApiRequest } from '../../hooks/useApiRequest';
 
 const AdminProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { makeJsonRequest, makeRequest } = useApiRequest();
+
+  // Helper functions for date formatting
+  const formatDateForDisplay = (dateString) => {
+    if (!dateString) return 'Not set';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Not set';
+      return date.toLocaleDateString('en-GB'); // DD/MM/YYYY format
+    } catch (error) {
+      return 'Not set';
+    }
+  };
+
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '';
+      return date.toISOString().split('T')[0]; // YYYY-MM-DD format for input
+    } catch (error) {
+      return '';
+    }
+  };
+
+  const parseDateFromInput = (inputValue) => {
+    if (!inputValue) return '';
+    return inputValue; // Input already gives us YYYY-MM-DD format
+  };
   
-  const [profileData] = useState({
+  const [profileData, setProfileData] = useState({
     personalInfo: {
-      firstName: 'John',
-      lastName: 'Anderson',
-      email: 'john.anderson@hirewise.com',
-      phone: '+1 (555) 123-4567',
-      dateOfBirth: '1985-06-15',
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      dateOfBirth: '',
       avatar: null
     },
     professionalInfo: {
       jobTitle: 'System Administrator',
       department: 'IT & Operations',
       employeeId: 'ADM001',
-      joiningDate: '2022-01-15',
+      joiningDate: '',
       reportingTo: 'CEO',
-      workLocation: 'San Francisco, CA'
+      workLocation: ''
     },
     contactInfo: {
-      address: '123 Main Street',
-      city: 'San Francisco',
-      state: 'California',
-      zipCode: '94102',
+      address: '',
+      city: '',
+      state: '',
+      zipCode: '',
       country: 'United States',
       emergencyContact: {
-        name: 'Jane Anderson',
-        relationship: 'Spouse',
-        phone: '+1 (555) 987-6543'
+        name: '',
+        relationship: '',
+        phone: ''
       }
     },
     preferences: {
@@ -46,13 +78,9 @@ const AdminProfile = () => {
       }
     },
     security: {
-      twoFactorEnabled: true,
-      lastPasswordChange: '2024-08-15',
-      loginHistory: [
-        { date: '2025-09-09', time: '09:30 AM', location: 'San Francisco, CA', device: 'Chrome on MacOS' },
-        { date: '2025-09-08', time: '08:45 AM', location: 'San Francisco, CA', device: 'Chrome on MacOS' },
-        { date: '2025-09-07', time: '09:15 AM', location: 'San Francisco, CA', device: 'Safari on iPhone' }
-      ]
+      twoFactorEnabled: false,
+      lastPasswordChange: '',
+      loginHistory: []
     }
   });
 
@@ -62,32 +90,104 @@ const AdminProfile = () => {
     newPassword: '',
     confirmPassword: ''
   });
+  const [avatarFile, setAvatarFile] = useState(null);
+
+  // Load profile data on component mount
+  useEffect(() => {
+    loadProfileData();
+  }, []);
+
+  // Update editedData when profileData changes
+  useEffect(() => {
+    if (profileData && Object.keys(profileData).length > 0) {
+      setEditedData({ ...profileData });
+    }
+  }, [profileData]);
+
+  const loadProfileData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await makeJsonRequest('/api/admin/profile');
+      console.log('Profile data loaded:', response);
+      
+      if (response.success && response.data) {
+        setProfileData(response.data);
+        // editedData will be updated via useEffect above
+      }
+    } catch (error) {
+      console.error('Error loading profile data:', error);
+      setError('Failed to load profile data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleEdit = () => {
     setIsEditing(true);
   };
 
-  const handleSave = () => {
-    // TODO: Save profile data to backend
-    console.log('Saving profile data:', editedData);
-    setIsEditing(false);
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+      setError(null); // Clear any previous errors
+      
+      // Prepare form data for upload
+      const formData = new FormData();
+      formData.append('profileData', JSON.stringify(editedData));
+      
+      // Add avatar file if it was changed
+      if (avatarFile) {
+        formData.append('avatar', avatarFile);
+      }
+
+      console.log('Saving profile data:', editedData);
+      
+      const response = await makeRequest('/api/admin/profile', {
+        method: 'PUT',
+        body: formData
+      });
+
+      console.log('Save response:', response);
+
+      if (response.success) {
+        setProfileData(response.data);
+        // editedData will be updated via useEffect when profileData changes
+        setIsEditing(false);
+        setAvatarFile(null);
+        console.log('Profile saved successfully:', response);
+      } else {
+        setError(response.message || 'Failed to save profile. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      setError(error.message || 'Failed to save profile. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancel = () => {
     setIsEditing(false);
     setEditedData({ ...profileData });
+    setAvatarFile(null);
+    setError(null); // Clear any errors
   };
 
   const handleAvatarUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
-      // TODO: Upload file to server
-      console.log('Avatar uploaded:', file);
+      console.log('Avatar selected:', file.name);
+      setAvatarFile(file);
+      
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
       setEditedData({
         ...editedData,
         personalInfo: {
           ...editedData.personalInfo,
-          avatar: URL.createObjectURL(file)
+          avatar: previewUrl
         }
       });
     }
@@ -120,8 +220,27 @@ const AdminProfile = () => {
   return (
     <AdminLayout>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
+        {/* Loading State */}
+        {loading && (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            <span className="ml-2 text-gray-600">Loading profile...</span>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            {error}
+          </div>
+        )}
+
+        {/* Profile Content */}
+        {!loading && (
+          <div>
+            {/* Header */}
+            <div className="mb-8">
+          
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 font-['Open_Sans'] mb-2">
@@ -184,7 +303,9 @@ const AdminProfile = () => {
                     ) : (
                       <div className="h-full w-full bg-gray-200 flex items-center justify-center">
                         <span className="text-2xl font-bold text-gray-600 font-['Open_Sans']">
-                          {profileData.personalInfo.firstName[0]}{profileData.personalInfo.lastName[0]}
+                          {(profileData.personalInfo.firstName && profileData.personalInfo.firstName[0]) || ''}
+                          {(profileData.personalInfo.lastName && profileData.personalInfo.lastName[0]) || ''}
+                          {(!profileData.personalInfo.firstName && !profileData.personalInfo.lastName) && '?'}
                         </span>
                       </div>
                     )}
@@ -297,16 +418,16 @@ const AdminProfile = () => {
                 {isEditing ? (
                   <input
                     type="date"
-                    value={editedData.personalInfo.dateOfBirth}
+                    value={formatDateForInput(editedData.personalInfo.dateOfBirth)}
                     onChange={(e) => setEditedData({
                       ...editedData,
-                      personalInfo: { ...editedData.personalInfo, dateOfBirth: e.target.value }
+                      personalInfo: { ...editedData.personalInfo, dateOfBirth: parseDateFromInput(e.target.value) }
                     })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
                   />
                 ) : (
                   <p className="text-gray-900 font-['Roboto'] py-2">
-                    {new Date(profileData.personalInfo.dateOfBirth).toLocaleDateString()}
+                    {formatDateForDisplay(profileData.personalInfo.dateOfBirth)}
                   </p>
                 )}
               </div>
@@ -346,7 +467,7 @@ const AdminProfile = () => {
                   Joining Date
                 </label>
                 <p className="text-gray-900 font-['Roboto'] py-2">
-                  {new Date(profileData.professionalInfo.joiningDate).toLocaleDateString()}
+                  {formatDateForDisplay(profileData.professionalInfo.joiningDate)}
                 </p>
               </div>
 
@@ -680,7 +801,7 @@ const AdminProfile = () => {
                     Password
                   </h3>
                   <p className="text-sm text-gray-500 font-['Roboto']">
-                    Last changed: {new Date(profileData.security.lastPasswordChange).toLocaleDateString()}
+                    Last changed: {formatDateForDisplay(profileData.security.lastPasswordChange)}
                   </p>
                 </div>
                 <button
@@ -742,6 +863,8 @@ const AdminProfile = () => {
             </div>
           </div>
         </div>
+          </div>
+        )}
 
         {/* Change Password Modal */}
         {showChangePassword && (
