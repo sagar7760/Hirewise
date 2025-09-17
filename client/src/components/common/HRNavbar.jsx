@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import hirewiseLogo from '../../assets/hirewise.svg';
 
 const HRNavbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout } = useAuth();
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isNotificationDropdownOpen, setIsNotificationDropdownOpen] = useState(false);
   const [isNotificationHovered, setIsNotificationHovered] = useState(false);
@@ -146,6 +148,7 @@ const HRNavbar = () => {
       navigate('/hr/profile');
     } else if (action === 'Logout') {
       // Handle logout logic
+      logout();
       navigate('/login');
     }
   };
@@ -357,8 +360,23 @@ const HRNavbar = () => {
                   : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
               }`}>
                 <div className="px-4 py-3 border-b border-gray-100">
-                  <p className="text-sm font-medium text-gray-900 font-['Open_Sans']">HR Manager</p>
-                  <p className="text-xs text-gray-500 font-['Roboto']">hr.manager@hirewise.com</p>
+                  <p className="text-sm font-medium text-gray-900 font-['Open_Sans']">
+                    {user?.firstName && user?.lastName 
+                      ? `${user.firstName} ${user.lastName}` 
+                      : 'HR User'
+                    }
+                  </p>
+                  <p className="text-xs text-gray-500 font-['Roboto']">
+                    {user?.email || 'hr@company.com'}
+                  </p>
+                  <p className="text-xs text-gray-600 font-['Roboto'] mt-1 capitalize">
+                    {user?.role || 'HR'} {user?.jobTitle && `• ${user.jobTitle}`}
+                  </p>
+                  {user?.department && (
+                    <p className="text-xs text-gray-400 font-['Roboto'] mt-1">
+                      {user.department}
+                    </p>
+                  )}
                 </div>
                 <button
                   onClick={() => handleProfileMenuClick('Profile')}

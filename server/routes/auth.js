@@ -109,7 +109,7 @@ router.post('/login', [
     const { email, password } = req.body;
 
     // Check for user and populate company information
-    const user = await User.findOne({ email }).select('+password').populate('companyId');
+    const user = await User.findOne({ email }).select('+password').populate('company');
     if (!user) {
       return res.status(400).json({
         success: false,
@@ -130,7 +130,7 @@ router.post('/login', [
     const payload = {
       id: user.id,
       role: user.role,
-      companyId: user.companyId?._id,
+      companyId: user.company?._id,
       isCompanyAdmin: user.isCompanyAdmin
     };
 

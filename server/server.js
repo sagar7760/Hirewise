@@ -27,6 +27,9 @@ const adminOrganizationRoutes = require('./routes/admin/organization');
 const adminProfileRoutes = require('./routes/admin/profile');
 const adminHRRoutes = require('./routes/admin/hr');
 
+// HR routes
+const hrProfileRoutes = require('./routes/hr/profile');
+
 const app = express();
 
 // Connect to MongoDB
@@ -73,6 +76,10 @@ app.use('/api/hr/dashboard', hrDashboardRoutes);
 app.use('/api/hr/jobs', hrJobRoutes);
 app.use('/api/hr/applications', hrApplicationRoutes);
 app.use('/api/hr/interviews', hrInterviewRoutes);
+
+// HR profile routes
+app.use('/api/hr/profile', hrProfileRoutes);
+console.log('Registered route: /api/hr/profile');
 
 // Admin API Routes
 app.use('/api/admin/organization', adminOrganizationRoutes);

@@ -35,6 +35,13 @@ const userSchema = new mongoose.Schema({
     enum: ['applicant', 'hr', 'interviewer', 'admin'],
     default: 'applicant'
   },
+  company: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Company',
+    required: function() {
+      return this.role === 'hr' || this.role === 'interviewer' || this.role === 'admin';
+    }
+  },
   phone: {
     type: String,
     trim: true
@@ -120,6 +127,24 @@ const userSchema = new mongoose.Schema({
   },
 
   // Notification preferences
+  notifications: {
+    emailAlerts: {
+      type: Boolean,
+      default: true
+    },
+    interviewUpdates: {
+      type: Boolean,
+      default: true
+    },
+    applicationNotifications: {
+      type: Boolean,
+      default: true
+    },
+    weeklyReports: {
+      type: Boolean,
+      default: false
+    }
+  },
   emailNotifications: {
     type: Boolean,
     default: true

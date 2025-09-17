@@ -1,22 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import HRLayout from '../../components/layout/HRLayout';
+import { useAuth } from '../../contexts/AuthContext';
+import { useApiRequest } from '../../hooks/useApiRequest';
 
 const HRProfile = () => {
+  const { user } = useAuth();
+  const { makeJsonRequest } = useApiRequest();
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [profileData, setProfileData] = useState({
-    fullName: 'Sarah Johnson',
-    email: 'sarah.johnson@hirewise.com',
-    phone: '+1 (555) 123-4567',
-    role: 'HR Manager',
-    status: 'Active',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    role: '',
+    status: '',
     profilePicture: null,
-    department: 'Human Resources',
-    joinedOn: '2024-03-15',
-    addedBy: 'Admin Johnson',
-    organizationName: 'TechCorp Solutions',
-    organizationLogo: '/api/placeholder/100/40',
+    department: '',
+    joiningDate: '',
+    jobTitle: '',
+    company: null,
     notifications: {
       emailAlerts: true,
       interviewUpdates: true,
@@ -25,14 +32,115 @@ const HRProfile = () => {
     }
   });
 
+  // Store original data for cancel functionality
+  const [originalProfileData, setOriginalProfileData] = useState({});
+
+  const [phoneData, setPhoneData] = useState({
+    newPhone: ''
+  });
+
+  // Load profile data from backend
+  const loadProfileData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log('Making API request to /api/hr/profile'); // Debug log
+      
+      const response = await makeJsonRequest('/api/hr/profile');
+      
+      console.log('Profile response:', response); // Debug log
+      
+      if (response) {
+        const profileInfo = {
+          firstName: response.firstName || '',
+          lastName: response.lastName || '',
+          email: response.email || '',
+          phone: response.phone || '',
+          role: response.role || '',
+          status: response.isActive ? 'Active' : 'Inactive',
+          profilePicture: response.avatar ? `/uploads/profile-pictures/${response.avatar}` : null,
+          department: response.department || '',
+          joiningDate: response.joiningDate || response.createdAt || '',
+          jobTitle: response.jobTitle || '',
+          company: response.company || null,
+          notifications: response.notifications || {
+            emailAlerts: true,
+            interviewUpdates: true,
+            applicationNotifications: true,
+            weeklyReports: false
+          }
+        };
+        
+        setProfileData(profileInfo);
+        setOriginalProfileData(profileInfo); // Store original data for cancel functionality
+        
+        setPhoneData({
+          newPhone: response.phone || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error loading profile data:', error);
+      console.error('Error details:', error.message, error.response?.data);
+      setError('Failed to load profile data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Save profile data to backend
+  const saveProfileData = async () => {
+    try {
+      setSaving(true);
+      setError(null);
+
+      const updateData = {
+        firstName: profileData.firstName,
+        lastName: profileData.lastName,
+        phone: profileData.phone,
+        department: profileData.department,
+        jobTitle: profileData.jobTitle,
+        notifications: profileData.notifications
+      };
+
+      const response = await makeJsonRequest('/api/hr/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updateData)
+      });
+
+      if (response) {
+        setIsEditing(false);
+        setOriginalProfileData(profileData); // Update original data after successful save
+        alert('Profile updated successfully!');
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      setError('Failed to save profile. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Cancel editing and revert changes
+  const cancelEditing = () => {
+    setProfileData(originalProfileData);
+    setIsEditing(false);
+    setError(null);
+  };
+
+  // Load data on component mount
+  useEffect(() => {
+    console.log('Current user from auth context:', user); // Debug log
+    loadProfileData();
+  }, []);
+
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
-  });
-
-  const [phoneData, setPhoneData] = useState({
-    newPhone: profileData.phone
   });
 
   const handleProfileUpdate = (field, value) => {
@@ -52,16 +160,36 @@ const HRProfile = () => {
     }));
   };
 
-  const handlePasswordChange = (e) => {
+  const handlePasswordChange = async (e) => {
     e.preventDefault();
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       alert('Passwords do not match');
       return;
     }
-    // Handle password change logic here
-    console.log('Password change requested');
-    setShowPasswordModal(false);
-    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    
+    try {
+      setError(null);
+      
+      const response = await makeJsonRequest('/api/profile/change-password', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword
+        })
+      });
+
+      if (response) {
+        alert('Password changed successfully!');
+        setShowPasswordModal(false);
+        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      }
+    } catch (error) {
+      console.error('Error changing password:', error);
+      alert(error.message || 'Failed to change password. Please try again.');
+    }
   };
 
   const handlePhoneChange = (e) => {
@@ -70,14 +198,31 @@ const HRProfile = () => {
     setShowPhoneModal(false);
   };
 
-  const handleProfilePictureChange = (e) => {
+  const handleProfilePictureChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setProfileData(prev => ({ ...prev, profilePicture: e.target.result }));
-      };
-      reader.readAsDataURL(file);
+      try {
+        setError(null);
+        
+        const formData = new FormData();
+        formData.append('avatar', file);
+
+        const response = await makeJsonRequest('/api/profile/avatar', {
+          method: 'PUT',
+          body: formData
+        });
+
+        if (response && response.avatarPath) {
+          setProfileData(prev => ({ 
+            ...prev, 
+            profilePicture: `/uploads/profile-pictures/${response.avatarPath}` 
+          }));
+          alert('Profile picture updated successfully!');
+        }
+      } catch (error) {
+        console.error('Error uploading profile picture:', error);
+        setError('Failed to upload profile picture. Please try again.');
+      }
     }
   };
 
@@ -95,28 +240,62 @@ const HRProfile = () => {
                 Manage your profile information and preferences
               </p>
             </div>
-            <button
-              onClick={() => setIsEditing(!isEditing)}
-              className={`px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors flex items-center ${
-                isEditing 
-                  ? 'bg-gray-100 hover:bg-gray-200 text-gray-800' 
-                  : 'bg-black hover:bg-gray-800 text-white'
-              }`}
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                {isEditing ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                )}
-              </svg>
-              {isEditing ? 'Cancel' : 'Edit Profile'}
-            </button>
+            <div className="flex space-x-3">
+              {isEditing ? (
+                <>
+                  <button
+                    onClick={cancelEditing}
+                    disabled={saving || loading}
+                    className={`px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors flex items-center bg-gray-100 hover:bg-gray-200 text-gray-800 ${(saving || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveProfileData}
+                    disabled={saving || loading}
+                    className={`px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors flex items-center bg-black hover:bg-gray-800 text-white ${(saving || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    {saving ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  disabled={saving || loading}
+                  className={`px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors flex items-center bg-black hover:bg-gray-800 text-white ${(saving || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                  Edit Profile
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Profile Picture Section */}
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <p className="font-medium">Error:</p>
+            <p>{error}</p>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
+            <span className="ml-2 text-gray-600 font-['Roboto']">Loading profile...</span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 font-['Open_Sans']">
@@ -159,17 +338,25 @@ const HRProfile = () => {
               </h3>
               <div className="space-y-4">
                 <div className="flex items-center">
-                  <img 
-                    src={profileData.organizationLogo} 
-                    alt="Organization Logo" 
-                    className="w-12 h-12 rounded-lg bg-gray-100 mr-3"
-                  />
+                  <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center mr-3">
+                    {profileData.company?.logo ? (
+                      <img 
+                        src={`/uploads/company-logos/${profileData.company.logo}`} 
+                        alt="Company Logo" 
+                        className="w-8 h-8 rounded object-cover"
+                      />
+                    ) : (
+                      <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H7m5 0v-9a1 1 0 011-1h2a1 1 0 011 1v9m-4 0h4m-4 0v-2m0 0h.01M12 7h.01" />
+                      </svg>
+                    )}
+                  </div>
                   <div>
                     <p className="font-medium text-gray-900 font-['Open_Sans']">
-                      {profileData.organizationName}
+                      {profileData.company?.name || 'Organization'}
                     </p>
                     <p className="text-sm text-gray-500 font-['Roboto']">
-                      Organization
+                      {profileData.company?.website || 'Company'}
                     </p>
                   </div>
                 </div>
@@ -177,15 +364,35 @@ const HRProfile = () => {
                   <div className="grid grid-cols-1 gap-3">
                     <div>
                       <label className="text-sm font-medium text-gray-500 font-['Roboto']">Department</label>
-                      <p className="text-gray-900 font-['Open_Sans']">{profileData.department}</p>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={profileData.department}
+                          onChange={(e) => handleProfileUpdate('department', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 bg-white"
+                        />
+                      ) : (
+                        <p className="text-gray-900 font-['Open_Sans']">{profileData.department}</p>
+                      )}
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-500 font-['Roboto']">Joined On</label>
-                      <p className="text-gray-900 font-['Open_Sans']">{new Date(profileData.joinedOn).toLocaleDateString()}</p>
+                      <p className="text-gray-900 font-['Open_Sans']">
+                        {profileData.joiningDate ? new Date(profileData.joiningDate).toLocaleDateString() : 'N/A'}
+                      </p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-500 font-['Roboto']">Added By</label>
-                      <p className="text-gray-900 font-['Open_Sans']">{profileData.addedBy}</p>
+                      <label className="text-sm font-medium text-gray-500 font-['Roboto']">Job Title</label>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={profileData.jobTitle}
+                          onChange={(e) => handleProfileUpdate('jobTitle', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 bg-white"
+                        />
+                      ) : (
+                        <p className="text-gray-900 font-['Open_Sans']">{profileData.jobTitle || 'HR'}</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -202,17 +409,33 @@ const HRProfile = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2 font-['Roboto']">
-                    Full Name
+                    First Name
                   </label>
                   {isEditing ? (
                     <input
                       type="text"
-                      value={profileData.fullName}
-                      onChange={(e) => handleProfileUpdate('fullName', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto']"
+                      value={profileData.firstName}
+                      onChange={(e) => handleProfileUpdate('firstName', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 bg-white"
                     />
                   ) : (
-                    <p className="text-gray-900 py-2 font-['Open_Sans']">{profileData.fullName}</p>
+                    <p className="text-gray-900 py-2 font-['Open_Sans']">{profileData.firstName}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 font-['Roboto']">
+                    Last Name
+                  </label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={profileData.lastName}
+                      onChange={(e) => handleProfileUpdate('lastName', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 bg-white"
+                    />
+                  ) : (
+                    <p className="text-gray-900 py-2 font-['Open_Sans']">{profileData.lastName}</p>
                   )}
                 </div>
 
@@ -312,9 +535,10 @@ const HRProfile = () => {
                       type="checkbox"
                       checked={profileData.notifications.emailAlerts}
                       onChange={(e) => handleNotificationUpdate('emailAlerts', e.target.checked)}
+                      disabled={!isEditing}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
+                    <div className={`w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black ${!isEditing ? 'opacity-50 cursor-not-allowed' : ''}`}></div>
                   </label>
                 </div>
 
@@ -332,9 +556,10 @@ const HRProfile = () => {
                       type="checkbox"
                       checked={profileData.notifications.interviewUpdates}
                       onChange={(e) => handleNotificationUpdate('interviewUpdates', e.target.checked)}
+                      disabled={!isEditing}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
+                    <div className={`w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black ${!isEditing ? 'opacity-50 cursor-not-allowed' : ''}`}></div>
                   </label>
                 </div>
 
@@ -352,9 +577,10 @@ const HRProfile = () => {
                       type="checkbox"
                       checked={profileData.notifications.applicationNotifications}
                       onChange={(e) => handleNotificationUpdate('applicationNotifications', e.target.checked)}
+                      disabled={!isEditing}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
+                    <div className={`w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black ${!isEditing ? 'opacity-50 cursor-not-allowed' : ''}`}></div>
                   </label>
                 </div>
 
@@ -372,27 +598,17 @@ const HRProfile = () => {
                       type="checkbox"
                       checked={profileData.notifications.weeklyReports}
                       onChange={(e) => handleNotificationUpdate('weeklyReports', e.target.checked)}
+                      disabled={!isEditing}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
+                    <div className={`w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black ${!isEditing ? 'opacity-50 cursor-not-allowed' : ''}`}></div>
                   </label>
                 </div>
               </div>
             </div>
-
-            {/* Save Changes Button */}
-            {isEditing && (
-              <div className="mt-6 flex justify-end">
-                <button
-                  onClick={() => setIsEditing(false)}
-                  className="bg-black hover:bg-gray-800 text-white px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors"
-                >
-                  Save Changes
-                </button>
-              </div>
-            )}
           </div>
         </div>
+        )}
       </div>
 
       {/* Password Change Modal */}
@@ -412,7 +628,7 @@ const HRProfile = () => {
                     type="password"
                     value={passwordData.currentPassword}
                     onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto']"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 bg-white"
                     required
                   />
                 </div>
@@ -424,7 +640,7 @@ const HRProfile = () => {
                     type="password"
                     value={passwordData.newPassword}
                     onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto']"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 bg-white"
                     required
                   />
                 </div>
@@ -436,7 +652,7 @@ const HRProfile = () => {
                     type="password"
                     value={passwordData.confirmPassword}
                     onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto']"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 bg-white"
                     required
                   />
                 </div>
@@ -478,7 +694,7 @@ const HRProfile = () => {
                     type="tel"
                     value={phoneData.newPhone}
                     onChange={(e) => setPhoneData(prev => ({ ...prev, newPhone: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto']"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 bg-white"
                     required
                   />
                 </div>

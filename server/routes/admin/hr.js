@@ -73,7 +73,7 @@ router.post('/', auth, authorize('admin'), async (req, res) => {
       password: hashedPassword,
       role: 'hr',
       department: department.trim(),
-      companyId: req.user.companyId,
+      company: req.user.company || req.user.companyId,
       joiningDate: new Date(),
       isActive: true,
       jobTitle: 'HR',
