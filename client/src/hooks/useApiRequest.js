@@ -27,9 +27,29 @@ export const useApiRequest = () => {
   const makeJsonRequest = useCallback(async (url, options = {}) => {
     const response = await makeRequest(url, options);
     
-    // Only try to parse JSON if we have a response
-    if (response) {
+    // Check if response is successful
+    if (response && response.ok) {
       return await response.json();
+    }
+    
+    // Handle error responses
+    if (response && !response.ok) {
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch (parseError) {
+        // If can't parse JSON, create a generic error
+        errorData = { 
+          success: false, 
+          error: 'Server Error', 
+          message: `HTTP ${response.status}: ${response.statusText}` 
+        };
+      }
+      
+      // Create an error object with the response data
+      const error = new Error(errorData.message || errorData.error || 'Request failed');
+      error.response = { data: errorData, status: response.status };
+      throw error;
     }
     
     return null;

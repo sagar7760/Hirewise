@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useApiRequest } from '../../hooks/useApiRequest';
 
 const HRProfile = () => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const { makeJsonRequest } = useApiRequest();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -52,6 +52,7 @@ const HRProfile = () => {
       console.log('Profile response:', response); // Debug log
       
       if (response) {
+        console.log('Profile response received:', response); // Debug log
         const profileInfo = {
           firstName: response.firstName || '',
           lastName: response.lastName || '',
@@ -59,7 +60,7 @@ const HRProfile = () => {
           phone: response.phone || '',
           role: response.role || '',
           status: response.isActive ? 'Active' : 'Inactive',
-          profilePicture: response.avatar ? `/uploads/profile-pictures/${response.avatar}` : null,
+          profilePicture: response.avatar || null, // Now avatar contains base64 data directly
           department: response.department || '',
           joiningDate: response.joiningDate || response.createdAt || '',
           jobTitle: response.jobTitle || '',
@@ -71,6 +72,9 @@ const HRProfile = () => {
             weeklyReports: false
           }
         };
+        
+        console.log('Profile picture data:', profileInfo.profilePicture ? 'Base64 data present' : 'No avatar'); // Debug log
+        console.log('Avatar from response:', response.avatar ? 'Present' : 'Null'); // Debug log
         
         setProfileData(profileInfo);
         setOriginalProfileData(profileInfo); // Store original data for cancel functionality
@@ -103,6 +107,8 @@ const HRProfile = () => {
         notifications: profileData.notifications
       };
 
+      console.log('Sending update data to backend:', updateData); // Debug log
+
       const response = await makeJsonRequest('/api/hr/profile', {
         method: 'PUT',
         headers: {
@@ -110,6 +116,8 @@ const HRProfile = () => {
         },
         body: JSON.stringify(updateData)
       });
+
+      console.log('Update response from backend:', response); // Debug log
 
       if (response) {
         setIsEditing(false);
@@ -170,7 +178,7 @@ const HRProfile = () => {
     try {
       setError(null);
       
-      const response = await makeJsonRequest('/api/profile/change-password', {
+      const response = await makeJsonRequest('/api/hr/profile/change-password', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -201,27 +209,84 @@ const HRProfile = () => {
   const handleProfilePictureChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Client-side validation before upload
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        setError('Profile picture must be smaller than 5MB. Please choose a smaller file.');
+        return;
+      }
+
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+      if (!allowedTypes.includes(file.type)) {
+        setError('Please upload only image files (JPEG, JPG, PNG, GIF).');
+        return;
+      }
+
       try {
         setError(null);
         
-        const formData = new FormData();
-        formData.append('avatar', file);
+        // Convert file to base64
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          try {
+            const base64Data = event.target.result;
+            console.log('Converted image to base64, size:', base64Data.length); // Debug log
 
-        const response = await makeJsonRequest('/api/profile/avatar', {
-          method: 'PUT',
-          body: formData
-        });
+            const response = await makeJsonRequest('/api/hr/profile/avatar', {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                imageData: base64Data
+              })
+            });
 
-        if (response && response.avatarPath) {
-          setProfileData(prev => ({ 
-            ...prev, 
-            profilePicture: `/uploads/profile-pictures/${response.avatarPath}` 
-          }));
-          alert('Profile picture updated successfully!');
-        }
+            if (response && response.avatarData) {
+              setProfileData(prev => ({ 
+                ...prev, 
+                profilePicture: response.avatarData 
+              }));
+              
+              // Update the user context so the navbar shows the new profile picture
+              updateUser({
+                ...user,
+                avatar: response.avatarData
+              });
+              
+              alert('Profile picture updated successfully!');
+            }
+          } catch (error) {
+            console.error('Error uploading profile picture:', error);
+            
+            // Handle specific error messages from backend
+            if (error.response && error.response.data) {
+              const errorData = error.response.data;
+              if (errorData.error === 'File too large') {
+                setError('Profile picture must be smaller than 5MB. Please choose a smaller file.');
+              } else if (errorData.error === 'Invalid image format') {
+                setError('Please upload only image files (JPEG, JPG, PNG, GIF).');
+              } else {
+                setError(errorData.message || 'Failed to upload profile picture. Please try again.');
+              }
+            } else if (error.message) {
+              setError(error.message);
+            } else {
+              setError('Failed to upload profile picture. Please try again.');
+            }
+          }
+        };
+        
+        reader.onerror = () => {
+          setError('Failed to read the selected file. Please try again.');
+        };
+        
+        // Convert file to base64
+        reader.readAsDataURL(file);
+        
       } catch (error) {
-        console.error('Error uploading profile picture:', error);
-        setError('Failed to upload profile picture. Please try again.');
+        console.error('Error processing file:', error);
+        setError('Failed to process the selected file. Please try again.');
       }
     }
   };
@@ -326,6 +391,10 @@ const HRProfile = () => {
                         className="hidden"
                       />
                     </label>
+                    <p className="text-xs text-gray-500 mt-2 text-center font-['Roboto']">
+                      Maximum file size: 5MB<br />
+                      Supported formats: JPEG, PNG, GIF
+                    </p>
                   </div>
                 )}
               </div>
