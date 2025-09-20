@@ -107,7 +107,7 @@ const login = async (req, res) => {
       });
     }
 
-    // Create JWT token with company context
+    // Create JWT token with minimal payload to reduce size
     const payload = {
       id: user.id,
       role: user.role,
@@ -130,10 +130,10 @@ const login = async (req, res) => {
         email: user.email,
         role: user.role,
         isCompanyAdmin: user.isCompanyAdmin,
-        company: user.companyId ? {
-          id: user.companyId._id,
-          name: user.companyId.name,
-          domain: user.companyId.domain
+        company: user.company ? {
+          id: user.company._id,
+          name: user.company.name,
+          domain: user.company.domain
         } : null
       }
     });

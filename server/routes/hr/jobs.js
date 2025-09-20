@@ -1,10 +1,16 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const { query, body, param, validationResult } = require('express-validator');
+const { auth, authorize, requireCompany } = require('../../middleware/auth');
 const Job = require('../../models/Job');
 const Application = require('../../models/Application');
-const User = require('../../models/User');
-const { auth, authorize, requireCompany } = require('../../middleware/auth');
-const mongoose = require('mongoose');
+const {
+  getJobs,
+  createJob,
+  getJobById,
+  updateJob,
+  deleteJob
+} = require('../../controllers/hr/jobController');
 
 const router = express.Router();
 
@@ -20,119 +26,12 @@ router.get('/', auth, authorize('hr', 'admin'), requireCompany, [
   query('employmentType').optional().isIn(['full-time', 'part-time', 'contract', 'temporary', 'internship']).withMessage('Invalid employment type'),
   query('sortBy').optional().isIn(['createdAt', 'title', 'department', 'applicants']).withMessage('Invalid sort field'),
   query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc')
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
-    const {
-      page = 1,
-      limit = 10,
-      search,
-      status,
-      department,
-      employmentType,
-      sortBy = 'createdAt',
-      sortOrder = 'desc'
-    } = req.query;
-
-    // Build filter query
-    let filter = { 
-      postedBy: req.user?.id || new mongoose.Types.ObjectId() // Mock for now
-    };
-
-    if (search) {
-      filter.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { department: { $regex: search, $options: 'i' } }
-      ];
-    }
-
-    if (status) filter.status = status;
-    if (department) filter.department = new RegExp(department, 'i');
-    if (employmentType) filter.employmentType = employmentType;
-
-    // Build sort query
-    let sort = {};
-    if (sortBy === 'applicants') {
-      // Special handling for applicants count - will be added after aggregation
-      sort = { createdAt: sortOrder === 'asc' ? 1 : -1 };
-    } else {
-      sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
-    }
-
-    const skip = (page - 1) * limit;
-
-    // Get jobs with pagination
-    const jobs = await Job.find(filter)
-      .sort(sort)
-      .skip(skip)
-      .limit(parseInt(limit))
-      .populate('postedBy', 'firstName lastName')
-      .lean();
-
-    // Add applicant count for each job
-    const jobsWithStats = await Promise.all(jobs.map(async (job) => {
-      const applicantCount = await Application.countDocuments({ job: job._id });
-      const recentApplications = await Application.countDocuments({ 
-        job: job._id,
-        createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } // Last 7 days
-      });
-      
-      return {
-        ...job,
-        applicants: applicantCount,
-        recentApplications
-      };
-    }));
-
-    // Sort by applicants if requested
-    if (sortBy === 'applicants') {
-      jobsWithStats.sort((a, b) => {
-        return sortOrder === 'asc' ? 
-          a.applicants - b.applicants : 
-          b.applicants - a.applicants;
-      });
-    }
-
-    // Get total count for pagination
-    const totalJobs = await Job.countDocuments(filter);
-    const totalPages = Math.ceil(totalJobs / limit);
-
-    res.json({
-      success: true,
-      data: {
-        jobs: jobsWithStats,
-        pagination: {
-          currentPage: parseInt(page),
-          totalPages,
-          totalJobs,
-          hasNextPage: page < totalPages,
-          hasPrevPage: page > 1
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Get HR jobs error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
-  }
-});
+], getJobs);
 
 // @route   POST /api/hr/jobs
 // @desc    Create a new job posting
 // @access  Private (HR, Admin)
-router.post('/', [
+router.post('/', auth, authorize('hr', 'admin'), requireCompany, [
   body('title')
     .notEmpty()
     .withMessage('Job title is required')
@@ -141,50 +40,26 @@ router.post('/', [
   body('description')
     .notEmpty()
     .withMessage('Job description is required')
-    .isLength({ min: 50, max: 5000 })
-    .withMessage('Job description must be between 50 and 5000 characters'),
+    .isLength({ min: 10, max: 5000 })
+    .withMessage('Job description must be between 10 and 5000 characters'),
   body('department')
     .notEmpty()
     .withMessage('Department is required')
     .isLength({ min: 2, max: 100 })
     .withMessage('Department must be between 2 and 100 characters'),
-  body('location')
+  body('jobType')
+    .isIn(['Full-time', 'Part-time', 'Internship', 'Contract', 'Freelance'])
+    .withMessage('Invalid job type'),
+  body('locationType')
+    .optional()
+    .isIn(['onsite', 'remote', 'hybrid'])
+    .withMessage('Invalid location type'),
+  body('qualification')
     .notEmpty()
-    .withMessage('Location is required')
-    .isLength({ min: 2, max: 200 })
-    .withMessage('Location must be between 2 and 200 characters'),
-  body('employmentType')
-    .isIn(['full-time', 'part-time', 'contract', 'temporary', 'internship'])
-    .withMessage('Invalid employment type'),
+    .withMessage('Required qualification is required'),
   body('experienceLevel')
-    .isIn(['entry', 'mid', 'senior', 'executive'])
-    .withMessage('Invalid experience level'),
-  body('salaryRange.min')
-    .optional()
-    .isNumeric()
-    .withMessage('Minimum salary must be a number'),
-  body('salaryRange.max')
-    .optional()
-    .isNumeric()
-    .withMessage('Maximum salary must be a number'),
-  body('requirements')
-    .isArray({ min: 1 })
-    .withMessage('Requirements must be a non-empty array'),
-  body('requirements.*')
-    .isLength({ min: 5, max: 500 })
-    .withMessage('Each requirement must be between 5 and 500 characters'),
-  body('responsibilities')
-    .isArray({ min: 1 })
-    .withMessage('Responsibilities must be a non-empty array'),
-  body('responsibilities.*')
-    .isLength({ min: 5, max: 500 })
-    .withMessage('Each responsibility must be between 5 and 500 characters'),
-  body('skills')
-    .isArray()
-    .withMessage('Skills must be an array'),
-  body('skills.*')
-    .isLength({ min: 1, max: 50 })
-    .withMessage('Each skill must be between 1 and 50 characters'),
+    .notEmpty()
+    .withMessage('Experience level is required'),
   body('applicationDeadline')
     .isISO8601()
     .withMessage('Application deadline must be a valid date')
@@ -194,74 +69,32 @@ router.post('/', [
       }
       return true;
     }),
+  body('maxApplicants')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Max applicants must be a positive integer'),
+  body('requiredSkills')
+    .optional()
+    .isArray()
+    .withMessage('Required skills must be an array'),
+  body('preferredSkills')
+    .optional()
+    .isArray()
+    .withMessage('Preferred skills must be an array'),
   body('status')
     .optional()
-    .isIn(['active', 'inactive', 'draft'])
+    .isIn(['draft', 'active'])
     .withMessage('Invalid status')
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
-    // Validate salary range
-    if (req.body.salaryRange && req.body.salaryRange.min && req.body.salaryRange.max) {
-      if (req.body.salaryRange.min >= req.body.salaryRange.max) {
-        return res.status(400).json({
-          success: false,
-          message: 'Minimum salary must be less than maximum salary'
-        });
-      }
-    }
-
-    const jobData = {
-      ...req.body,
-      postedBy: req.user?.id || new mongoose.Types.ObjectId(), // Mock for now
-      status: req.body.status || 'active'
-    };
-
-    const job = new Job(jobData);
-    await job.save();
-
-    const populatedJob = await Job.findById(job._id)
-      .populate('postedBy', 'firstName lastName')
-      .lean();
-
-    // Add initial stats
-    populatedJob.applicants = 0;
-    populatedJob.recentApplications = 0;
-
-    res.status(201).json({
-      success: true,
-      message: 'Job created successfully',
-      data: populatedJob
-    });
-
-  } catch (error) {
-    console.error('Create job error:', error);
-    
-    if (error.name === 'ValidationError') {
-      const errors = Object.values(error.errors).map(err => ({
-        field: err.path,
-        message: err.message
-      }));
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors
-      });
-    }
-
-    res.status(500).json({
+], (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
       success: false,
-      message: 'Server error'
+      message: 'Validation failed',
+      errors: errors.array()
     });
   }
+  createJob(req, res);
 });
 
 // @route   GET /api/hr/jobs/:id

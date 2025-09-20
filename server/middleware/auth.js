@@ -25,11 +25,13 @@ const auth = async (req, res, next) => {
     // Add company context to request
     req.user = {
       ...user.toObject(),
-      companyId: decoded.companyId,
+      companyId: user.companyId || decoded.companyId,
       isCompanyAdmin: decoded.isCompanyAdmin
     };
+    
     next();
   } catch (error) {
+    console.log('Auth middleware - Error:', error.message);
     res.status(401).json({ 
       success: false, 
       message: 'Token is not valid' 
@@ -39,10 +41,10 @@ const auth = async (req, res, next) => {
 
 const authorize = (...roles) => {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
+    if (!req.user || !roles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
-        message: `User role ${req.user.role} is not authorized to access this route`
+        message: `User role ${req.user?.role || 'undefined'} is not authorized to access this route`
       });
     }
     next();
@@ -51,7 +53,7 @@ const authorize = (...roles) => {
 
 // Middleware to ensure user belongs to a company
 const requireCompany = (req, res, next) => {
-  if (!req.user.companyId) {
+  if (!req.user.companyId && !req.user.company) {
     return res.status(403).json({
       success: false,
       message: 'Access denied. This route requires company association.'

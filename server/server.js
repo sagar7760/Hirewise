@@ -19,8 +19,8 @@ const aiRoutes = require('./routes/ai');
 // HR routes
 const hrDashboardRoutes = require('./routes/hr/dashboard');
 const hrJobRoutes = require('./routes/hr/jobs');
-const hrApplicationRoutes = require('./routes/hr/hr-applications');
-const hrInterviewRoutes = require('./routes/hr/hr-interviews');
+const hrApplicationRoutes = require('./routes/hr/applications');
+const hrInterviewRoutes = require('./routes/hr/interviews');
 
 // Admin routes
 const adminOrganizationRoutes = require('./routes/admin/organization');
@@ -31,6 +31,13 @@ const adminHRRoutes = require('./routes/admin/hr');
 const hrProfileRoutes = require('./routes/hr/profile');
 
 const app = express();
+
+// Configure server to handle larger headers
+app.use((req, res, next) => {
+  // Increase header size limit to 32KB
+  req.setTimeout(300000); // 5 minutes timeout
+  next();
+});
 
 // Connect to MongoDB
 connectDB();

@@ -5,69 +5,91 @@ const jobSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Job title is required'],
     trim: true,
-    maxlength: [100, 'Job title cannot be more than 100 characters']
+    maxlength: [200, 'Job title cannot be more than 200 characters']
   },
   description: {
     type: String,
     required: [true, 'Job description is required'],
     maxlength: [5000, 'Job description cannot be more than 5000 characters']
   },
-  company: {
+  department: {
     type: String,
-    required: [true, 'Company name is required'],
+    required: [true, 'Department is required'],
     trim: true
-  },
-  location: {
-    type: String,
-    required: [true, 'Location is required'],
-    trim: true
-  },
-  country: {
-    type: String,
-    required: [true, 'Country is required'],
-    trim: true
-  },
-  workType: {
-    type: String,
-    enum: ['remote', 'hybrid', 'on-site'],
-    required: [true, 'Work type is required']
   },
   jobType: {
     type: String,
-    enum: ['full-time', 'part-time', 'contract', 'internship'],
+    enum: ['Full-time', 'Part-time', 'Internship', 'Contract', 'Freelance'],
     required: [true, 'Job type is required']
   },
-  experienceLevel: {
+  location: {
     type: String,
-    enum: ['entry', 'mid', 'senior', 'lead'],
-    required: [true, 'Experience level is required']
+    trim: true
   },
-  salary: {
+  locationType: {
+    type: String,
+    enum: ['onsite', 'remote', 'hybrid'],
+    default: 'onsite'
+  },
+  salaryRange: {
     min: {
-      type: Number,
-      required: [true, 'Minimum salary is required']
+      type: String
     },
     max: {
-      type: Number,
-      required: [true, 'Maximum salary is required']
+      type: String
     },
     currency: {
       type: String,
-      default: 'USD'
+      default: 'INR'
+    },
+    period: {
+      type: String,
+      enum: ['year', 'month', 'hour'],
+      default: 'year'
     }
   },
-  requirements: {
+  qualification: {
     type: [String],
-    required: [true, 'Job requirements are required']
+    required: [true, 'Required qualification is required']
   },
-  skills: {
-    type: [String],
-    required: [true, 'Required skills are required']
-  },
-  benefits: [String],
-  department: {
+  experienceLevel: {
     type: String,
-    trim: true
+    required: [true, 'Experience level is required']
+  },
+  requiredSkills: {
+    type: [String],
+    default: []
+  },
+  preferredSkills: {
+    type: [String],
+    default: []
+  },
+  applicationDeadline: {
+    type: Date,
+    required: [true, 'Application deadline is required']
+  },
+  maxApplicants: {
+    type: Number
+  },
+  resumeRequired: {
+    type: Boolean,
+    default: true
+  },
+  allowMultipleApplications: {
+    type: Boolean,
+    default: false
+  },
+  defaultInterviewRounds: {
+    type: [String],
+    default: []
+  },
+  defaultInterviewer: {
+    type: String
+  },
+  company: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Company',
+    required: true
   },
   postedBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -76,18 +98,8 @@ const jobSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['draft', 'published', 'closed', 'on-hold'],
+    enum: ['draft', 'active', 'inactive', 'closed'],
     default: 'draft'
-  },
-  applicationDeadline: {
-    type: Date
-  },
-  startDate: {
-    type: Date
-  },
-  isUrgent: {
-    type: Boolean,
-    default: false
   },
   views: {
     type: Number,
@@ -102,19 +114,16 @@ const jobSchema = new mongoose.Schema({
 });
 
 // Indexes for better performance
-jobSchema.index({ title: 'text', description: 'text', company: 'text' });
+jobSchema.index({ title: 'text', description: 'text' });
 jobSchema.index({ status: 1 });
-jobSchema.index({ workType: 1 });
+jobSchema.index({ locationType: 1 });
 jobSchema.index({ jobType: 1 });
 jobSchema.index({ experienceLevel: 1 });
 jobSchema.index({ location: 1 });
 jobSchema.index({ createdAt: -1 });
 jobSchema.index({ postedBy: 1 });
-
-// Virtual for salary range display
-jobSchema.virtual('salaryRange').get(function() {
-  return `${this.salary.currency} ${this.salary.min.toLocaleString()} - ${this.salary.max.toLocaleString()}`;
-});
+jobSchema.index({ company: 1 });
+jobSchema.index({ department: 1 });
 
 // Virtual for days since posted
 jobSchema.virtual('daysSincePosted').get(function() {

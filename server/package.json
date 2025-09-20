@@ -4,8 +4,8 @@
   "description": "HireWise Backend API",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "node --max-http-header-size=32768 server.js",
+    "dev": "nodemon --max-http-header-size=32768 server.js",
     "test": "jest",
     "test:parser": "node test-document-parser.js",
     "test:setup": "node test-setup.js"
