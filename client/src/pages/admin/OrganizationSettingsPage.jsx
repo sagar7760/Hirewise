@@ -5,10 +5,32 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useApiRequest } from '../../hooks/useApiRequest';
 
 // Helper function to get the full image URL
-const getImageUrl = (imagePath) => {
-  if (!imagePath) return null;
-  if (imagePath.startsWith('http')) return imagePath; // Already a full URL
-  return `http://localhost:5000${imagePath}`; // Add server prefix
+const getImageUrl = (logoData) => {
+  if (!logoData) return null;
+  
+  // If it's already a full URL (http/https), return as is
+  if (typeof logoData === 'string' && logoData.startsWith('http')) {
+    return logoData;
+  }
+  
+  // If it's a base64 string, return as is
+  if (typeof logoData === 'string' && logoData.startsWith('data:image/')) {
+    return logoData;
+  }
+  
+  // If it's binary data or base64 without data URL prefix, add the prefix
+  if (typeof logoData === 'string' && logoData.length > 0) {
+    // Assume it's base64 image data without the data URL prefix
+    return `data:image/jpeg;base64,${logoData}`;
+  }
+  
+  // If it's a file path (legacy support), construct the full URL
+  if (typeof logoData === 'string' && (logoData.startsWith('/') || logoData.includes('uploads'))) {
+    const cleanPath = logoData.startsWith('/') ? logoData : `/${logoData}`;
+    return `http://localhost:5000${cleanPath}`;
+  }
+  
+  return null;
 };
 
 const OrganizationSettingsPage = () => {
@@ -62,6 +84,8 @@ const OrganizationSettingsPage = () => {
         console.log('Organization API response:', data); // Debug log
 
         if (data && data.success) {
+          console.log('Raw logo data from API:', data.data.logo); // Debug logo
+          
           const companyData = {
             name: data.data.name || '',
             industry: data.data.industry || '',
@@ -87,6 +111,7 @@ const OrganizationSettingsPage = () => {
             }
           };
           
+          console.log('Processed logo URL:', companyData.logo); // Debug processed logo
           console.log('Processed company data contact:', companyData.contact); // Debug log
           
           setOrganizationData(companyData);
@@ -342,12 +367,31 @@ const OrganizationSettingsPage = () => {
                         src={isEditing ? editedData.logo : organizationData.logo}
                         alt="Organization Logo"
                         className="h-full w-full object-cover"
+                        onError={(e) => {
+                          console.error('Logo image failed to load:', e.target.src);
+                          console.error('Raw logo data:', isEditing ? editedData.logo : organizationData.logo);
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'block';
+                        }}
+                        onLoad={() => {
+                          console.log('Logo image loaded successfully:', isEditing ? editedData.logo : organizationData.logo);
+                        }}
                       />
                     ) : (
-                      <svg className="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
+                      <div className="flex flex-col items-center justify-center text-gray-400">
+                        <svg className="h-8 w-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        <span className="text-xs">No Logo</span>
+                      </div>
                     )}
+                    {/* Error fallback - hidden by default */}
+                    <div style={{display: 'none'}} className="flex flex-col items-center justify-center text-red-400">
+                      <svg className="h-8 w-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-xs">Load Error</span>
+                    </div>
                   </div>
                   {isEditing && (
                     <div>

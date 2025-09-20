@@ -112,15 +112,32 @@ export const AuthProvider = ({ children }) => {
       }
     };
 
-    const response = await fetch(url, config);
+    try {
+      const response = await fetch(url, config);
 
-    // Handle token expiration
-    if (response.status === 401) {
-      logout();
-      throw new Error('Authentication required');
+      // Handle token expiration
+      if (response.status === 401) {
+        logout();
+        throw new Error('Authentication required');
+      }
+
+      // Handle request header too large
+      if (response.status === 431) {
+        console.error('Request headers too large. Clearing auth data...');
+        logout();
+        throw new Error('Session data corrupted. Please login again.');
+      }
+
+      return response;
+    } catch (error) {
+      // Handle network errors that might include header size issues
+      if (error.message.includes('431') || error.message.includes('header')) {
+        console.error('Header size error detected. Clearing auth data...');
+        logout();
+        throw new Error('Session data corrupted. Please login again.');
+      }
+      throw error;
     }
-
-    return response;
   }, [token, logout]); // Include logout in dependencies
 
   const value = {

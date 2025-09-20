@@ -3,48 +3,48 @@ import hirewiseLogo from '../../assets/hirewise.svg';
 
 const Footer = () => {
   return (
-    <footer className="px-6 py-12 bg-white border-t border-gray-200">
+    <footer className="px-6 py-12 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 transition-colors duration-300">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           {/* Brand Section */}
           <div>
             <div className="flex items-center space-x-2 mb-4">
               <img src={hirewiseLogo} alt="HireWise" className="w-8 h-8" />
-              <span className="text-xl font-bold text-gray-900 font-['Open_Sans']">HireWise</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-white font-['Open_Sans'] transition-colors duration-300">HireWise</span>
             </div>
-            <p className="text-gray-600 font-['Roboto']">Smarter hiring with AI. Faster, fairer, better.</p>
+            <p className="text-gray-600 dark:text-gray-300 font-['Roboto'] transition-colors duration-300">Smarter hiring with AI. Faster, fairer, better.</p>
           </div>
 
           {/* Product Links */}
           <div>
-            <h3 className="text-gray-900 font-semibold mb-4 font-['Open_Sans']">Product</h3>
-            <ul className="space-y-2 text-gray-600 font-['Roboto']">
-              <li><a href="#" className="hover:text-gray-900 transition-colors">Features</a></li>
-              <li><a href="#" className="hover:text-gray-900 transition-colors">Pricing</a></li>
-              <li><a href="#" className="hover:text-gray-900 transition-colors">API</a></li>
-              <li><a href="#" className="hover:text-gray-900 transition-colors">Integrations</a></li>
+            <h3 className="text-gray-900 dark:text-white font-semibold mb-4 font-['Open_Sans'] transition-colors duration-300">Product</h3>
+            <ul className="space-y-2 text-gray-600 dark:text-gray-300 font-['Roboto'] transition-colors duration-300">
+              <li><a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Features</a></li>
+              <li><a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Pricing</a></li>
+              <li><a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">API</a></li>
+              <li><a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Integrations</a></li>
             </ul>
           </div>
 
           {/* Company Links */}
           <div>
-            <h3 className="text-gray-900 font-semibold mb-4 font-['Open_Sans']">Company</h3>
-            <ul className="space-y-2 text-gray-600 font-['Roboto']">
-              <li><a href="#" className="hover:text-gray-900 transition-colors">About</a></li>
-              <li><a href="#" className="hover:text-gray-900 transition-colors">Careers</a></li>
-              <li><a href="#" className="hover:text-gray-900 transition-colors">Blog</a></li>
-              <li><a href="#" className="hover:text-gray-900 transition-colors">Contact</a></li>
+            <h3 className="text-gray-900 dark:text-white font-semibold mb-4 font-['Open_Sans'] transition-colors duration-300">Company</h3>
+            <ul className="space-y-2 text-gray-600 dark:text-gray-300 font-['Roboto'] transition-colors duration-300">
+              <li><a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">About</a></li>
+              <li><a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Careers</a></li>
+              <li><a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Blog</a></li>
+              <li><a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Contact</a></li>
             </ul>
           </div>
 
           {/* Support Links */}
           <div>
-            <h3 className="text-gray-900 font-semibold mb-4 font-['Open_Sans']">Support</h3>
-            <ul className="space-y-2 text-gray-600 font-['Roboto']">
-              <li><a href="#" className="hover:text-gray-900 transition-colors">Help Center</a></li>
-              <li><a href="#" className="hover:text-gray-900 transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-gray-900 transition-colors">Terms of Service</a></li>
-              <li><a href="#" className="hover:text-gray-900 transition-colors">Status</a></li>
+            <h3 className="text-gray-900 dark:text-white font-semibold mb-4 font-['Open_Sans'] transition-colors duration-300">Support</h3>
+            <ul className="space-y-2 text-gray-600 dark:text-gray-300 font-['Roboto'] transition-colors duration-300">
+              <li><a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Help Center</a></li>
+              <li><a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Privacy Policy</a></li>
+              <li><a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Terms of Service</a></li>
+              <li><a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Status</a></li>
             </ul>
           </div>
         </div>

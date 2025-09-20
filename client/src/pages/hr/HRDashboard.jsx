@@ -153,15 +153,6 @@ const HRDashboard = () => {
                 </svg>
                 Create Job
               </Link>
-              <Link
-                to="/hr/interviews/schedule"
-                className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors flex items-center"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4h3a2 2 0 012 2v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 012-2h3z" />
-                </svg>
-                Schedule Interview
-              </Link>
             </div>
           </div>
         </div>
@@ -401,7 +392,7 @@ const HRDashboard = () => {
         <div className="mt-8">
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 font-['Open_Sans'] mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Link
                 to="/hr/jobs/create"
                 className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors group"
@@ -429,21 +420,6 @@ const HRDashboard = () => {
                 <div className="ml-3">
                   <h3 className="text-sm font-medium text-gray-900 font-['Open_Sans']">Review Applications</h3>
                   <p className="text-xs text-gray-500 font-['Roboto']">Shortlist candidates</p>
-                </div>
-              </Link>
-
-              <Link
-                to="/hr/interviews/schedule"
-                className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors group"
-              >
-                <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-gray-200 transition-colors">
-                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4h3a2 2 0 012 2v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 012-2h3z" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-gray-900 font-['Open_Sans']">Schedule Interview</h3>
-                  <p className="text-xs text-gray-500 font-['Roboto']">Arrange candidate interviews</p>
                 </div>
               </Link>
             </div>

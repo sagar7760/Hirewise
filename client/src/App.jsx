@@ -3,6 +3,12 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 
 // Context Providers
 import { AuthProvider } from './contexts/AuthContext.jsx'
+import { ThemeProvider } from './contexts/ThemeContext.jsx'
+
+// Debug utilities (only in development)
+if (process.env.NODE_ENV === 'development') {
+  import('./utils/debugAuth.js');
+}
 
 // Layout Components
 import Layout from './components/layout/Layout.jsx'
@@ -53,8 +59,9 @@ import InterviewerProfile from './pages/interviewer/InterviewerProfile.jsx'
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
+    <ThemeProvider>
+      <AuthProvider>
+        <Router>
         <Routes>
           {/* Public Routes (Marketing Site) */}
           <Route path="/" element={
@@ -250,6 +257,7 @@ function App() {
         </Routes>
       </Router>
     </AuthProvider>
+    </ThemeProvider>
   )
 }
 

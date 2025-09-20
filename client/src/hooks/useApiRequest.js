@@ -27,6 +27,13 @@ export const useApiRequest = () => {
   const makeJsonRequest = useCallback(async (url, options = {}) => {
     const response = await makeRequest(url, options);
     
+    // Handle 304 Not Modified - return cached data or null
+    if (response && response.status === 304) {
+      // For 304, we should use cached data, but since we don't have a cache mechanism,
+      // we'll return a successful response indicating no new data
+      return { success: true, cached: true, message: 'No new data available' };
+    }
+    
     // Check if response is successful
     if (response && response.ok) {
       return await response.json();

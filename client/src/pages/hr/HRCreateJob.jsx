@@ -1,24 +1,28 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useApiRequest } from '../../hooks/useApiRequest';
 import HRLayout from '../../components/layout/HRLayout';
 
 const HRCreateJob = () => {
   const navigate = useNavigate();
+  const { makeJsonRequest } = useApiRequest();
   const [jobData, setJobData] = useState({
     title: '',
     description: '',
     department: '',
+    customDepartment: '',
     jobType: '',
     location: '',
     locationType: 'onsite', // onsite, remote, hybrid
-    qualification: '',
+    qualification: [],
+    customQualifications: [],
     experienceLevel: '',
     requiredSkills: [],
     preferredSkills: [],
     salaryRange: {
       min: '',
       max: '',
-      currency: 'USD',
+      currency: 'INR',
       period: 'year' // year, month, hour
     },
     applicationDeadline: '',
@@ -32,6 +36,7 @@ const HRCreateJob = () => {
 
   const [skillInput, setSkillInput] = useState('');
   const [preferredSkillInput, setPreferredSkillInput] = useState('');
+  const [customQualificationInput, setCustomQualificationInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Dropdown options
@@ -46,7 +51,11 @@ const HRCreateJob = () => {
     'Operations',
     'Customer Success',
     'Data Science',
-    'Quality Assurance'
+    'Quality Assurance',
+    'Security',
+    'Legal',
+    'Administrative',
+    'Other'
   ];
 
   const jobTypes = [
@@ -60,10 +69,21 @@ const HRCreateJob = () => {
   const qualifications = [
     'High School',
     'Diploma',
-    'Bachelor\'s Degree',
-    'Master\'s Degree',
+    'Bachelor\'s Degree in Engineering',
+    'Bachelor\'s Degree in Computer Science',
+    'Bachelor\'s Degree in Business',
+    'Bachelor\'s Degree in Commerce',
+    'Bachelor\'s Degree in Arts',
+    'Bachelor\'s Degree in Science',
+    'Master\'s Degree in Engineering',
+    'Master\'s Degree in Computer Science',
+    'Master\'s Degree in Business (MBA)',
+    'Master\'s Degree in Commerce',
+    'Master\'s Degree in Arts',
+    'Master\'s Degree in Science',
     'PhD',
-    'Professional Certification'
+    'Professional Certification',
+    'Technical Certification'
   ];
 
   const experienceLevels = [
@@ -125,6 +145,36 @@ const HRCreateJob = () => {
     }));
   };
 
+  const addCustomQualification = () => {
+    if (customQualificationInput.trim() && !jobData.customQualifications.includes(customQualificationInput.trim())) {
+      setJobData(prev => ({
+        ...prev,
+        customQualifications: [...prev.customQualifications, customQualificationInput.trim()]
+      }));
+      setCustomQualificationInput('');
+    }
+  };
+
+  const removeCustomQualification = (qualification) => {
+    setJobData(prev => ({
+      ...prev,
+      customQualifications: prev.customQualifications.filter(q => q !== qualification)
+    }));
+  };
+
+  const toggleQualification = (qualification) => {
+    setJobData(prev => ({
+      ...prev,
+      qualification: prev.qualification.includes(qualification)
+        ? prev.qualification.filter(q => q !== qualification)
+        : [...prev.qualification, qualification]
+    }));
+  };
+
+  const convertLPAToAnnual = (lpaValue) => {
+    return lpaValue ? (parseFloat(lpaValue) * 100000).toString() : '';
+  };
+
   const handleInterviewRoundToggle = (round) => {
     setJobData(prev => ({
       ...prev,
@@ -137,23 +187,88 @@ const HRCreateJob = () => {
   const handleSubmit = async (status) => {
     setIsSubmitting(true);
     try {
+      // Validate required fields
+      if (!jobData.title.trim()) {
+        alert('Job title is required');
+        return;
+      }
+      if (!jobData.description.trim()) {
+        alert('Job description is required');
+        return;
+      }
+      if (!jobData.department && !jobData.customDepartment.trim()) {
+        alert('Department is required');
+        return;
+      }
+      if (jobData.department === 'Other' && !jobData.customDepartment.trim()) {
+        alert('Custom department is required when "Other" is selected');
+        return;
+      }
+      if (jobData.qualification.length === 0 && jobData.customQualifications.length === 0) {
+        alert('At least one qualification is required');
+        return;
+      }
+      if (!jobData.experienceLevel) {
+        alert('Experience level is required');
+        return;
+      }
+      if (!jobData.applicationDeadline) {
+        alert('Application deadline is required');
+        return;
+      }
+
       const submitData = {
-        ...jobData,
-        status,
-        postedBy: 'HR001', // This would come from auth context
-        organizationId: 'ORG001', // This would come from auth context
-        dateCreated: new Date().toISOString()
+        title: jobData.title,
+        description: jobData.description,
+        department: jobData.department === 'Other' ? jobData.customDepartment.trim() : jobData.department,
+        jobType: jobData.jobType,
+        location: jobData.location,
+        locationType: jobData.locationType,
+        salaryRange: {
+          min: jobData.salaryRange.min ? String(jobData.salaryRange.min) : '',
+          max: jobData.salaryRange.max ? String(jobData.salaryRange.max) : '',
+          currency: jobData.salaryRange.currency,
+          period: jobData.salaryRange.period
+        },
+        qualification: [...jobData.qualification, ...jobData.customQualifications],
+        experienceLevel: jobData.experienceLevel,
+        requiredSkills: jobData.requiredSkills,
+        preferredSkills: jobData.preferredSkills,
+        applicationDeadline: jobData.applicationDeadline,
+        maxApplicants: jobData.maxApplicants ? Number(jobData.maxApplicants) : undefined,
+        resumeRequired: jobData.resumeRequired || true,
+        allowMultipleApplications: jobData.allowMultipleApplications || false,
+        defaultInterviewRounds: jobData.defaultInterviewRounds || [],
+        defaultInterviewer: jobData.defaultInterviewer || '',
+        status
       };
       
-      console.log('Submitting job:', submitData);
+      console.log('Submitting job data:', submitData);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Navigate back to jobs page
-      navigate('/hr/jobs');
+      const response = await makeJsonRequest('/api/hr/jobs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(submitData)
+      });
+
+      if (response.success) {
+        console.log('Job created successfully:', response.data);
+        alert(`Job ${status === 'draft' ? 'saved as draft' : 'published'} successfully!`);
+        navigate('/hr/jobs');
+      } else {
+        console.error('Job creation failed:', response);
+        alert(response.message || 'Failed to create job');
+      }
     } catch (error) {
       console.error('Error submitting job:', error);
+      if (error.message === 'Authentication required') {
+        alert('Please log in again to continue');
+        navigate('/login');
+      } else {
+        alert(error.message || 'An error occurred while creating the job');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -215,7 +330,7 @@ const HRCreateJob = () => {
                     value={jobData.title}
                     onChange={(e) => handleInputChange('title', e.target.value)}
                     placeholder="e.g., Senior Frontend Developer"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto']"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 placeholder-gray-400"
                   />
                 </div>
 
@@ -228,13 +343,24 @@ const HRCreateJob = () => {
                     <select
                       value={jobData.department}
                       onChange={(e) => handleInputChange('department', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto']"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
                     >
                       <option value="">Select Department</option>
                       {departments.map(dept => (
                         <option key={dept} value={dept}>{dept}</option>
                       ))}
+                      <option value="Other">Other (Custom)</option>
                     </select>
+                    
+                    {jobData.department === 'Other' && (
+                      <input
+                        type="text"
+                        placeholder="Enter custom department"
+                        value={jobData.customDepartment}
+                        onChange={(e) => handleInputChange('customDepartment', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 mt-2"
+                      />
+                    )}
                   </div>
 
                   <div>
@@ -244,7 +370,7 @@ const HRCreateJob = () => {
                     <select
                       value={jobData.jobType}
                       onChange={(e) => handleInputChange('jobType', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto']"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
                     >
                       <option value="">Select Job Type</option>
                       {jobTypes.map(type => (
@@ -316,7 +442,7 @@ const HRCreateJob = () => {
                         value={jobData.location}
                         onChange={(e) => handleInputChange('location', e.target.value)}
                         placeholder="e.g., New York, NY"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto']"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 placeholder-gray-400"
                       />
                     )}
                   </div>
@@ -336,7 +462,7 @@ const HRCreateJob = () => {
                           ...jobData.salaryRange,
                           currency: e.target.value
                         })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-sm text-black"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-sm text-gray-900"
                       >
                         <option value="INR">INR</option>
                         <option value="USD">USD</option>
@@ -347,7 +473,9 @@ const HRCreateJob = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-600 mb-1 font-['Roboto']">Min Amount</label>
+                      <label className="block text-xs text-gray-600 mb-1 font-['Roboto']">
+                        Min Amount {jobData.salaryRange.currency === 'INR' ? '(LPA)' : ''}
+                      </label>
                       <input
                         type="number"
                         value={jobData.salaryRange.min}
@@ -355,12 +483,17 @@ const HRCreateJob = () => {
                           ...jobData.salaryRange,
                           min: e.target.value
                         })}
-                        placeholder="50,000"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-sm text-black placeholder-gray-400"
+                        placeholder={jobData.salaryRange.currency === 'INR' ? '5' : '50,000'}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-sm text-gray-900 placeholder-gray-400"
                       />
+                      {jobData.salaryRange.currency === 'INR' && (
+                        <p className="text-xs text-gray-500 mt-1">Enter in Lakhs Per Annum (e.g., 5 for ₹5 LPA)</p>
+                      )}
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-600 mb-1 font-['Roboto']">Max Amount</label>
+                      <label className="block text-xs text-gray-600 mb-1 font-['Roboto']">
+                        Max Amount {jobData.salaryRange.currency === 'INR' ? '(LPA)' : ''}
+                      </label>
                       <input
                         type="number"
                         value={jobData.salaryRange.max}
@@ -368,9 +501,12 @@ const HRCreateJob = () => {
                           ...jobData.salaryRange,
                           max: e.target.value
                         })}
-                        placeholder="80,000"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-sm text-black placeholder-gray-400"
+                        placeholder={jobData.salaryRange.currency === 'INR' ? '8' : '80,000'}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-sm text-gray-900 placeholder-gray-400"
                       />
+                      {jobData.salaryRange.currency === 'INR' && (
+                        <p className="text-xs text-gray-500 mt-1">Enter in Lakhs Per Annum (e.g., 8 for ₹8 LPA)</p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-xs text-gray-600 mb-1 font-['Roboto']">Period</label>
@@ -380,7 +516,7 @@ const HRCreateJob = () => {
                           ...jobData.salaryRange,
                           period: e.target.value
                         })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-sm text-black"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-sm text-gray-900"
                       >
                         <option value="year">Per Year</option>
                         <option value="month">Per Month</option>
@@ -389,7 +525,10 @@ const HRCreateJob = () => {
                     </div>
                   </div>
                   <p className="text-xs text-gray-600 mt-2 font-['Roboto']">
-                    Providing salary information helps attract qualified candidates
+                    {jobData.salaryRange.currency === 'INR' 
+                      ? 'For INR, enter amounts in Lakhs Per Annum (LPA). This helps attract qualified candidates.'
+                      : 'Providing salary information helps attract qualified candidates'
+                    }
                   </p>
                 </div>
 
@@ -403,7 +542,7 @@ const HRCreateJob = () => {
                     onChange={(e) => handleInputChange('description', e.target.value)}
                     placeholder="Describe the job role, responsibilities, and requirements..."
                     rows={6}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto']"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 placeholder-gray-400"
                   />
                 </div>
               </div>
@@ -424,18 +563,78 @@ const HRCreateJob = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2 font-['Roboto']">
-                      Required Qualification <span className="text-red-500">*</span>
+                      Required Qualifications <span className="text-red-500">*</span>
                     </label>
-                    <select
-                      value={jobData.qualification}
-                      onChange={(e) => handleInputChange('qualification', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto']"
-                    >
-                      <option value="">Select Qualification</option>
-                      {qualifications.map(qual => (
-                        <option key={qual} value={qual}>{qual}</option>
-                      ))}
-                    </select>
+                    
+                    {/* Selected Qualifications Display */}
+                    {(jobData.qualification.length > 0 || jobData.customQualifications.length > 0) && (
+                      <div className="mb-3">
+                        <div className="flex flex-wrap gap-2">
+                          {jobData.qualification.map(qual => (
+                            <span key={qual} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {qual}
+                              <button
+                                type="button"
+                                onClick={() => toggleQualification(qual)}
+                                className="ml-1 text-blue-600 hover:text-blue-800"
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                          {jobData.customQualifications.map(qual => (
+                            <span key={qual} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              {qual}
+                              <button
+                                type="button"
+                                onClick={() => removeCustomQualification(qual)}
+                                className="ml-1 text-green-600 hover:text-green-800"
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Qualification Selection */}
+                    <div className="border border-gray-300 rounded-lg p-3 max-h-40 overflow-y-auto">
+                      <div className="grid grid-cols-1 gap-2">
+                        {qualifications.map(qual => (
+                          <label key={qual} className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={jobData.qualification.includes(qual)}
+                              onChange={() => toggleQualification(qual)}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">{qual}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Custom Qualification Input */}
+                    <div className="mt-3">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="Add custom qualification"
+                          value={customQualificationInput}
+                          onChange={(e) => setCustomQualificationInput(e.target.value)}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 text-sm"
+                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomQualification())}
+                        />
+                        <button
+                          type="button"
+                          onClick={addCustomQualification}
+                          className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 text-sm"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
                   <div>
@@ -445,7 +644,7 @@ const HRCreateJob = () => {
                     <select
                       value={jobData.experienceLevel}
                       onChange={(e) => handleInputChange('experienceLevel', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto']"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
                     >
                       <option value="">Select Experience</option>
                       {experienceLevels.map(exp => (
@@ -485,7 +684,7 @@ const HRCreateJob = () => {
                       onChange={(e) => setSkillInput(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleSkillAdd('required'))}
                       placeholder="Type a skill and press Enter"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto']"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 placeholder-gray-400"
                     />
                     <button
                       onClick={() => handleSkillAdd('required')}
@@ -526,7 +725,7 @@ const HRCreateJob = () => {
                       onChange={(e) => setPreferredSkillInput(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleSkillAdd('preferred'))}
                       placeholder="Type a preferred skill and press Enter"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto']"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 placeholder-gray-400"
                     />
                     <button
                       onClick={() => handleSkillAdd('preferred')}
@@ -560,7 +759,7 @@ const HRCreateJob = () => {
                       value={jobData.applicationDeadline}
                       onChange={(e) => handleInputChange('applicationDeadline', e.target.value)}
                       min={new Date().toISOString().split('T')[0]}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto']"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
                     />
                   </div>
 
@@ -574,7 +773,7 @@ const HRCreateJob = () => {
                       onChange={(e) => handleInputChange('maxApplicants', e.target.value)}
                       placeholder="Leave blank for unlimited"
                       min="1"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto']"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 placeholder-gray-400"
                     />
                   </div>
                 </div>
@@ -634,7 +833,7 @@ const HRCreateJob = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                Interview Setup
+                Interview Setup (Optional)
               </h3>
               <p className="text-sm text-gray-500 mb-4 font-['Roboto']">
                 Configure default interview process (can be edited later)
@@ -672,7 +871,7 @@ const HRCreateJob = () => {
                   <select
                     value={jobData.defaultInterviewer}
                     onChange={(e) => handleInputChange('defaultInterviewer', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto']"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
                   >
                     <option value="">Select Interviewer</option>
                     {defaultInterviewers.map(interviewer => (
