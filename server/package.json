@@ -8,7 +8,9 @@
     "dev": "nodemon --max-http-header-size=32768 server.js",
     "test": "jest",
     "test:parser": "node test-document-parser.js",
-    "test:setup": "node test-setup.js"
+    "test:setup": "node test-setup.js",
+    "test:backend": "node test-backend-implementation.js",
+    "test:api": "node test-api-endpoints.js"
   },
   "keywords": [
     "hirewise",
@@ -32,6 +34,8 @@
     "multer": "^1.4.5-lts.1"
   },
   "devDependencies": {
+    "axios": "^1.12.2",
+    "form-data": "^4.0.4",
     "jest": "^29.6.2",
     "nodemon": "^3.0.1"
   },

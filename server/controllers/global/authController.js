@@ -16,7 +16,18 @@ const register = async (req, res) => {
       });
     }
 
-    const { firstName, lastName, email, password, role = 'applicant' } = req.body;
+    const { 
+      fullName, 
+      email, 
+      password, 
+      phone, 
+      currentLocation,
+      educationEntries,
+      currentStatus,
+      primarySkills,
+      workExperienceEntries,
+      role = 'applicant' 
+    } = req.body;
 
     // Check if user exists
     let user = await User.findOne({ email });
@@ -27,13 +38,50 @@ const register = async (req, res) => {
       });
     }
 
-    // Create user
+    // Split fullName into firstName and lastName
+    const nameParts = fullName ? fullName.trim().split(' ') : ['', ''];
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
+    // Parse arrays if they're strings (from FormData)
+    let parsedEducationEntries = [];
+    let parsedWorkExperienceEntries = [];
+    let parsedPrimarySkills = [];
+
+    try {
+      parsedEducationEntries = typeof educationEntries === 'string' 
+        ? JSON.parse(educationEntries) 
+        : educationEntries || [];
+      parsedWorkExperienceEntries = typeof workExperienceEntries === 'string' 
+        ? JSON.parse(workExperienceEntries) 
+        : workExperienceEntries || [];
+      parsedPrimarySkills = typeof primarySkills === 'string' 
+        ? JSON.parse(primarySkills) 
+        : primarySkills || [];
+    } catch (parseError) {
+      console.error('JSON parsing error:', parseError);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid data format'
+      });
+    }
+
+    // Create user with enhanced profile data
     user = new User({
       firstName,
       lastName,
       email,
       password,
-      role
+      phone,
+      role,
+      profile: {
+        fullName,
+        currentLocation,
+        currentStatus,
+        educationEntries: parsedEducationEntries,
+        workExperienceEntries: parsedWorkExperienceEntries,
+        primarySkills: parsedPrimarySkills
+      }
     });
 
     // Hash password
@@ -49,7 +97,7 @@ const register = async (req, res) => {
     };
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN
+      expiresIn: process.env.JWT_EXPIRES_IN || '24h'
     });
 
     res.status(201).json({
@@ -60,8 +108,17 @@ const register = async (req, res) => {
         id: user.id,
         firstName: user.firstName,
         lastName: user.lastName,
+        fullName: user.profile.fullName,
         email: user.email,
+        phone: user.phone,
         role: user.role,
+        profile: {
+          currentLocation: user.profile.currentLocation,
+          currentStatus: user.profile.currentStatus,
+          educationEntries: user.profile.educationEntries,
+          workExperienceEntries: user.profile.workExperienceEntries,
+          primarySkills: user.profile.primarySkills
+        },
         profilePicture: user.profilePicture,
         avatar: user.avatar
       }
@@ -71,7 +128,8 @@ const register = async (req, res) => {
     console.error('Registration error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -155,11 +213,22 @@ const login = async (req, res) => {
 // @access  Private
 const getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).populate('companyId');
+    // The auth middleware already loads the user, so we can use it directly
+    // But let's refetch to ensure we have the latest data and populate company
+    const userId = req.user._id || req.user.id;
+    const user = await User.findById(userId).populate('companyId');
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
     res.json({
       success: true,
       data: {
-        id: user.id,
+        id: user._id,
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
@@ -167,6 +236,7 @@ const getMe = async (req, res) => {
         isCompanyAdmin: user.isCompanyAdmin,
         profilePicture: user.profilePicture,
         avatar: user.avatar,
+        profile: user.profile, // Include the profile data we added
         company: user.companyId ? {
           id: user.companyId._id,
           name: user.companyId.name,

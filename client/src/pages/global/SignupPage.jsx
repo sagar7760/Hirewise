@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ResumeParser } from '../../utils/resumeParser';
 
 const SignupPage = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     // Account Info (mandatory)
     fullName: '',
@@ -44,6 +45,7 @@ const SignupPage = () => {
   const [errors, setErrors] = useState({});
   const [isParsingResume, setIsParsingResume] = useState(false);
   const [parseSuccess, setParseSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Predefined options for dropdowns
   const qualificationOptions = [
@@ -362,13 +364,84 @@ const SignupPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (validateForm()) {
-      // Handle signup logic here
-      console.log('Signup attempt:', formData);
-      // TODO: Send data to backend API
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Prepare form data for submission
+      const submitData = {
+        fullName: formData.fullName.trim(),
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+        phone: formData.phone.trim(),
+        currentLocation: formData.currentLocation.trim(),
+        currentStatus: formData.currentStatus,
+        educationEntries: formData.educationEntries.map(entry => ({
+          qualification: entry.qualification,
+          fieldOfStudy: entry.fieldOfStudy.trim(),
+          universityName: entry.universityName.trim(),
+          graduationYear: entry.graduationYear,
+          cgpaPercentage: entry.cgpaPercentage.trim()
+        })),
+        workExperienceEntries: formData.workExperienceEntries.map(entry => ({
+          yearsOfExperience: entry.yearsOfExperience,
+          company: entry.company.trim(),
+          position: entry.position.trim(),
+          startDate: entry.startDate,
+          endDate: entry.endDate,
+          isCurrentlyWorking: entry.isCurrentlyWorking,
+          description: entry.description.trim()
+        })),
+        primarySkills: formData.primarySkills
+      };
+
+      console.log('Submitting signup data:', submitData);
+
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(submitData)
+      });
+
+      const data = await response.json();
+      console.log('Server response:', data);
+
+      if (data.success) {
+        // Successfully registered, redirect to login or dashboard
+        navigate('/login', { 
+          state: { 
+            message: 'Account created successfully! Please log in with your credentials.',
+            email: formData.email
+          }
+        });
+      } else {
+        // Handle API validation errors
+        if (data.errors && Array.isArray(data.errors)) {
+          const newErrors = {};
+          data.errors.forEach(error => {
+            newErrors[error.field] = error.message;
+          });
+          setErrors(newErrors);
+        } else if (data.field) {
+          setErrors({ [data.field]: data.message });
+        } else {
+          setErrors({ submit: data.message || 'Registration failed. Please try again.' });
+        }
+      }
+    } catch (error) {
+      console.error('Registration failed:', error);
+      setErrors({ 
+        submit: 'Network error. Please check your connection and try again.' 
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -435,23 +508,23 @@ const SignupPage = () => {
                   {formData.resume && (
                     <div className="space-y-2">
                       <p className="text-sm text-green-600 font-medium">
-                        ✓ {formData.resume.name}
+                         {formData.resume.name}
                       </p>
                       {isParsingResume && (
                         <p className="text-sm text-blue-600 font-medium">
-                          🔄 Parsing resume to auto-fill form...
+                           Parsing resume to auto-fill form...
                         </p>
                       )}
                       {parseSuccess && (
                         <p className="text-sm text-green-600 font-medium">
-                          🎉 Resume parsed successfully! Form fields have been auto-filled.
+                           Resume parsed successfully! Form fields have been auto-filled please review them.
                         </p>
                       )}
                     </div>
                   )}
                 </div>
               </div>
-              {errors.resume && <p className="mt-1 text-sm text-red-600">{errors.resume}</p>}
+              {errors.resume && <p className="mt-1 text-sm text-red-500">{errors.resume}</p>}
               <p className="mt-2 text-sm text-gray-500 font-['Roboto']">
                 You can skip this now and upload your resume when applying for jobs. 
                 If uploaded, we'll automatically parse it and help auto-fill your profile information.
@@ -1024,11 +1097,29 @@ const SignupPage = () => {
 
           {/* Submit Button */}
           <div className="pt-6">
+            {/* Display submit errors */}
+            {errors.submit && (
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600 font-['Roboto']">{errors.submit}</p>
+              </div>
+            )}
+            
             <button
               type="submit"
-              className="w-full bg-black text-white hover:bg-gray-800 py-3 px-4 rounded-lg text-lg font-semibold font-['Open_Sans'] transition-colors"
+              disabled={isSubmitting}
+              className="w-full bg-black text-white hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed py-3 px-4 rounded-lg text-lg font-semibold font-['Open_Sans'] transition-colors flex items-center justify-center gap-2"
             >
-              Create Account
+              {isSubmitting ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Creating Account...
+                </>
+              ) : (
+                'Create Account'
+              )}
             </button>
           </div>
 

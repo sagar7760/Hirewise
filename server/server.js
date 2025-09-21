@@ -15,6 +15,7 @@ const jobRoutes = require('./routes/applicant/jobs');
 const applicationRoutes = require('./routes/applications');
 const profileRoutes = require('./routes/profile');
 const aiRoutes = require('./routes/ai');
+const resumeRoutes = require('./routes/applicant/resumes');
 
 // HR routes
 const hrDashboardRoutes = require('./routes/hr/dashboard');
@@ -77,6 +78,7 @@ app.use('/api/jobs', jobRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/resumes', resumeRoutes);
 
 // HR API Routes
 app.use('/api/hr/dashboard', hrDashboardRoutes);

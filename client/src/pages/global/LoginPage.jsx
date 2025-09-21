@@ -47,7 +47,7 @@ const LoginPage = () => {
           navigate('/interviewer/dashboard');
           break;
         case 'applicant':
-          navigate('/applicant/dashboard');
+          navigate('/dashboard'); // Changed from '/applicant/dashboard' to '/dashboard'
           break;
         default:
           navigate('/dashboard');

@@ -278,6 +278,53 @@ const userSchema = new mongoose.Schema({
   },
   // Applicant-specific fields
   profile: {
+    // Enhanced signup fields
+    fullName: {
+      type: String,
+      trim: true
+    },
+    currentLocation: {
+      type: String,
+      trim: true
+    },
+    currentStatus: {
+      type: String,
+      trim: true
+    },
+    
+    // Education entries (multiple)
+    educationEntries: [{
+      qualification: String,
+      fieldOfStudy: String,
+      universityName: String,
+      graduationYear: String,
+      cgpaPercentage: String
+    }],
+    
+    // Work experience entries (multiple)
+    workExperienceEntries: [{
+      company: String,
+      position: String,
+      startDate: String,
+      endDate: String,
+      isCurrentlyWorking: {
+        type: Boolean,
+        default: false
+      },
+      description: String,
+      yearsOfExperience: String
+    }],
+    
+    // Skills (multiple)
+    primarySkills: [String],
+    
+    // Resume reference
+    currentResumeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Resume'
+    },
+    
+    // Original fields
     summary: {
       type: String,
       maxlength: [1000, 'Summary cannot be more than 1000 characters']

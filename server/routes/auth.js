@@ -1,23 +1,37 @@
 const express = require('express');
 const { body } = require('express-validator');
 const { auth } = require('../middleware/auth');
-const { register, login, getMe, logout } = require('../controllers/global/authController');
+const { 
+  register, 
+  login, 
+  getMe, 
+  logout
+} = require('../controllers/global/authController');
 
 const router = express.Router();
+
+// @route   GET /api/auth/health
+// @desc    Health check endpoint
+// @access  Public
+router.get('/health', (req, res) => {
+  res.json({ status: 'Server is running', timestamp: new Date().toISOString() });
+});
 
 // Import company registration routes
 const companyRoutes = require('./auth/company');
 router.use('/company', companyRoutes);
 
 // @route   POST /api/auth/register
-// @desc    Register user
+// @desc    Register user with enhanced profile data
 // @access  Public
 router.post('/register', [
-  body('firstName').trim().notEmpty().withMessage('First name is required'),
-  body('lastName').trim().notEmpty().withMessage('Last name is required'),
+  body('fullName').trim().notEmpty().withMessage('Full name is required'),
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  body('role').isIn(['applicant', 'hr', 'interviewer', 'admin']).withMessage('Invalid role')
+  body('phone').optional().trim(),
+  body('currentLocation').optional().trim(),
+  body('currentStatus').optional().trim(),
+  body('role').optional().isIn(['applicant', 'hr', 'interviewer', 'admin']).withMessage('Invalid role')
 ], register);
 
 // @route   POST /api/auth/login
