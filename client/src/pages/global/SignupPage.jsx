@@ -402,6 +402,7 @@ const SignupPage = () => {
 
       console.log('Submitting signup data:', submitData);
 
+      // Step 1: Register the user
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
@@ -414,10 +415,44 @@ const SignupPage = () => {
       console.log('Server response:', data);
 
       if (data.success) {
-        // Successfully registered, redirect to login or dashboard
+        // Step 2: If resume is provided, upload it
+        if (formData.resume) {
+          try {
+            console.log('Uploading resume file...');
+            
+            // Create FormData for file upload
+            const resumeFormData = new FormData();
+            resumeFormData.append('resume', formData.resume);
+
+            const resumeResponse = await fetch('/api/resumes/upload', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${data.token}`
+              },
+              body: resumeFormData
+            });
+
+            const resumeData = await resumeResponse.json();
+            console.log('Resume upload response:', resumeData);
+
+            if (resumeData.success) {
+              console.log('Resume uploaded successfully');
+            } else {
+              console.warn('Resume upload failed:', resumeData.message);
+              // Don't fail the entire signup process if resume upload fails
+            }
+          } catch (resumeError) {
+            console.error('Resume upload error:', resumeError);
+            // Don't fail the entire signup process if resume upload fails
+          }
+        }
+
+        // Successfully registered (with or without resume), redirect to login
         navigate('/login', { 
           state: { 
-            message: 'Account created successfully! Please log in with your credentials.',
+            message: formData.resume 
+              ? 'Account created successfully with resume! Please log in with your credentials.'
+              : 'Account created successfully! Please log in with your credentials.',
             email: formData.email
           }
         });

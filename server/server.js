@@ -16,6 +16,7 @@ const applicationRoutes = require('./routes/applications');
 const profileRoutes = require('./routes/profile');
 const aiRoutes = require('./routes/ai');
 const resumeRoutes = require('./routes/applicant/resumes');
+const applicantProfileRoutes = require('./routes/applicant/profile');
 
 // HR routes
 const hrDashboardRoutes = require('./routes/hr/dashboard');
@@ -76,7 +77,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/applications', applicationRoutes);
-app.use('/api/profile', profileRoutes);
+app.use('/api/profile', applicantProfileRoutes); // Use the new applicant profile routes
 app.use('/api/ai', aiRoutes);
 app.use('/api/resumes', resumeRoutes);
 

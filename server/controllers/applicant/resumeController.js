@@ -1,25 +1,9 @@
 const Resume = require('../../models/Resume');
 const User = require('../../models/User');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 
-// Configure multer for resume uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadPath = path.join(__dirname, '../../uploads/resumes');
-    // Create directory if it doesn't exist
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
-    }
-    cb(null, uploadPath);
-  },
-  filename: function (req, file, cb) {
-    // Generate unique filename
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// Configure multer for memory storage (not disk storage)
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   // Allow only PDF and DOCX files
@@ -44,7 +28,7 @@ const upload = multer({
 // @access  Private
 const uploadResume = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id || req.user.id;
     
     if (!req.file) {
       return res.status(400).json({
@@ -53,20 +37,27 @@ const uploadResume = async (req, res) => {
       });
     }
 
+    // Convert file buffer to Base64
+    const fileData = req.file.buffer.toString('base64');
+    
+    // Generate unique filename for reference
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const fileName = `resume-${uniqueSuffix}${getFileExtension(req.file.originalname)}`;
+
     // Deactivate previous resumes
     await Resume.updateMany(
       { userId, isActive: true },
       { isActive: false }
     );
 
-    // Create new resume record
+    // Create new resume record with Base64 data
     const resume = new Resume({
       userId,
-      fileName: req.file.filename,
+      fileName,
       originalName: req.file.originalname,
-      fileUrl: `/uploads/resumes/${req.file.filename}`,
       fileSize: req.file.size,
       mimeType: req.file.mimetype,
+      fileData, // Store Base64 encoded file data
       processingStatus: 'completed' // Mark as completed since we're not doing server-side parsing
     });
 
@@ -76,8 +67,7 @@ const uploadResume = async (req, res) => {
     await User.findByIdAndUpdate(userId, {
       'profile.currentResumeId': resume._id,
       'profile.resume': {
-        fileName: req.file.filename,
-        fileUrl: `/uploads/resumes/${req.file.filename}`,
+        fileName,
         uploadDate: new Date(),
         fileSize: req.file.size
       }
@@ -90,7 +80,6 @@ const uploadResume = async (req, res) => {
         id: resume._id,
         fileName: resume.fileName,
         originalName: resume.originalName,
-        fileUrl: resume.fileUrl,
         fileSize: resume.fileSize,
         uploadDate: resume.createdAt
       }
@@ -106,11 +95,16 @@ const uploadResume = async (req, res) => {
   }
 };
 
+// Helper function to get file extension
+function getFileExtension(filename) {
+  return filename.substring(filename.lastIndexOf('.'));
+}
+
 // @desc    Save parsed resume data
 // @access  Private
 const saveParsedResumeData = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id || req.user.id;
     const { parsedData } = req.body;
 
     if (!parsedData) {
@@ -172,7 +166,7 @@ const saveParsedResumeData = async (req, res) => {
 // @access  Private
 const getUserResumes = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id || req.user.id;
     const resumes = await Resume.findByUser(userId);
 
     res.json({
@@ -193,7 +187,7 @@ const getUserResumes = async (req, res) => {
 // @access  Private
 const getResume = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id || req.user.id;
     const resumeId = req.params.id;
 
     const resume = await Resume.findOne({ _id: resumeId, userId });
@@ -223,7 +217,7 @@ const getResume = async (req, res) => {
 // @access  Private
 const deleteResume = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id || req.user.id;
     const resumeId = req.params.id;
 
     const resume = await Resume.findOne({ _id: resumeId, userId });
@@ -235,13 +229,7 @@ const deleteResume = async (req, res) => {
       });
     }
 
-    // Delete file from filesystem
-    const filePath = path.join(__dirname, '../../uploads/resumes', resume.fileName);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-
-    // Deactivate resume record
+    // Deactivate resume record (no file system cleanup needed)
     await resume.deactivate();
 
     // Clear user's current resume reference if this was the current one
@@ -267,11 +255,53 @@ const deleteResume = async (req, res) => {
   }
 };
 
+// @desc    Download resume file
+// @access  Private
+const downloadResume = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const resumeId = req.params.id;
+
+    const resume = await Resume.findOne({
+      _id: resumeId,
+      userId,
+      isActive: true
+    });
+
+    if (!resume) {
+      return res.status(404).json({
+        success: false,
+        message: 'Resume not found'
+      });
+    }
+
+    // Convert Base64 back to buffer
+    const fileBuffer = Buffer.from(resume.fileData, 'base64');
+
+    // Set appropriate headers
+    res.setHeader('Content-Type', resume.mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${resume.originalName}"`);
+    res.setHeader('Content-Length', fileBuffer.length);
+
+    // Send the file
+    res.send(fileBuffer);
+
+  } catch (error) {
+    console.error('Download resume error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 module.exports = {
   uploadResume,
   saveParsedResumeData,
   getUserResumes,
   getResume,
   deleteResume,
+  downloadResume,
   upload
 };

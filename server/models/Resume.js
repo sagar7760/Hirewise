@@ -18,10 +18,6 @@ const resumeSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  fileUrl: {
-    type: String,
-    required: true
-  },
   fileSize: {
     type: Number,
     required: true
@@ -30,6 +26,12 @@ const resumeSchema = new mongoose.Schema({
     type: String,
     required: true,
     enum: ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword']
+  },
+  
+  // File data stored as Base64
+  fileData: {
+    type: String,
+    required: true
   },
   
   // Parsed data from resume

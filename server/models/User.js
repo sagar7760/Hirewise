@@ -109,7 +109,7 @@ const userSchema = new mongoose.Schema({
   country: {
     type: String,
     trim: true,
-    default: 'United States'
+    default: 'India'
   },
 
   // Emergency contact
@@ -165,7 +165,7 @@ const userSchema = new mongoose.Schema({
   // User preferences
   timezone: {
     type: String,
-    default: 'America/Los_Angeles'
+    default: 'Asia/Kolkata'
   },
   language: {
     type: String,
@@ -331,7 +331,6 @@ const userSchema = new mongoose.Schema({
     },
     resume: {
       fileName: String,
-      fileUrl: String,
       uploadDate: Date,
       fileSize: Number
     },
