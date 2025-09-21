@@ -61,7 +61,9 @@ const register = async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        role: user.role
+        role: user.role,
+        profilePicture: user.profilePicture,
+        avatar: user.avatar
       }
     });
 
@@ -130,6 +132,8 @@ const login = async (req, res) => {
         email: user.email,
         role: user.role,
         isCompanyAdmin: user.isCompanyAdmin,
+        profilePicture: user.profilePicture,
+        avatar: user.avatar,
         company: user.company ? {
           id: user.company._id,
           name: user.company.name,
@@ -161,6 +165,8 @@ const getMe = async (req, res) => {
         email: user.email,
         role: user.role,
         isCompanyAdmin: user.isCompanyAdmin,
+        profilePicture: user.profilePicture,
+        avatar: user.avatar,
         company: user.companyId ? {
           id: user.companyId._id,
           name: user.companyId.name,
