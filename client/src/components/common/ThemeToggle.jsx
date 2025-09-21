@@ -50,7 +50,6 @@ const ThemeToggle = ({ className = '' }) => {
           className={`
             relative inline-flex items-center justify-center w-8 h-8 rounded-full
             transition-all duration-300 ease-in-out
-            focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
             ${theme === themeOption.id 
               ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm' 
               : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
