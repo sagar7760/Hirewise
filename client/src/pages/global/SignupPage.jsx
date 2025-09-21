@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ResumeParser } from '../../utils/resumeParser';
 
 const SignupPage = () => {
   const [formData, setFormData] = useState({
@@ -12,14 +13,28 @@ const SignupPage = () => {
     
     // Profile Info (basic)
     currentLocation: '',
-    highestQualification: '',
-    fieldOfStudy: '',
-    universityName: '',
-    graduationYear: '',
+    educationEntries: [{
+      id: 1,
+      qualification: '',
+      fieldOfStudy: '',
+      universityName: '',
+      graduationYear: '',
+      cgpaPercentage: ''
+    }],
     currentStatus: '',
-    cgpaPercentage: '',
-    primarySkills: '',
-    yearsOfExperience: '',
+    primarySkills: [],
+    
+    // Work Experience (optional - for working professionals)
+    workExperienceEntries: [{
+      id: 1,
+      yearsOfExperience: '',
+      company: '',
+      position: '',
+      startDate: '',
+      endDate: '',
+      isCurrentlyWorking: false,
+      description: ''
+    }],
     
     // Resume Upload (optional)
     resume: null
@@ -27,6 +42,8 @@ const SignupPage = () => {
 
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
+  const [isParsingResume, setIsParsingResume] = useState(false);
+  const [parseSuccess, setParseSuccess] = useState(false);
 
   // Predefined options for dropdowns
   const qualificationOptions = [
@@ -54,6 +71,26 @@ const SignupPage = () => {
     'Working Professional'
   ];
 
+  // Suggested skills for better UX
+  const suggestedSkills = [
+    // Programming Languages
+    'JavaScript', 'Python', 'Java', 'C++', 'C#', 'PHP', 'Ruby', 'Go', 'Rust', 'TypeScript',
+    // Web Technologies
+    'React', 'Angular', 'Vue.js', 'Node.js', 'Express.js', 'HTML', 'CSS', 'SASS', 'Bootstrap', 'Tailwind CSS',
+    // Databases
+    'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'SQLite', 'Oracle', 'SQL Server',
+    // Cloud & DevOps
+    'AWS', 'Azure', 'Google Cloud', 'Docker', 'Kubernetes', 'Jenkins', 'Git', 'Linux',
+    // Mobile Development
+    'React Native', 'Flutter', 'Android', 'iOS', 'Swift', 'Kotlin',
+    // Data & Analytics
+    'SQL', 'Excel', 'Power BI', 'Tableau', 'R', 'Pandas', 'NumPy', 'Machine Learning',
+    // Design
+    'Figma', 'Adobe XD', 'Photoshop', 'Illustrator', 'UI/UX Design',
+    // Other
+    'Project Management', 'Agile', 'Scrum', 'Communication', 'Leadership', 'Problem Solving'
+  ];
+
   // Generate graduation years (current year back to 1980)
   const currentYear = new Date().getFullYear();
   const graduationYears = [];
@@ -77,7 +114,7 @@ const SignupPage = () => {
     }
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
       // Validate file type (PDF, DOC, DOCX)
@@ -111,6 +148,164 @@ const SignupPage = () => {
           resume: ''
         }));
       }
+
+      // Parse resume and auto-fill form
+      try {
+        setIsParsingResume(true);
+        setParseSuccess(false);
+        
+        const parsedData = await ResumeParser.parseFile(file);
+        
+        // Auto-fill form with parsed data
+        setFormData(prev => ({
+          ...prev,
+          fullName: parsedData.fullName || prev.fullName,
+          email: parsedData.email || prev.email,
+          phone: parsedData.phone || prev.phone,
+          currentLocation: parsedData.currentLocation || prev.currentLocation,
+          primarySkills: parsedData.primarySkills.length > 0 ? parsedData.primarySkills : prev.primarySkills,
+          educationEntries: parsedData.educationEntries.length > 0 && parsedData.educationEntries[0].qualification 
+            ? parsedData.educationEntries 
+            : prev.educationEntries,
+          workExperienceEntries: parsedData.workExperienceEntries.length > 0 && parsedData.workExperienceEntries[0].position
+            ? parsedData.workExperienceEntries 
+            : prev.workExperienceEntries
+        }));
+        
+        setParseSuccess(true);
+        
+        // Show success message briefly
+        setTimeout(() => setParseSuccess(false), 3000);
+        
+      } catch (error) {
+        console.error('Resume parsing failed:', error);
+        setErrors(prev => ({
+          ...prev,
+          resume: 'Failed to parse resume. You can still fill the form manually.'
+        }));
+      } finally {
+        setIsParsingResume(false);
+      }
+    }
+  };
+
+  // Education management functions
+  const addEducationEntry = () => {
+    const newId = Math.max(...formData.educationEntries.map(entry => entry.id)) + 1;
+    setFormData(prev => ({
+      ...prev,
+      educationEntries: [...prev.educationEntries, {
+        id: newId,
+        qualification: '',
+        fieldOfStudy: '',
+        universityName: '',
+        graduationYear: '',
+        cgpaPercentage: ''
+      }]
+    }));
+  };
+
+  const removeEducationEntry = (id) => {
+    if (formData.educationEntries.length > 1) {
+      setFormData(prev => ({
+        ...prev,
+        educationEntries: prev.educationEntries.filter(entry => entry.id !== id)
+      }));
+      
+      // Clear any related errors
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[`education_${id}_qualification`];
+        delete newErrors[`education_${id}_fieldOfStudy`];
+        delete newErrors[`education_${id}_universityName`];
+        delete newErrors[`education_${id}_graduationYear`];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleEducationChange = (id, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      educationEntries: prev.educationEntries.map(entry =>
+        entry.id === id ? { ...entry, [field]: value } : entry
+      )
+    }));
+    
+    // Clear error when user starts typing
+    const errorKey = `education_${id}_${field}`;
+    if (errors[errorKey]) {
+      setErrors(prev => ({
+        ...prev,
+        [errorKey]: ''
+      }));
+    }
+  };
+
+  // Skills management functions
+  const addSkill = (skill) => {
+    if (skill && !formData.primarySkills.includes(skill)) {
+      setFormData(prev => ({
+        ...prev,
+        primarySkills: [...prev.primarySkills, skill]
+      }));
+    }
+  };
+
+  const removeSkill = (skillToRemove) => {
+    setFormData(prev => ({
+      ...prev,
+      primarySkills: prev.primarySkills.filter(skill => skill !== skillToRemove)
+    }));
+  };
+
+  // Work Experience management functions
+  const addWorkExperience = () => {
+    const newId = Math.max(...formData.workExperienceEntries.map(entry => entry.id)) + 1;
+    setFormData(prev => ({
+      ...prev,
+      workExperienceEntries: [...prev.workExperienceEntries, {
+        id: newId,
+        yearsOfExperience: '',
+        company: '',
+        position: '',
+        startDate: '',
+        endDate: '',
+        isCurrentlyWorking: false,
+        description: ''
+      }]
+    }));
+  };
+
+  const removeWorkExperience = (id) => {
+    if (formData.workExperienceEntries.length > 1) {
+      setFormData(prev => ({
+        ...prev,
+        workExperienceEntries: prev.workExperienceEntries.filter(entry => entry.id !== id)
+      }));
+    }
+  };
+
+  const handleWorkExperienceChange = (id, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      workExperienceEntries: prev.workExperienceEntries.map(entry =>
+        entry.id === id ? { 
+          ...entry, 
+          [field]: value,
+          // Clear end date if currently working is checked
+          ...(field === 'isCurrentlyWorking' && value ? { endDate: '' } : {})
+        } : entry
+      )
+    }));
+    
+    // Clear error when user starts typing
+    const errorKey = `work_${id}_${field}`;
+    if (errors[errorKey]) {
+      setErrors(prev => ({
+        ...prev,
+        [errorKey]: ''
+      }));
     }
   };
 
@@ -123,13 +318,29 @@ const SignupPage = () => {
     if (!formData.password.trim()) newErrors.password = 'Password is required';
     if (!formData.confirmPassword.trim()) newErrors.confirmPassword = 'Please confirm your password';
     if (!formData.currentLocation.trim()) newErrors.currentLocation = 'Current location is required';
-    if (!formData.highestQualification) newErrors.highestQualification = 'Highest qualification is required';
-    if (!formData.fieldOfStudy.trim()) newErrors.fieldOfStudy = 'Field of study is required';
-    if (!formData.universityName.trim()) newErrors.universityName = 'University/College name is required';
-    if (!formData.graduationYear) newErrors.graduationYear = 'Graduation year is required';
     if (!formData.currentStatus) newErrors.currentStatus = 'Current status is required';
-    if (!formData.primarySkills.trim()) newErrors.primarySkills = 'Primary skills are required';
-    if (!formData.yearsOfExperience) newErrors.yearsOfExperience = 'Years of experience is required';
+    if (!formData.primarySkills || formData.primarySkills.length === 0) newErrors.primarySkills = 'At least one skill is required';
+    
+    // Education validation - ensure at least one complete education entry
+    if (!formData.educationEntries || formData.educationEntries.length === 0) {
+      newErrors.education = 'At least one education entry is required';
+    } else {
+      // Validate each education entry
+      formData.educationEntries.forEach((education) => {
+        if (!education.qualification) {
+          newErrors[`education_${education.id}_qualification`] = 'Qualification is required';
+        }
+        if (!education.fieldOfStudy.trim()) {
+          newErrors[`education_${education.id}_fieldOfStudy`] = 'Field of study is required';
+        }
+        if (!education.universityName.trim()) {
+          newErrors[`education_${education.id}_universityName`] = 'University/College name is required';
+        }
+        if (!education.graduationYear) {
+          newErrors[`education_${education.id}_graduationYear`] = 'Graduation year is required';
+        }
+      });
+    }
     
     // Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -176,6 +387,77 @@ const SignupPage = () => {
 
         {/* Signup Form */}
         <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Resume Upload Section */}
+          <div className="space-y-6">
+            <h2 className="text-2xl font-semibold text-gray-900 font-['Open_Sans'] border-b border-gray-200 pb-2">
+              Resume Upload
+            </h2>
+            
+            <div>
+              <label htmlFor="resume" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+                Upload Resume <span className="text-gray-400">(Optional - can be added later)</span>
+              </label>
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-400 transition-colors">
+                <div className="space-y-1 text-center">
+                  <svg
+                    className="mx-auto h-12 w-12 text-gray-400"
+                    stroke="currentColor"
+                    fill="none"
+                    viewBox="0 0 48 48"
+                  >
+                    <path
+                      d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <div className="flex text-sm text-gray-600">
+                    <label
+                      htmlFor="resume"
+                      className="relative cursor-pointer bg-white rounded-md font-medium text-black hover:underline focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-black"
+                    >
+                      <span>Upload a file</span>
+                      <input
+                        id="resume"
+                        name="resume"
+                        type="file"
+                        className="sr-only"
+                        accept=".pdf,.doc,.docx"
+                        onChange={handleFileChange}
+                      />
+                    </label>
+                    <p className="pl-1 font-['Roboto']">or drag and drop</p>
+                  </div>
+                  <p className="text-xs text-gray-500 font-['Roboto']">
+                    PDF, DOC, DOCX up to 5MB
+                  </p>
+                  {formData.resume && (
+                    <div className="space-y-2">
+                      <p className="text-sm text-green-600 font-medium">
+                        ✓ {formData.resume.name}
+                      </p>
+                      {isParsingResume && (
+                        <p className="text-sm text-blue-600 font-medium">
+                          🔄 Parsing resume to auto-fill form...
+                        </p>
+                      )}
+                      {parseSuccess && (
+                        <p className="text-sm text-green-600 font-medium">
+                          🎉 Resume parsed successfully! Form fields have been auto-filled.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+              {errors.resume && <p className="mt-1 text-sm text-red-600">{errors.resume}</p>}
+              <p className="mt-2 text-sm text-gray-500 font-['Roboto']">
+                You can skip this now and upload your resume when applying for jobs. 
+                If uploaded, we'll automatically parse it and help auto-fill your profile information.
+              </p>
+            </div>
+          </div>
           
           {/* Account Information Section */}
           <div className="space-y-6">
@@ -323,235 +605,422 @@ const SignupPage = () => {
             </div>
 
             {/* Education Section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800 font-['Open_Sans']">
-                Education Details
-              </h3>
-              
-              {/* Highest Qualification */}
-              <div>
-                <label htmlFor="highestQualification" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
-                  Highest Qualification <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="highestQualification"
-                  name="highestQualification"
-                  required
-                  value={formData.highestQualification}
-                  onChange={handleInputChange}
-                  className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-2xl font-semibold text-gray-900 font-['Open_Sans'] border-b border-gray-200 pb-2 flex-1 mr-4">
+                  Education Details
+                </h3>
+                <button
+                  type="button"
+                  onClick={addEducationEntry}
+                  className="bg-black text-white hover:bg-gray-800 px-4 py-2 rounded-lg text-sm font-medium font-['Open_Sans'] transition-colors flex items-center gap-2 shrink-0"
                 >
-                  <option value="">Select your qualification</option>
-                  {qualificationOptions.map(option => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
-                {errors.highestQualification && <p className="mt-1 text-sm text-red-600">{errors.highestQualification}</p>}
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Education
+                </button>
               </div>
+              
+              {formData.educationEntries.map((education, index) => (
+                <div key={education.id} className="space-y-4 p-6 border border-gray-200 rounded-lg bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-lg font-semibold text-gray-900 font-['Open_Sans']">
+                      Education {index + 1}
+                    </h4>
+                    {formData.educationEntries.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeEducationEntry(education.id)}
+                        className="text-red-600 hover:text-red-800 p-1 rounded-lg hover:bg-red-50 transition-colors"
+                        title="Remove this education entry"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
 
-              {/* Field of Study */}
-              <div>
-                <label htmlFor="fieldOfStudy" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
-                  Field of Study / Specialization <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="fieldOfStudy"
-                  name="fieldOfStudy"
-                  type="text"
-                  required
-                  value={formData.fieldOfStudy}
-                  onChange={handleInputChange}
-                  placeholder="e.g., Computer Science, Mechanical Engineering, MBA"
-                  className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
-                />
-                {errors.fieldOfStudy && <p className="mt-1 text-sm text-red-600">{errors.fieldOfStudy}</p>}
-              </div>
+                  {/* Qualification */}
+                  <div>
+                    <label htmlFor={`qualification_${education.id}`} className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+                      Qualification <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      id={`qualification_${education.id}`}
+                      name={`qualification_${education.id}`}
+                      required
+                      value={education.qualification}
+                      onChange={(e) => handleEducationChange(education.id, 'qualification', e.target.value)}
+                      className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                    >
+                      <option value="">Select qualification</option>
+                      {qualificationOptions.map(option => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                    {errors[`education_${education.id}_qualification`] && (
+                      <p className="mt-1 text-sm text-red-600">{errors[`education_${education.id}_qualification`]}</p>
+                    )}
+                  </div>
 
-              {/* University/College Name */}
-              <div>
-                <label htmlFor="universityName" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
-                  University/College Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="universityName"
-                  name="universityName"
-                  type="text"
-                  required
-                  value={formData.universityName}
-                  onChange={handleInputChange}
-                  placeholder="e.g., Indian Institute of Technology, Delhi University"
-                  className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
-                />
-                {errors.universityName && <p className="mt-1 text-sm text-red-600">{errors.universityName}</p>}
-              </div>
+                  {/* Field of Study */}
+                  <div>
+                    <label htmlFor={`fieldOfStudy_${education.id}`} className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+                      Field of Study / Specialization <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id={`fieldOfStudy_${education.id}`}
+                      name={`fieldOfStudy_${education.id}`}
+                      type="text"
+                      required
+                      value={education.fieldOfStudy}
+                      onChange={(e) => handleEducationChange(education.id, 'fieldOfStudy', e.target.value)}
+                      placeholder="e.g., Computer Science, Mechanical Engineering, MBA"
+                      className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                    />
+                    {errors[`education_${education.id}_fieldOfStudy`] && (
+                      <p className="mt-1 text-sm text-red-600">{errors[`education_${education.id}_fieldOfStudy`]}</p>
+                    )}
+                  </div>
 
-              {/* Graduation Year and Current Status in Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Graduation Year */}
-                <div>
-                  <label htmlFor="graduationYear" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
-                    Graduation Year <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="graduationYear"
-                    name="graduationYear"
-                    required
-                    value={formData.graduationYear}
-                    onChange={handleInputChange}
-                    className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
-                  >
-                    <option value="">Select year</option>
-                    {graduationYears.map(year => (
-                      <option key={year} value={year}>{year}</option>
-                    ))}
-                  </select>
-                  {errors.graduationYear && <p className="mt-1 text-sm text-red-600">{errors.graduationYear}</p>}
+                  {/* University/College Name */}
+                  <div>
+                    <label htmlFor={`universityName_${education.id}`} className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+                      University/College Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id={`universityName_${education.id}`}
+                      name={`universityName_${education.id}`}
+                      type="text"
+                      required
+                      value={education.universityName}
+                      onChange={(e) => handleEducationChange(education.id, 'universityName', e.target.value)}
+                      placeholder="e.g., Indian Institute of Technology, Delhi University"
+                      className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                    />
+                    {errors[`education_${education.id}_universityName`] && (
+                      <p className="mt-1 text-sm text-red-600">{errors[`education_${education.id}_universityName`]}</p>
+                    )}
+                  </div>
+
+                  {/* Graduation Year and CGPA/Percentage in Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Graduation Year */}
+                    <div>
+                      <label htmlFor={`graduationYear_${education.id}`} className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+                        Graduation Year <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        id={`graduationYear_${education.id}`}
+                        name={`graduationYear_${education.id}`}
+                        required
+                        value={education.graduationYear}
+                        onChange={(e) => handleEducationChange(education.id, 'graduationYear', e.target.value)}
+                        className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                      >
+                        <option value="">Select year</option>
+                        {graduationYears.map(year => (
+                          <option key={year} value={year}>{year}</option>
+                        ))}
+                      </select>
+                      {errors[`education_${education.id}_graduationYear`] && (
+                        <p className="mt-1 text-sm text-red-600">{errors[`education_${education.id}_graduationYear`]}</p>
+                      )}
+                    </div>
+
+                    {/* CGPA/Percentage */}
+                    <div>
+                      <label htmlFor={`cgpaPercentage_${education.id}`} className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+                        CGPA / Percentage <span className="text-gray-400">(Optional)</span>
+                      </label>
+                      <input
+                        id={`cgpaPercentage_${education.id}`}
+                        name={`cgpaPercentage_${education.id}`}
+                        type="text"
+                        value={education.cgpaPercentage}
+                        onChange={(e) => handleEducationChange(education.id, 'cgpaPercentage', e.target.value)}
+                        placeholder="e.g., 8.5 CGPA or 85%"
+                        className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                      />
+                     
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-500 font-['Roboto']">
+                        Add multiple education qualifications if you have degrees from different institutions or multiple qualifications.
+                      </p>
                 </div>
-
-                {/* Current Status */}
-                <div>
-                  <label htmlFor="currentStatus" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
-                    Current Status <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="currentStatus"
-                    name="currentStatus"
-                    required
-                    value={formData.currentStatus}
-                    onChange={handleInputChange}
-                    className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
-                  >
-                    <option value="">Select status</option>
-                    {currentStatusOptions.map(option => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </select>
-                  {errors.currentStatus && <p className="mt-1 text-sm text-red-600">{errors.currentStatus}</p>}
-                </div>
-              </div>
-
-              {/* CGPA/Percentage (Optional) */}
-              <div>
-                <label htmlFor="cgpaPercentage" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
-                  CGPA / Percentage <span className="text-gray-400">(Optional)</span>
-                </label>
-                <input
-                  id="cgpaPercentage"
-                  name="cgpaPercentage"
-                  type="text"
-                  value={formData.cgpaPercentage}
-                  onChange={handleInputChange}
-                  placeholder="e.g., 8.5 CGPA or 85%"
-                  className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
-                />
-                <p className="mt-1 text-sm text-gray-500 font-['Roboto']">
-                  This helps HR filter candidates based on academic performance
-                </p>
-              </div>
+              ))}
+              
+              
             </div>
 
-            {/* Primary Skills */}
+            {/* Current Status */}
             <div>
-              <label htmlFor="primarySkills" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
-                Primary Skills / Technologies <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="primarySkills"
-                name="primarySkills"
-                type="text"
-                required
-                value={formData.primarySkills}
-                onChange={handleInputChange}
-                placeholder="e.g., Java, Python, React, Node.js, MySQL"
-                className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
-              />
-              {errors.primarySkills && <p className="mt-1 text-sm text-red-600">{errors.primarySkills}</p>}
-              <p className="mt-1 text-sm text-gray-500 font-['Roboto']">
-                Separate multiple skills with commas
-              </p>
-            </div>
-
-            {/* Years of Experience */}
-            <div>
-              <label htmlFor="yearsOfExperience" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
-                Years of Experience <span className="text-red-500">*</span>
+              <label htmlFor="currentStatus" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+                Current Status <span className="text-red-500">*</span>
               </label>
               <select
-                id="yearsOfExperience"
-                name="yearsOfExperience"
+                id="currentStatus"
+                name="currentStatus"
                 required
-                value={formData.yearsOfExperience}
+                value={formData.currentStatus}
                 onChange={handleInputChange}
                 className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
               >
-                <option value="">Select your experience level</option>
-                {experienceOptions.map(option => (
+                <option value="">Select status</option>
+                {currentStatusOptions.map(option => (
                   <option key={option} value={option}>{option}</option>
                 ))}
               </select>
-              {errors.yearsOfExperience && <p className="mt-1 text-sm text-red-600">{errors.yearsOfExperience}</p>}
+              {errors.currentStatus && <p className="mt-1 text-sm text-red-600">{errors.currentStatus}</p>}
             </div>
-          </div>
 
-          {/* Resume Upload Section */}
-          <div className="space-y-6">
-            <h2 className="text-2xl font-semibold text-gray-900 font-['Open_Sans'] border-b border-gray-200 pb-2">
-              Resume Upload
-            </h2>
-            
-            <div>
-              <label htmlFor="resume" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
-                Upload Resume <span className="text-gray-400">(Optional - can be added later)</span>
+            {/* Primary Skills */}
+            <div className="space-y-4">
+              <label className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+                Primary Skills / Technologies <span className="text-red-500">*</span>
               </label>
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-400 transition-colors">
-                <div className="space-y-1 text-center">
-                  <svg
-                    className="mx-auto h-12 w-12 text-gray-400"
-                    stroke="currentColor"
-                    fill="none"
-                    viewBox="0 0 48 48"
-                  >
-                    <path
-                      d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <div className="flex text-sm text-gray-600">
-                    <label
-                      htmlFor="resume"
-                      className="relative cursor-pointer bg-white rounded-md font-medium text-black hover:underline focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-black"
+              
+              {/* Selected Skills Display */}
+              {formData.primarySkills.length > 0 && (
+                <div className="flex flex-wrap gap-2 p-3 border border-gray-200 rounded-lg bg-gray-50 min-h-[60px]">
+                  {formData.primarySkills.map((skill, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center gap-1 px-3 py-1 bg-black text-white text-sm rounded-full font-['Roboto']"
                     >
-                      <span>Upload a file</span>
-                      <input
-                        id="resume"
-                        name="resume"
-                        type="file"
-                        className="sr-only"
-                        accept=".pdf,.doc,.docx"
-                        onChange={handleFileChange}
-                      />
-                    </label>
-                    <p className="pl-1 font-['Roboto']">or drag and drop</p>
-                  </div>
-                  <p className="text-xs text-gray-500 font-['Roboto']">
-                    PDF, DOC, DOCX up to 5MB
-                  </p>
-                  {formData.resume && (
-                    <p className="text-sm text-green-600 font-medium">
-                      ✓ {formData.resume.name}
-                    </p>
-                  )}
+                      {skill}
+                      <button
+                        type="button"
+                        onClick={() => removeSkill(skill)}
+                        className="ml-1 text-gray-300 hover:text-white transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              
+              {/* Custom Skill Input */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Type a skill and press Enter"
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const skill = e.target.value.trim();
+                      if (skill) {
+                        addSkill(skill);
+                        e.target.value = '';
+                      }
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    const input = e.target.parentElement.querySelector('input');
+                    const skill = input.value.trim();
+                    if (skill) {
+                      addSkill(skill);
+                      input.value = '';
+                    }
+                  }}
+                  className="px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-['Open_Sans'] text-sm"
+                >
+                  Add
+                </button>
+              </div>
+              
+              {/* Suggested Skills */}
+              <div>
+                <p className="text-sm text-gray-600 font-['Open_Sans'] mb-2">Popular Skills (click to add):</p>
+                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                  {suggestedSkills
+                    .filter(skill => !formData.primarySkills.includes(skill))
+                    .slice(0, 30)
+                    .map((skill) => (
+                    <button
+                      key={skill}
+                      type="button"
+                      onClick={() => addSkill(skill)}
+                      className="px-3 py-1 text-sm border border-gray-300 rounded-full hover:bg-gray-100 hover:border-gray-400 transition-colors font-['Roboto'] text-gray-700"
+                    >
+                      + {skill}
+                    </button>
+                  ))}
                 </div>
               </div>
-              {errors.resume && <p className="mt-1 text-sm text-red-600">{errors.resume}</p>}
-              <p className="mt-2 text-sm text-gray-500 font-['Roboto']">
-                You can skip this now and upload your resume when applying for jobs. 
-                If uploaded, we'll help auto-fill your profile information.
+              
+              {errors.primarySkills && <p className="mt-1 text-sm text-red-600">{errors.primarySkills}</p>}
+              <p className="text-sm text-gray-500 font-['Roboto']">
+                Add skills that best represent your expertise. You can type custom skills or select from popular ones.
               </p>
             </div>
+
+            {/* Work Experience Section - Only show for Working Professionals */}
+            {formData.currentStatus === 'Working Professional' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-2xl font-semibold text-gray-900 font-['Open_Sans'] border-b border-gray-200 pb-2 flex-1 mr-4">
+                    Work Experience Details <span className="text-gray-400 text-sm font-normal">(Optional)</span>
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={addWorkExperience}
+                    className="bg-black text-white hover:bg-gray-800 px-4 py-2 rounded-lg text-sm font-medium font-['Open_Sans'] transition-colors flex items-center gap-2 shrink-0"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Experience
+                  </button>
+                </div>
+                
+                {formData.workExperienceEntries.map((experience, index) => (
+                  <div key={experience.id} className="space-y-4 p-6 border border-gray-200 rounded-lg bg-gray-50">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-lg font-semibold text-gray-900 font-['Open_Sans']">
+                        Experience {index + 1}
+                      </h4>
+                      {formData.workExperienceEntries.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeWorkExperience(experience.id)}
+                          className="text-red-600 hover:text-red-800 p-1 rounded-lg hover:bg-red-50 transition-colors"
+                          title="Remove this work experience"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Years of Experience for this role */}
+                    <div>
+                      <label htmlFor={`yearsOfExperience_${experience.id}`} className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+                        Experience Level for this Role
+                      </label>
+                      <select
+                        id={`yearsOfExperience_${experience.id}`}
+                        value={experience.yearsOfExperience}
+                        onChange={(e) => handleWorkExperienceChange(experience.id, 'yearsOfExperience', e.target.value)}
+                        className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                      >
+                        <option value="">Select experience level</option>
+                        {experienceOptions.map(option => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Company Name */}
+                    <div>
+                      <label htmlFor={`company_${experience.id}`} className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+                        Company Name
+                      </label>
+                      <input
+                        id={`company_${experience.id}`}
+                        type="text"
+                        value={experience.company}
+                        onChange={(e) => handleWorkExperienceChange(experience.id, 'company', e.target.value)}
+                        placeholder="e.g., Google, Microsoft, TCS, Infosys"
+                        className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                      />
+                    </div>
+
+                    {/* Position */}
+                    <div>
+                      <label htmlFor={`position_${experience.id}`} className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+                        Position/Role
+                      </label>
+                      <input
+                        id={`position_${experience.id}`}
+                        type="text"
+                        value={experience.position}
+                        onChange={(e) => handleWorkExperienceChange(experience.id, 'position', e.target.value)}
+                        placeholder="e.g., Software Engineer, Data Analyst, Project Manager"
+                        className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                      />
+                    </div>
+
+                    {/* Work Duration */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Start Date */}
+                      <div>
+                        <label htmlFor={`startDate_${experience.id}`} className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+                          Start Date
+                        </label>
+                        <input
+                          id={`startDate_${experience.id}`}
+                          type="month"
+                          value={experience.startDate}
+                          onChange={(e) => handleWorkExperienceChange(experience.id, 'startDate', e.target.value)}
+                          className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                        />
+                      </div>
+
+                      {/* End Date or Currently Working */}
+                      <div>
+                        <label htmlFor={`endDate_${experience.id}`} className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+                          End Date
+                        </label>
+                        <div className="space-y-2">
+                          <input
+                            id={`endDate_${experience.id}`}
+                            type="month"
+                            value={experience.endDate}
+                            onChange={(e) => handleWorkExperienceChange(experience.id, 'endDate', e.target.value)}
+                            disabled={experience.isCurrentlyWorking}
+                            className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          />
+                          <label className="flex items-center text-sm text-gray-600 font-['Roboto']">
+                            <input
+                              type="checkbox"
+                              checked={experience.isCurrentlyWorking}
+                              onChange={(e) => handleWorkExperienceChange(experience.id, 'isCurrentlyWorking', e.target.checked)}
+                              className="mr-2 rounded border-gray-300 text-black focus:ring-black"
+                            />
+                            I currently work here
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Work Description */}
+                    <div>
+                      <label htmlFor={`description_${experience.id}`} className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+                        Job Description/Responsibilities
+                      </label>
+                      <textarea
+                        id={`description_${experience.id}`}
+                        rows="3"
+                        value={experience.description}
+                        onChange={(e) => handleWorkExperienceChange(experience.id, 'description', e.target.value)}
+                        placeholder="Briefly describe your key responsibilities and achievements..."
+                        className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors resize-vertical"
+                      />
+                    </div>
+                    <p className="text-sm text-gray-500 font-['Roboto']">
+                   Adding detailed work experience helps employers understand your background better and improves job matching. You can add multiple roles if you've worked at different companies.
+                    </p>
+                  </div>
+                ))}
+                
+                
+              </div>
+            )}
           </div>
+
+          
 
           {/* Submit Button */}
           <div className="pt-6">
