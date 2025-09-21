@@ -347,17 +347,34 @@ const HRNavbar = () => {
                 }`}
               >
                 <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                  {user?.avatar ? (
+                  {(user?.profilePicture || user?.avatar) ? (
                     <img 
-                      src={user.avatar} 
+                      src={user.profilePicture || user.avatar} 
                       alt="Profile" 
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.log('Profile image failed to load:', e.target.src);
+                        e.target.style.display = 'none';
+                        e.target.nextElementSibling.style.display = 'flex';
+                      }}
                     />
-                  ) : (
-                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  )}
+                  ) : null}
+                  <div 
+                    className={`w-full h-full flex items-center justify-center ${
+                      (user?.profilePicture || user?.avatar) ? 'hidden' : 'flex'
+                    }`}
+                    style={{display: (user?.profilePicture || user?.avatar) ? 'none' : 'flex'}}
+                  >
+                    {user?.firstName && user?.lastName ? (
+                      <span className="text-sm font-medium text-gray-600 uppercase">
+                        {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                      </span>
+                    ) : (
+                      <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    )}
+                  </div>
                 </div>
               </button>
 

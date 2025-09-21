@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/layout/AdminLayout';
 import { useApiRequest } from '../../hooks/useApiRequest';
+import { useAuth } from '../../contexts/AuthContext';
 
 const AdminProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -8,6 +9,7 @@ const AdminProfile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { makeJsonRequest, makeRequest } = useApiRequest();
+  const { user, updateUser } = useAuth();
 
   // Helper functions for date formatting
   const formatDateForDisplay = (dateString) => {
@@ -153,10 +155,21 @@ const AdminProfile = () => {
 
       if (response.success) {
         setProfileData(response.data);
+        // Update the user in AuthContext so navbar shows updated profile picture
+        if (user && response.data.personalInfo) {
+          const updatedUser = {
+            ...user,
+            profilePicture: response.data.personalInfo.avatar,
+            avatar: response.data.personalInfo.avatar,
+            firstName: response.data.personalInfo.firstName,
+            lastName: response.data.personalInfo.lastName,
+            email: response.data.personalInfo.email
+          };
+          updateUser(updatedUser);
+        }
         // editedData will be updated via useEffect when profileData changes
         setIsEditing(false);
         setAvatarFile(null);
-        console.log('Profile saved successfully:', response);
       } else {
         setError(response.message || 'Failed to save profile. Please try again.');
       }
