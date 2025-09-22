@@ -77,6 +77,38 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('user', JSON.stringify(updatedUser));
   };
 
+  const refreshUser = async () => {
+    try {
+      if (!token) return;
+      
+      const response = await fetch('/api/profile', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          // Update user context with fresh data from profile API
+          const updatedUser = {
+            ...user,
+            fullName: data.data.fullName,
+            profilePicture: data.data.profilePicture,
+            phone: data.data.phone,
+            location: data.data.location
+          };
+          updateUser(updatedUser);
+          return updatedUser;
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+    }
+  };
+
   const isAuthenticated = () => {
     return !!token && !!user;
   };

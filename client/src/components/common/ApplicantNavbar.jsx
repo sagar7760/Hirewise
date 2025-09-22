@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import hirewiseLogo from '../../assets/hirewise.svg';
 
 const ApplicantNavbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isNotificationDropdownOpen, setIsNotificationDropdownOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -115,6 +117,10 @@ const ApplicantNavbar = () => {
       navigate('/profile');
     } else if (action === 'My Applications') {
       navigate('/my-applications');
+    } else if (action === 'Saved Jobs') {
+      navigate('/saved-jobs');
+    } else if (action === 'Sign Out') {
+      logout();
     }
     // TODO: Implement navigation for other menu items when pages are created
   };
@@ -348,10 +354,37 @@ const ApplicantNavbar = () => {
                   isProfileDropdownOpen ? 'ring-2 ring-gray-400' : ''
                 }`}
               >
-                <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
+                <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                  {user?.profilePicture ? (
+                    <img 
+                      src={user.profilePicture.startsWith('data:') ? 
+                           user.profilePicture : 
+                           user.profilePicture.startsWith('/uploads') ? 
+                           `${window.location.origin}${user.profilePicture}` :
+                           user.profilePicture}
+                      alt="Profile" 
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.log('Profile image failed to load:', user.profilePicture);
+                        if (e.target) {
+                          e.target.style.display = 'none';
+                          if (e.target.nextSibling) {
+                            e.target.nextSibling.style.display = 'flex';
+                          }
+                        }
+                      }}
+                    />
+                  ) : null}
+                  {!user?.profilePicture && (
+                    <div className="text-xs font-bold text-gray-600 font-['Open_Sans']">
+                      {user?.fullName ? 
+                        user.fullName.split(' ').map(n => n[0]).join('').toUpperCase() : 
+                        user?.firstName && user?.lastName ?
+                        `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() :
+                        user?.email ?
+                        user.email[0].toUpperCase() : 'U'}
+                    </div>
+                  )}
                 </div>
               </button>
 
@@ -363,8 +396,14 @@ const ApplicantNavbar = () => {
               }`}>
                 {/* User Info */}
                 <div className="px-4 py-3 border-b border-gray-100">
-                  <p className="text-sm font-medium text-gray-900 font-['Open_Sans']">John Doe</p>
-                  <p className="text-sm text-gray-500 font-['Roboto']">john.doe@example.com</p>
+                  <p className="text-sm font-medium text-gray-900 font-['Open_Sans']">
+                    {user?.fullName || 
+                     (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : '') ||
+                     user?.email?.split('@')[0] || 'User'}
+                  </p>
+                  <p className="text-sm text-gray-500 font-['Roboto']">
+                    {user?.email || 'user@example.com'}
+                  </p>
                 </div>
 
                 {/* Menu Items */}

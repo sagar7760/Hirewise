@@ -51,8 +51,9 @@ const getProfile = async (req, res) => {
       fullName: `${user.firstName} ${user.lastName}`,
       email: user.email,
       phone: user.phone || '',
-      location: user.profile?.currentLocation || '',
+      location: user.profile?.currentLocation || user.location || '',
       summary: user.profile?.summary || '',
+      profilePicture: user.profilePicture || user.avatar || '',
       
       // Resume info
       resume: currentResume ? {
@@ -206,6 +207,7 @@ const updateProfile = async (req, res) => {
       firstName,
       lastName,
       phone,
+      location, // Update top-level location for compatibility
       'profile.currentLocation': location,
       'profile.summary': summary,
       'profile.educationEntries': educationEntries,
@@ -233,7 +235,7 @@ const updateProfile = async (req, res) => {
       data: {
         fullName: `${updatedUser.firstName} ${updatedUser.lastName}`,
         phone: updatedUser.phone,
-        location: updatedUser.profile?.currentLocation,
+        location: updatedUser.profile?.currentLocation || updatedUser.location,
         summary: updatedUser.profile?.summary
       }
     });

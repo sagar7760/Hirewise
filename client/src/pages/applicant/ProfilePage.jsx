@@ -1,13 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import { SkeletonProfile } from '../../components/common/Skeleton';
 
 const ProfilePage = () => {
-  const { apiRequest } = useAuth();
+  const { apiRequest, updateUser, user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  
+  // Profile picture states
+  const [profilePicture, setProfilePicture] = useState(null);
+  const [profilePicturePreview, setProfilePicturePreview] = useState(null);
+  const [isUploadingPicture, setIsUploadingPicture] = useState(false);
+  const [isDeletingPicture, setIsDeletingPicture] = useState(false);
   
   // Array editing states
   const [editingItem, setEditingItem] = useState(null);
@@ -22,6 +29,7 @@ const ProfilePage = () => {
     phone: '',
     location: '',
     summary: '',
+    profilePicture: '',
     
     // Resume
     resume: null,
@@ -43,6 +51,26 @@ const ProfilePage = () => {
   const CACHE_KEY = 'hirewise_profile_data';
   const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
+  // Suggested skills for better UX (same as signup page)
+  const suggestedSkills = [
+    // Programming Languages
+    'JavaScript', 'Python', 'Java', 'C++', 'C#', 'PHP', 'Ruby', 'Go', 'Rust', 'TypeScript',
+    // Web Technologies
+    'React', 'Angular', 'Vue.js', 'Node.js', 'Express.js', 'HTML', 'CSS', 'SASS', 'Bootstrap', 'Tailwind CSS',
+    // Databases
+    'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'SQLite', 'Oracle', 'SQL Server',
+    // Cloud & DevOps
+    'AWS', 'Azure', 'Google Cloud', 'Docker', 'Kubernetes', 'Jenkins', 'Git', 'Linux',
+    // Mobile Development
+    'React Native', 'Flutter', 'Android', 'iOS', 'Swift', 'Kotlin',
+    // Data & Analytics
+    'SQL', 'Excel', 'Power BI', 'Tableau', 'R', 'Pandas', 'NumPy', 'Machine Learning',
+    // Design
+    'Figma', 'Adobe XD', 'Photoshop', 'Illustrator', 'UI/UX Design',
+    // Other
+    'Project Management', 'Agile', 'Scrum', 'Communication', 'Leadership', 'Problem Solving'
+  ];
+
   // Load profile data from API or cache
   useEffect(() => {
     loadProfileData();
@@ -59,12 +87,20 @@ const ProfilePage = () => {
         console.log('Loading profile from cache');
         const safeData = {
           ...cachedData,
+          // Merge with user context data for missing fields
+          fullName: cachedData.fullName || user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
+          email: cachedData.email || user?.email,
+          phone: cachedData.phone || user?.phone || '',
+          location: cachedData.location || user?.location || '',
+          summary: cachedData.summary || '',
+          profilePicture: cachedData.profilePicture || user?.profilePicture || user?.avatar,
           // Ensure arrays are always defined
           education: cachedData.education || [],
           workExperience: cachedData.workExperience || [],
           skills: cachedData.skills || [],
           projects: cachedData.projects || []
         };
+        console.log('Cached profile data with user context:', safeData);
         setFormData(safeData);
         setOriginalData(safeData);
         setIsLoading(false);
@@ -87,6 +123,13 @@ const ProfilePage = () => {
         if (responseData.success) {
           const profileData = {
             ...responseData.data,
+            // Merge with user context data for missing fields
+            fullName: responseData.data.fullName || user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
+            email: responseData.data.email || user?.email,
+            phone: responseData.data.phone || user?.phone || '',
+            location: responseData.data.location || user?.location || '',
+            summary: responseData.data.summary || '',
+            profilePicture: responseData.data.profilePicture || user?.profilePicture || user?.avatar,
             // Ensure arrays are always defined
             education: responseData.data.education || [],
             workExperience: responseData.data.workExperience || [],
@@ -94,6 +137,7 @@ const ProfilePage = () => {
             projects: responseData.data.projects || []
           };
           
+          console.log('Loaded profile data:', profileData);
           setFormData(profileData);
           setOriginalData(profileData);
           
@@ -109,6 +153,25 @@ const ProfilePage = () => {
     } catch (error) {
       console.error('Profile load error:', error);
       setError('Failed to load profile data. Please try again.');
+      
+      // Fallback to user context data if API fails
+      if (user) {
+        const fallbackData = {
+          fullName: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+          email: user.email,
+          phone: user.phone || '',
+          location: user.location || '',
+          summary: '',
+          profilePicture: user.profilePicture || user.avatar || '',
+          education: [],
+          workExperience: [],
+          skills: [],
+          projects: []
+        };
+        console.log('Using fallback user data:', fallbackData);
+        setFormData(fallbackData);
+        setOriginalData(fallbackData);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -214,11 +277,159 @@ const ProfilePage = () => {
     closeModal();
   };
 
-  const handleSkillsChange = (e) => {
-    const skillsArray = e.target.value.split(',').map(skill => skill.trim()).filter(skill => skill);
+  // Profile picture functions
+  const handleProfilePictureChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setError('Please select a valid image file');
+        return;
+      }
+      
+      // Validate file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('File size must be less than 5MB');
+        return;
+      }
+      
+      setProfilePicture(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setProfilePicturePreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadProfilePicture = async () => {
+    if (!profilePicture) return;
+
+    setIsUploadingPicture(true);
+    setError('');
+
+    try {
+      const formData = new FormData();
+      formData.append('profilePicture', profilePicture);
+
+      const response = await fetch('/api/profile/upload-photo', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          // Clear cache to force fresh data load
+          localStorage.removeItem(CACHE_KEY);
+          
+          // Update form data with new profile picture
+          setFormData(prev => ({
+            ...prev,
+            profilePicture: result.data.profilePicture
+          }));
+          
+          // Update user context with new profile picture
+          const updatedUser = {
+            ...JSON.parse(localStorage.getItem('user')),
+            profilePicture: result.data.profilePicture
+          };
+          updateUser(updatedUser);
+          
+          // Clear upload states
+          setProfilePicture(null);
+          setProfilePicturePreview(null);
+          
+          // Reload profile data to get updated info
+          loadProfileData();
+        } else {
+          setError(result.message || 'Failed to upload profile picture');
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        setError(errorData.message || 'Failed to upload profile picture');
+      }
+    } catch (error) {
+      console.error('Profile picture upload error:', error);
+      setError('Failed to upload profile picture. Please try again.');
+    } finally {
+      setIsUploadingPicture(false);
+    }
+  };
+
+  const cancelProfilePictureUpload = () => {
+    setProfilePicture(null);
+    setProfilePicturePreview(null);
+  };
+
+  const deleteProfilePicture = async () => {
+    setIsDeletingPicture(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/profile/delete-photo', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          // Clear cache to force fresh data load
+          localStorage.removeItem(CACHE_KEY);
+          
+          // Update form data to remove profile picture
+          setFormData(prev => ({
+            ...prev,
+            profilePicture: ''
+          }));
+          
+          // Update user context to remove profile picture
+          const updatedUser = {
+            ...JSON.parse(localStorage.getItem('user')),
+            profilePicture: null
+          };
+          updateUser(updatedUser);
+          
+          // Reload profile data to get updated info
+          loadProfileData();
+        } else {
+          setError(result.message || 'Failed to delete profile picture');
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        setError(errorData.message || 'Failed to delete profile picture');
+      }
+    } catch (error) {
+      console.error('Profile picture delete error:', error);
+      setError('Failed to delete profile picture. Please try again.');
+    } finally {
+      setIsDeletingPicture(false);
+    }
+  };
+
+  // Advanced skills management functions (like signup page)
+  const addSkill = (skill) => {
+    if (skill && !formData.skills.includes(skill)) {
+      setFormData(prev => ({
+        ...prev,
+        skills: [...prev.skills, skill]
+      }));
+    }
+  };
+
+  const removeSkill = (skillToRemove) => {
     setFormData(prev => ({
       ...prev,
-      skills: skillsArray
+      skills: prev.skills.filter(skill => skill !== skillToRemove)
     }));
   };
 
@@ -448,10 +659,7 @@ const ProfilePage = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Loading State */}
         {isLoading && (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
-            <span className="ml-3 text-gray-600 font-['Roboto']">Loading profile...</span>
-          </div>
+          <SkeletonProfile />
         )}
 
         {/* Error State */}
@@ -518,6 +726,156 @@ const ProfilePage = () => {
             <h2 className="text-xl font-semibold text-gray-900 font-['Open_Sans'] mb-6">
               Personal Information
             </h2>
+            
+            {/* Profile Picture Section */}
+            <div className="mb-8 pb-8 border-b border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900 font-['Open_Sans'] mb-4">
+                Profile Picture
+              </h3>
+              
+              <div className="flex items-start space-x-6">
+                {/* Current/Preview Image */}
+                <div className="flex-shrink-0">
+                  <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border-2 border-gray-300">
+                    {profilePicturePreview ? (
+                      <img 
+                        src={profilePicturePreview} 
+                        alt="Profile preview" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : formData.profilePicture ? (
+                      <img 
+                        src={formData.profilePicture.startsWith('data:') ? 
+                             formData.profilePicture : 
+                             formData.profilePicture.startsWith('/uploads') ? 
+                             `${window.location.origin}${formData.profilePicture}` :
+                             formData.profilePicture}
+                        alt="Profile" 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          console.log('Profile image failed to load:', formData.profilePicture);
+                          if (e.target) {
+                            e.target.style.display = 'none';
+                            if (e.target.nextSibling) {
+                              e.target.nextSibling.style.display = 'flex';
+                            }
+                          }
+                        }}
+                      />
+                    ) : null}
+                    {!profilePicturePreview && !formData.profilePicture && (
+                      <div className="text-2xl font-bold text-gray-500 font-['Open_Sans']">
+                        {formData.fullName ? formData.fullName.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Upload Controls - Only show in edit mode */}
+                {isEditing && (
+                  <div className="flex-grow">
+                    {!profilePicture ? (
+                      <div className="space-y-3">
+                        <div className="flex space-x-2">
+                          <label className="cursor-pointer">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleProfilePictureChange}
+                              className="hidden"
+                            />
+                            <span className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto']">
+                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                              </svg>
+                              {formData.profilePicture ? 'Change Photo' : 'Choose Photo'}
+                            </span>
+                          </label>
+                          
+                          {/* Delete button - only show if there's an existing profile picture */}
+                          {formData.profilePicture && (
+                            <button
+                              onClick={deleteProfilePicture}
+                              disabled={isDeletingPicture}
+                              className="px-4 py-2 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 disabled:opacity-50 font-['Roboto'] flex items-center"
+                            >
+                              {isDeletingPicture ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-600 mr-2"></div>
+                                  Deleting...
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                  Delete Photo
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 font-['Roboto']">
+                          JPG, PNG or GIF. Max file size 5MB.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <p className="text-sm text-gray-700 font-['Roboto']">
+                          Ready to upload: {profilePicture.name}
+                        </p>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={uploadProfilePicture}
+                            disabled={isUploadingPicture}
+                          className="px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50 font-['Roboto'] flex items-center"
+                        >
+                          {isUploadingPicture ? (
+                            <>
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
+                              Uploading...
+                            </>
+                          ) : (
+                            'Upload Photo'
+                          )}
+                        </button>
+                        <button
+                          onClick={cancelProfilePictureUpload}
+                          disabled={isUploadingPicture}
+                          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 font-['Roboto']"
+                        >
+                          Cancel
+                        </button>
+                        
+                        {/* Delete existing picture button - show if user has a saved profile picture */}
+                        {formData.profilePicture && (
+                          <button
+                            onClick={deleteProfilePicture}
+                            disabled={isDeletingPicture}
+                            className="px-4 py-2 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 disabled:opacity-50 font-['Roboto'] flex items-center"
+                          >
+                            {isDeletingPicture ? (
+                              <>
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-600 mr-2"></div>
+                                Deleting...
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                Delete Current Photo
+                              </>
+                            )}
+                          </button>
+                        )}
+                        </div>
+                    </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Full Name */}
@@ -600,7 +958,13 @@ const ProfilePage = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] resize-none text-gray-900"
                 />
               ) : (
-                <p className="text-gray-900 font-['Roboto'] py-2 leading-relaxed">{formData.summary}</p>
+                <div className="py-2">
+                  {formData.summary ? (
+                    <p className="text-gray-900 font-['Roboto'] leading-relaxed">{formData.summary}</p>
+                  ) : (
+                    <p className="text-gray-500 font-['Roboto'] italic">No summary/objective added yet</p>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -844,28 +1208,105 @@ const ProfilePage = () => {
             </h2>
             
             {isEditing ? (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
-                  Skills (comma-separated)
-                </label>
-                <input
-                  type="text"
-                  value={(formData.skills || []).join(', ')}
-                  onChange={handleSkillsChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] text-gray-900"
-                  placeholder="e.g., JavaScript, React, Node.js"
-                />
+              <div className="space-y-4">
+                {/* Selected Skills Display */}
+                {formData.skills && formData.skills.length > 0 && (
+                  <div className="flex flex-wrap gap-2 p-3 border border-gray-200 rounded-lg bg-gray-50 min-h-[60px]">
+                    {formData.skills.map((skill, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-black text-white text-sm rounded-full font-['Roboto']"
+                      >
+                        {skill}
+                        <button
+                          type="button"
+                          onClick={() => removeSkill(skill)}
+                          className="ml-1 text-gray-300 hover:text-white transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Custom Skill Input */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Type a skill and press Enter"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const skill = e.target.value.trim();
+                        if (skill) {
+                          addSkill(skill);
+                          e.target.value = '';
+                        }
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      const input = e.target.parentElement.querySelector('input');
+                      const skill = input.value.trim();
+                      if (skill) {
+                        addSkill(skill);
+                        input.value = '';
+                      }
+                    }}
+                    className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-['Roboto'] text-sm"
+                  >
+                    Add
+                  </button>
+                </div>
+                
+                {/* Suggested Skills */}
+                <div>
+                  <p className="text-sm text-gray-600 font-['Roboto'] mb-2">Popular Skills (click to add):</p>
+                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                    {suggestedSkills
+                      .filter(skill => !formData.skills.includes(skill))
+                      .slice(0, 30)
+                      .map((skill) => (
+                      <button
+                        key={skill}
+                        type="button"
+                        onClick={() => addSkill(skill)}
+                        className="px-3 py-1 text-sm border border-gray-300 rounded-full hover:bg-gray-100 hover:border-gray-400 transition-colors font-['Roboto'] text-gray-700"
+                      >
+                        + {skill}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                <p className="text-sm text-gray-500 font-['Roboto']">
+                  Add skills that best represent your expertise. You can type custom skills or select from popular ones.
+                </p>
               </div>
             ) : (
-              <div className="flex flex-wrap gap-2">
-                {(formData.skills || []).map((skill, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-800 font-['Roboto']"
-                  >
-                    {skill}
-                  </span>
-                ))}
+              <div>
+                {(formData.skills && formData.skills.length > 0) ? (
+                  <div className="flex flex-wrap gap-2">
+                    {formData.skills.map((skill, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-800 font-['Roboto']"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500 font-['Roboto']">
+                    No skills added yet
+                  </div>
+                )}
               </div>
             )}
           </div>

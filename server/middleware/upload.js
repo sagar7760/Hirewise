@@ -22,7 +22,7 @@ const resumeStorage = multer.diskStorage({
   filename: function (req, file, cb) {
     // Generate unique filename: userId_timestamp_originalname
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const userId = req.user ? req.user.id : 'anonymous';
+    const userId = req.user ? (req.user.id || req.user._id) : 'anonymous';
     const ext = path.extname(file.originalname);
     const name = path.basename(file.originalname, ext);
     cb(null, `${userId}_${uniqueSuffix}_${name}${ext}`);
@@ -36,7 +36,7 @@ const profilePicStorage = multer.diskStorage({
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const userId = req.user.id;
+    const userId = req.user?.id || req.user?._id || 'anonymous';
     const ext = path.extname(file.originalname);
     cb(null, `profile_${userId}_${uniqueSuffix}${ext}`);
   }
