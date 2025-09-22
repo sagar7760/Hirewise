@@ -44,11 +44,13 @@ const uploadResume = async (req, res) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const fileName = `resume-${uniqueSuffix}${getFileExtension(req.file.originalname)}`;
 
-    // Deactivate previous resumes
-    await Resume.updateMany(
-      { userId, isActive: true },
-      { isActive: false }
-    );
+    // Delete previous resumes completely
+    const deleteResult = await Resume.deleteMany({
+      userId,
+      isActive: true
+    });
+    
+    console.log(`Deleted ${deleteResult.deletedCount} previous resumes for user ${userId}`);
 
     // Create new resume record with Base64 data
     const resume = new Resume({
@@ -63,15 +65,26 @@ const uploadResume = async (req, res) => {
 
     await resume.save();
 
-    // Update user's current resume reference
-    await User.findByIdAndUpdate(userId, {
+    // Update user's current resume reference - handle both old and new format
+    const updateData = {
       'profile.currentResumeId': resume._id,
       'profile.resume': {
         fileName,
         uploadDate: new Date(),
         fileSize: req.file.size
       }
-    });
+    };
+
+    // Also update the old format if it exists
+    const user = await User.findById(userId);
+    if (user.currentResumeId !== undefined) {
+      updateData.currentResumeId = resume._id;
+    }
+
+    await User.findByIdAndUpdate(userId, updateData);
+    
+    console.log('Updated user resume reference:', updateData);
+    console.log('New resume ID:', resume._id);
 
     res.json({
       success: true,

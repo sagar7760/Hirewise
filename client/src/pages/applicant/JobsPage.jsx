@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import { CACHE_PREFIXES, CACHE_DURATIONS } from '../../utils/cacheUtils';
 
 const JobsPage = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     workType: '', // Remote, Hybrid, On-site
     jobType: '', // Full-time, Part-time, Contract, Internship
@@ -15,174 +17,308 @@ const JobsPage = () => {
     company: ''
   });
   const [currentPage, setCurrentPage] = useState(1);
-
-  // Mock jobs data with more diverse properties
-  const [jobs] = useState([
-    {
-      id: 1,
-      title: 'Senior Software Engineer',
-      company: 'Tech Solutions Inc.',
-      postedDate: '30+ days ago',
-      location: 'San Francisco, CA',
-      country: 'United States',
-      workType: 'Remote',
-      jobType: 'Full-time',
-      experience: 'Senior',
-      salary: '$120k-180k'
-    },
-    {
-      id: 2,
-      title: 'Product Manager',
-      company: 'Innovate Systems',
-      postedDate: '25 days ago',
-      location: 'New York, NY',
-      country: 'United States',
-      workType: 'Hybrid',
-      jobType: 'Full-time',
-      experience: 'Mid',
-      salary: '$100k-150k'
-    },
-    {
-      id: 3,
-      title: 'Data Scientist',
-      company: 'Global Dynamics',
-      postedDate: '20 days ago',
-      location: 'Austin, TX',
-      country: 'United States',
-      workType: 'Remote',
-      jobType: 'Full-time',
-      experience: 'Mid',
-      salary: '$90k-140k'
-    },
-    {
-      id: 4,
-      title: 'UX/UI Designer',
-      company: 'Future Tech Corp.',
-      postedDate: '15 days ago',
-      location: 'Seattle, WA',
-      country: 'United States',
-      workType: 'On-site',
-      jobType: 'Full-time',
-      experience: 'Mid',
-      salary: '$80k-120k'
-    },
-    {
-      id: 5,
-      title: 'Marketing Specialist',
-      company: 'Digital Edge Solutions',
-      postedDate: '12 days ago',
-      location: 'Los Angeles, CA',
-      country: 'United States',
-      workType: 'Remote',
-      jobType: 'Part-time',
-      experience: 'Entry',
-      salary: '$50k-70k'
-    },
-    {
-      id: 6,
-      title: 'Business Analyst',
-      company: 'Advanced Analytics Group',
-      postedDate: '10 days ago',
-      location: 'Chicago, IL',
-      country: 'United States',
-      workType: 'Hybrid',
-      jobType: 'Full-time',
-      experience: 'Mid',
-      salary: '$85k-125k'
-    },
-    {
-      id: 7,
-      title: 'Content Writer',
-      company: 'Creative Minds Agency',
-      postedDate: '8 days ago',
-      location: 'Boston, MA',
-      country: 'United States',
-      workType: 'Remote',
-      jobType: 'Contract',
-      experience: 'Entry',
-      salary: '$40k-60k'
-    },
-    {
-      id: 8,
-      title: 'Project Coordinator',
-      company: 'Strategic Innovations LLC',
-      postedDate: '5 days ago',
-      location: 'Denver, CO',
-      country: 'United States',
-      workType: 'On-site',
-      jobType: 'Full-time',
-      experience: 'Entry',
-      salary: '$60k-80k'
-    },
-    {
-      id: 9,
-      title: 'IT Support Specialist',
-      company: 'NextGen Solutions',
-      postedDate: '3 days ago',
-      location: 'Phoenix, AZ',
-      country: 'United States',
-      workType: 'Hybrid',
-      jobType: 'Full-time',
-      experience: 'Entry',
-      salary: '$55k-75k'
-    },
-    {
-      id: 10,
-      title: 'Sales Representative',
-      company: 'Dynamic Growth Partners',
-      postedDate: '1 day ago',
-      location: 'Miami, FL',
-      country: 'United States',
-      workType: 'Remote',
-      jobType: 'Full-time',
-      experience: 'Mid',
-      salary: '$70k-100k'
-    }
-  ]);
-
-  const totalJobs = 1234;
-  const totalPages = 5;
-
-  // Filter the jobs based on current filters
-  const filteredJobs = jobs.filter(job => {
-    // Search term filter
-    if (searchTerm && !job.title.toLowerCase().includes(searchTerm.toLowerCase()) && 
-        !job.company.toLowerCase().includes(searchTerm.toLowerCase())) {
-      return false;
-    }
-
-    // Work type filter (single selection)
-    if (filters.workType && job.workType !== filters.workType) {
-      return false;
-    }
-
-    // Job type filter (single selection)
-    if (filters.jobType && job.jobType !== filters.jobType) {
-      return false;
-    }
-
-    // Location filter
-    if (filters.location && !job.location.toLowerCase().includes(filters.location.toLowerCase())) {
-      return false;
-    }
-
-    // Country filter
-    if (filters.country && job.country !== filters.country) {
-      return false;
-    }
-
-    // Experience level filter
-    if (filters.experience && job.experience !== filters.experience) {
-      return false;
-    }
-
-    // Company filter
-    if (filters.company && !job.company.toLowerCase().includes(filters.company.toLowerCase())) {
-      return false;
-    }
-
-    return true;
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalJobs: 0,
+    hasNextPage: false,
+    hasPrevPage: false
   });
+
+  // Cache management
+  const CACHE_DURATION = CACHE_DURATIONS.JOBS;
+  const CACHE_KEY_PREFIX = CACHE_PREFIXES.JOBS;
+
+  // Generate cache key based on search parameters
+  const getCacheKey = (searchTerm, filtersObj, page) => {
+    const searchParams = {
+      search: searchTerm,
+      ...filtersObj,
+      page: page
+    };
+    // Create a stable key by sorting the object
+    const sortedParams = Object.keys(searchParams)
+      .sort()
+      .reduce((result, key) => {
+        if (searchParams[key]) {
+          result[key] = searchParams[key];
+        }
+        return result;
+      }, {});
+    
+    try {
+      // Use encodeURIComponent to handle special characters before base64
+      const paramString = JSON.stringify(sortedParams);
+      const cacheKey = CACHE_KEY_PREFIX + btoa(encodeURIComponent(paramString));
+      return cacheKey;
+    } catch (error) {
+      console.error('Error generating cache key:', error);
+      // Fallback to a simple hash-like key
+      const fallbackKey = JSON.stringify(sortedParams).replace(/[^a-zA-Z0-9]/g, '_');
+      const cacheKey = CACHE_KEY_PREFIX + fallbackKey;
+      return cacheKey;
+    }
+  };
+
+  // Load data from cache
+  const loadFromCache = (cacheKey) => {
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      
+      if (cached) {
+        const parsedCache = JSON.parse(cached);
+        const now = new Date().getTime();
+        
+        // Check if cache is still valid (check both old format and new format)
+        const isValid = parsedCache.expiry 
+          ? now < parsedCache.expiry 
+          : (now - parsedCache.timestamp < CACHE_DURATION);
+          
+        if (isValid) {
+          return parsedCache.data;
+        } else {
+          // Remove expired cache
+          localStorage.removeItem(cacheKey);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading from cache:', error);
+      // Remove corrupted cache
+      localStorage.removeItem(cacheKey);
+    }
+    return null;
+  };
+
+  // Save data to cache
+  const saveToCache = (cacheKey, data) => {
+    try {
+      const cacheData = {
+        timestamp: new Date().getTime(),
+        expiry: new Date().getTime() + (5 * 60 * 1000), // 5 minutes
+        data: data
+      };
+      
+      const dataSize = JSON.stringify(cacheData).length;
+      
+      // Check if data is too large (localStorage limit is typically 5-10MB, but let's be conservative)
+      if (dataSize > 1000000) { // 1MB limit
+        return;
+      }
+      
+      localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+    } catch (error) {
+      console.error('Error saving to cache:', error);
+      
+      if (error.name === 'QuotaExceededError') {
+        // Try with minimal data structure
+        try {
+          const minimalData = {
+            timestamp: new Date().getTime(),
+            expiry: new Date().getTime() + (5 * 60 * 1000),
+            data: {
+              jobs: data.jobs ? data.jobs.slice(0, 5) : [], // Only first 5 jobs
+              pagination: data.pagination
+            }
+          };
+          
+          localStorage.setItem(cacheKey, JSON.stringify(minimalData));
+        } catch (minimalError) {
+          // Cache completely disabled for this data - that's okay, the app still works
+        }
+      }
+    }
+  };
+
+  // Clear old job caches to free up space
+  const clearOldJobCaches = () => {
+    try {
+      const keys = Object.keys(localStorage);
+      const jobCacheKeys = keys.filter(key => key.startsWith(CACHE_KEY_PREFIX) || key.startsWith('hirewise_job'));
+      const now = new Date().getTime();
+      
+      let clearedCount = 0;
+      jobCacheKeys.forEach(key => {
+        try {
+          const cached = localStorage.getItem(key);
+          if (cached) {
+            const parsedCache = JSON.parse(cached);
+            // Remove caches older than 10 minutes (more aggressive)
+            const isOld = parsedCache.expiry 
+              ? now > parsedCache.expiry 
+              : (now - parsedCache.timestamp > 10 * 60 * 1000);
+              
+            if (isOld) {
+              localStorage.removeItem(key);
+              clearedCount++;
+            }
+          }
+        } catch (error) {
+          // Remove corrupted cache
+          localStorage.removeItem(key);
+          clearedCount++;
+        }
+      });
+      
+      // If we still have too many cache entries, clear more aggressively
+      const remainingKeys = Object.keys(localStorage).filter(key => key.startsWith(CACHE_KEY_PREFIX));
+      if (remainingKeys.length > 5) {
+        // Sort by timestamp and keep only the 3 newest
+        const cacheEntries = [];
+        remainingKeys.forEach(key => {
+          try {
+            const cached = localStorage.getItem(key);
+            if (cached) {
+              const parsedCache = JSON.parse(cached);
+              cacheEntries.push({
+                key,
+                timestamp: parsedCache.timestamp || 0
+              });
+            }
+          } catch (error) {
+            localStorage.removeItem(key);
+          }
+        });
+        
+        // Sort by timestamp (newest first) and keep only 3
+        cacheEntries.sort((a, b) => b.timestamp - a.timestamp);
+        const toRemove = cacheEntries.slice(3);
+        
+        toRemove.forEach(entry => {
+          localStorage.removeItem(entry.key);
+          clearedCount++;
+        });
+      }
+    } catch (error) {
+      console.error('Error clearing old caches:', error);
+    }
+  };
+
+  // Fetch jobs from API with caching
+  const fetchJobs = useCallback(async (useCache = true) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const cacheKey = getCacheKey(debouncedSearchTerm, filters, currentPage);
+      
+      // Try to load from cache first
+      if (useCache) {
+        const cachedData = loadFromCache(cacheKey);
+        if (cachedData) {
+          setJobs(cachedData.jobs);
+          setPagination(cachedData.pagination);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Build query parameters
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: '10'
+      });
+
+      // Add search term
+      if (debouncedSearchTerm.trim()) {
+        params.append('search', debouncedSearchTerm.trim());
+      }
+
+      // Add filters
+      if (filters.workType) {
+        // Convert frontend values to backend values
+        const workTypeMap = {
+          'Remote': 'remote',
+          'Hybrid': 'hybrid',
+          'On-site': 'onsite'
+        };
+        params.append('workType', workTypeMap[filters.workType] || filters.workType.toLowerCase());
+      }
+
+      if (filters.jobType) params.append('jobType', filters.jobType);
+      if (filters.experience) params.append('experienceLevel', filters.experience);
+      if (filters.location) params.append('location', filters.location);
+      if (filters.country) params.append('country', filters.country);
+      if (filters.company) params.append('company', filters.company);
+
+      const response = await fetch(`/api/jobs?${params}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(localStorage.getItem('token') && {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          })
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        const responseData = {
+          jobs: data.data.jobs,
+          pagination: data.data.pagination
+        };
+        
+        setJobs(responseData.jobs);
+        setPagination(responseData.pagination);
+        
+        // Create a lightweight version for caching (only essential fields)
+        const lightweightData = {
+          jobs: data.data.jobs.map(job => ({
+            id: job.id,
+            title: job.title,
+            company: job.company,
+            location: job.location,
+            workType: job.workType,
+            jobType: job.jobType,
+            experience: job.experience,
+            salary: job.salary,
+            postedDate: job.postedDate,
+            // Skip any large fields like descriptions, requirements, etc.
+          })),
+          pagination: data.data.pagination
+        };
+        
+        // Save lightweight version to cache
+        saveToCache(cacheKey, lightweightData);
+      } else {
+        setError(data.message || 'Failed to fetch jobs');
+      }
+    } catch (err) {
+      console.error('Error fetching jobs:', err);
+      setError('Failed to load jobs. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [debouncedSearchTerm, filters, currentPage]);
+
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Reset to first page when search or filters change
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [debouncedSearchTerm, filters]);
+
+  // Fetch jobs when dependencies change
+  useEffect(() => {
+    fetchJobs();
+  }, [debouncedSearchTerm, filters, currentPage, fetchJobs]);
+
+  const totalJobs = pagination.totalJobs;
+  const totalPages = pagination.totalPages;
+
+  // Filter the jobs based on current filters (keeping for local filtering if needed)
+  const filteredJobs = jobs;
 
   const handleJobClick = (jobId) => {
     navigate(`/jobs/${jobId}`);
@@ -194,7 +330,9 @@ const JobsPage = () => {
   };
 
   const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
+    const value = e.target.value;
+    setSearchTerm(value);
+    // The useEffect will handle the API call
   };
 
   const handleSingleSelectFilter = (filterType, value) => {
@@ -202,6 +340,7 @@ const JobsPage = () => {
       ...prev,
       [filterType]: value
     }));
+    // The useEffect will handle the API call
   };
 
   const clearAllFilters = () => {
@@ -215,7 +354,13 @@ const JobsPage = () => {
       company: ''
     });
     setSearchTerm('');
+    // The useEffect will handle the API call
   };
+
+  // Force refresh without cache
+  const refreshJobs = useCallback(() => {
+    fetchJobs(false);
+  }, [fetchJobs]);
 
   const getActiveFilterCount = () => {
     let count = 0;
@@ -230,6 +375,7 @@ const JobsPage = () => {
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
+    // The useEffect will handle the API call
   };
 
   return (
@@ -238,7 +384,7 @@ const JobsPage = () => {
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 font-['Open_Sans'] mb-6">
-            Jobs in the United States
+            Jobs you might like
           </h1>
 
           {/* Search Bar */}
@@ -326,6 +472,7 @@ const JobsPage = () => {
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md text-gray-700 focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] bg-white"
                 >
                   <option value="">All Countries</option>
+                  <option value="India">India</option>
                   <option value="United States">United States</option>
                   <option value="Canada">Canada</option>
                   <option value="United Kingdom">United Kingdom</option>
@@ -379,20 +526,67 @@ const JobsPage = () => {
 
           {/* Job Count */}
           <div className="mb-6">
-            <p className="text-lg font-semibold text-gray-900 font-['Open_Sans']">
-              {filteredJobs.length.toLocaleString()} jobs
-              {filteredJobs.length !== jobs.length && (
-                <span className="text-gray-500 text-base font-normal">
-                  {' '}(filtered from {jobs.length} total)
-                </span>
-              )}
-            </p>
+            {loading ? (
+              <div className="animate-pulse">
+                <div className="h-6 bg-gray-200 rounded w-32"></div>
+              </div>
+            ) : error ? (
+              <p className="text-lg font-semibold text-red-600 font-['Open_Sans']">
+                Error loading jobs
+              </p>
+            ) : (
+              <div className="flex items-center justify-between">
+                <p className="text-lg font-semibold text-gray-900 font-['Open_Sans']">
+                  {totalJobs.toLocaleString()} jobs
+                  {totalJobs > 10 && (
+                    <span className="text-gray-500 text-base font-normal">
+                      {' '}(showing page {pagination.currentPage} of {totalPages})
+                    </span>
+                  )}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Jobs List */}
         <div className="space-y-4 mb-8">
-          {filteredJobs.length > 0 ? (
+          {loading ? (
+            // Loading skeleton
+            <div className="space-y-4">
+              {[...Array(5)].map((_, index) => (
+                <div key={index} className="bg-white border border-gray-200 rounded-lg p-6 animate-pulse">
+                  <div className="space-y-3">
+                    <div className="h-5 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : error ? (
+            // Error state
+            <div className="bg-white border border-red-200 rounded-lg p-12 text-center">
+              <div className="text-red-400 mb-4">
+                <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 font-['Open_Sans'] mb-2">
+                Failed to load jobs
+              </h3>
+              <p className="text-gray-600 font-['Roboto'] mb-4">
+                {error}
+              </p>
+              <button
+                onClick={refreshJobs}
+                className="bg-black text-white hover:bg-gray-800 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
+              >
+                Try again
+              </button>
+            </div>
+          ) : filteredJobs.length > 0 ? (
             filteredJobs.map((job) => (
               <div
                 key={job.id}
@@ -449,56 +643,76 @@ const JobsPage = () => {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-center space-x-2">
-          {/* Previous Button */}
-          <button
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            className={`p-2 rounded-md transition-colors ${
-              currentPage === 1
-                ? 'text-gray-400 cursor-not-allowed'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-            }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
+        {!loading && !error && totalPages > 1 && (
+          <div className="flex items-center justify-center space-x-2">
+            {/* Previous Button */}
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={!pagination.hasPrevPage}
+              className={`p-2 rounded-md transition-colors ${
+                !pagination.hasPrevPage
+                  ? 'text-gray-400 cursor-not-allowed'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
 
-          {/* Page Numbers */}
-          {[...Array(totalPages)].map((_, index) => {
-            const page = index + 1;
-            return (
-              <button
-                key={page}
-                onClick={() => handlePageChange(page)}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors font-['Roboto'] ${
-                  currentPage === page
-                    ? 'bg-black text-white'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}
-              >
-                {page}
-              </button>
-            );
-          })}
+            {/* Page Numbers */}
+            {[...Array(totalPages)].map((_, index) => {
+              const page = index + 1;
+              // Show first page, last page, current page, and pages around current page
+              if (
+                page === 1 ||
+                page === totalPages ||
+                (page >= currentPage - 2 && page <= currentPage + 2)
+              ) {
+                return (
+                  <button
+                    key={page}
+                    onClick={() => handlePageChange(page)}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors font-['Roboto'] ${
+                      currentPage === page
+                        ? 'bg-black text-white'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                );
+              } else if (
+                page === currentPage - 3 ||
+                page === currentPage + 3
+              ) {
+                return (
+                  <span key={page} className="px-2 text-gray-400">
+                    ...
+                  </span>
+                );
+              }
+              return null;
+            })}
 
-          {/* Next Button */}
-          <button
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className={`p-2 rounded-md transition-colors ${
-              currentPage === totalPages
-                ? 'text-gray-400 cursor-not-allowed'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-            }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
+            {/* Next Button */}
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={!pagination.hasNextPage}
+              className={`p-2 rounded-md transition-colors ${
+                !pagination.hasNextPage
+                  ? 'text-gray-400 cursor-not-allowed'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
+      <div> HireWise- A </div>
     </DashboardLayout>
   );
 };

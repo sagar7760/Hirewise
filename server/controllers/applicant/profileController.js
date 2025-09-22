@@ -36,6 +36,14 @@ const getProfile = async (req, res) => {
         isActive: true
       }).select('-fileData'); // Exclude file data for profile view
     }
+    
+    // If no specific resume ID, get the most recent active resume
+    if (!currentResume) {
+      currentResume = await Resume.findOne({
+        userId,
+        isActive: true
+      }).sort({ createdAt: -1 }).select('-fileData');
+    }
 
     // Transform data for frontend
     const profileData = {
@@ -257,19 +265,24 @@ const downloadCurrentResume = async (req, res) => {
     }
 
     let resumeId = user.profile?.currentResumeId || user.currentResumeId;
-    if (!resumeId) {
-      return res.status(404).json({
-        success: false,
-        message: 'No resume found'
+    
+    let resume = null;
+    if (resumeId) {
+      resume = await Resume.findOne({
+        _id: resumeId,
+        userId,
+        isActive: true
       });
     }
-
-    const resume = await Resume.findOne({
-      _id: resumeId,
-      userId,
-      isActive: true
-    });
-
+    
+    // If no specific resume found, get the most recent active resume
+    if (!resume) {
+      resume = await Resume.findOne({
+        userId,
+        isActive: true
+      }).sort({ createdAt: -1 });
+    }
+    
     if (!resume) {
       return res.status(404).json({
         success: false,
@@ -313,25 +326,43 @@ const deleteCurrentResume = async (req, res) => {
     }
 
     let resumeId = user.profile?.currentResumeId || user.currentResumeId;
-    if (!resumeId) {
-      return res.status(404).json({
-        success: false,
-        message: 'No resume found'
+    
+    let resume = null;
+    if (resumeId) {
+      resume = await Resume.findOne({
+        _id: resumeId,
+        userId,
+        isActive: true
       });
     }
-
-    // Deactivate the resume
-    await Resume.findByIdAndUpdate(resumeId, {
-      isActive: false
-    });
+    
+    // If no specific resume found, get the most recent active resume
+    if (!resume) {
+      resume = await Resume.findOne({
+        userId,
+        isActive: true
+      }).sort({ createdAt: -1 });
+    }
+    
+    if (!resume) {
+      return res.status(404).json({
+        success: false,
+        message: 'No resume found to delete'
+      });
+    }
+    
+    // Delete the resume completely
+    await Resume.findByIdAndDelete(resume._id);
+    
+    console.log(`Deleted resume ${resume._id} for user ${userId}`);
 
     // Clear user's current resume reference in both locations
     const updateData = {};
-    if (user.profile?.currentResumeId) {
+    if (user.profile?.currentResumeId === resume._id.toString()) {
       updateData['profile.currentResumeId'] = null;
       updateData['profile.resume'] = null;
     }
-    if (user.currentResumeId) {
+    if (user.currentResumeId && user.currentResumeId.toString() === resume._id.toString()) {
       updateData['currentResumeId'] = null;
     }
 
