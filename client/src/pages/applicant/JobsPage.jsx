@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import { useAuth } from '../../contexts/AuthContext';
 import { CACHE_PREFIXES, CACHE_DURATIONS } from '../../utils/cacheUtils';
+import { smartCacheSet, clearExpiredCache } from '../../utils/cacheManager';
 
 const JobsPage = () => {
   const navigate = useNavigate();
+  const { apiRequest } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [filters, setFilters] = useState({
@@ -27,6 +30,8 @@ const JobsPage = () => {
     hasNextPage: false,
     hasPrevPage: false
   });
+  const [savedJobs, setSavedJobs] = useState([]);
+  const [savingJobId, setSavingJobId] = useState(null);
 
   // Cache management
   const CACHE_DURATION = CACHE_DURATIONS.JOBS;
@@ -105,30 +110,36 @@ const JobsPage = () => {
       
       // Check if data is too large (localStorage limit is typically 5-10MB, but let's be conservative)
       if (dataSize > 1000000) { // 1MB limit
+        console.warn('Jobs data too large for cache, skipping');
         return;
       }
       
-      localStorage.setItem(cacheKey, JSON.stringify(cacheData));
-    } catch (error) {
-      console.error('Error saving to cache:', error);
+      // Use smart cache setter
+      const success = smartCacheSet(cacheKey, JSON.stringify(cacheData), {
+        maxRetries: 2,
+        clearOldCaches: true,
+        clearAllOnFinalFailure: false
+      });
       
-      if (error.name === 'QuotaExceededError') {
-        // Try with minimal data structure
-        try {
-          const minimalData = {
-            timestamp: new Date().getTime(),
-            expiry: new Date().getTime() + (5 * 60 * 1000),
-            data: {
-              jobs: data.jobs ? data.jobs.slice(0, 5) : [], // Only first 5 jobs
-              pagination: data.pagination
-            }
-          };
-          
-          localStorage.setItem(cacheKey, JSON.stringify(minimalData));
-        } catch (minimalError) {
-          // Cache completely disabled for this data - that's okay, the app still works
-        }
+      if (!success) {
+        // Try with minimal data structure as fallback
+        const minimalData = {
+          timestamp: new Date().getTime(),
+          expiry: new Date().getTime() + (5 * 60 * 1000),
+          data: {
+            jobs: data.jobs ? data.jobs.slice(0, 5) : [], // Only first 5 jobs
+            pagination: data.pagination
+          }
+        };
+        
+        smartCacheSet(cacheKey, JSON.stringify(minimalData), {
+          maxRetries: 1,
+          clearOldCaches: true,
+          clearAllOnFinalFailure: false
+        });
       }
+    } catch (error) {
+      console.error('Error in saveToCache:', error);
     }
   };
 
@@ -314,6 +325,30 @@ const JobsPage = () => {
     fetchJobs();
   }, [debouncedSearchTerm, filters, currentPage, fetchJobs]);
 
+  // Load saved jobs on component mount
+  useEffect(() => {
+    const loadSavedJobs = async () => {
+      try {
+        const response = await apiRequest('/api/applicant/saved-jobs', {
+          method: 'GET'
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            // Extract just the job IDs from the saved jobs data
+            const savedJobIds = data.data.map(job => job.id);
+            setSavedJobs(savedJobIds);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading saved jobs:', error);
+      }
+    };
+
+    loadSavedJobs();
+  }, [apiRequest]);
+
   const totalJobs = pagination.totalJobs;
   const totalPages = pagination.totalPages;
 
@@ -327,6 +362,60 @@ const JobsPage = () => {
   const handleApply = (e, jobId) => {
     e.stopPropagation();
     navigate(`/jobs/${jobId}/apply`);
+  };
+
+  const handleSaveJob = async (e, jobId) => {
+    e.stopPropagation();
+    
+    try {
+      setSavingJobId(jobId);
+      
+      const response = await apiRequest(`/api/applicant/saved-jobs/${jobId}`, {
+        method: 'POST'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          // Add to saved jobs list
+          setSavedJobs(prev => [...prev, jobId]);
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error saving job:', errorData.message);
+      }
+    } catch (error) {
+      console.error('Error saving job:', error);
+    } finally {
+      setSavingJobId(null);
+    }
+  };
+
+  const handleUnsaveJob = async (e, jobId) => {
+    e.stopPropagation();
+    
+    try {
+      setSavingJobId(jobId);
+      
+      const response = await apiRequest(`/api/applicant/saved-jobs/${jobId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          // Remove from saved jobs list
+          setSavedJobs(prev => prev.filter(id => id !== jobId));
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error unsaving job:', errorData.message);
+      }
+    } catch (error) {
+      console.error('Error unsaving job:', error);
+    } finally {
+      setSavingJobId(null);
+    }
   };
 
   const handleSearch = (e) => {
@@ -610,12 +699,37 @@ const JobsPage = () => {
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={(e) => handleApply(e, job.id)}
-                    className="ml-6 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
-                  >
-                    Apply
-                  </button>
+                  <div className="ml-6 flex items-center space-x-2">
+                    <button
+                      onClick={(e) => savedJobs.includes(job.id) ? handleUnsaveJob(e, job.id) : handleSaveJob(e, job.id)}
+                      disabled={savingJobId === job.id}
+                      className={`px-3 py-2 rounded-lg font-medium font-['Roboto'] transition-colors ${
+                        savedJobs.includes(job.id)
+                          ? 'bg-red-50 border border-red-200 text-red-600 hover:bg-red-100'
+                          : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                      } disabled:opacity-50`}
+                      title={savedJobs.includes(job.id) ? 'Remove from saved' : 'Save job'}
+                    >
+                      {savingJobId === job.id ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                      ) : (
+                        <svg 
+                          className={`w-4 h-4 ${savedJobs.includes(job.id) ? 'fill-current' : 'stroke-current'}`} 
+                          fill={savedJobs.includes(job.id) ? 'currentColor' : 'none'} 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                      )}
+                    </button>
+                    <button
+                      onClick={(e) => handleApply(e, job.id)}
+                      className="bg-black text-white hover:bg-gray-800 px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
+                    >
+                      Apply
+                    </button>
+                  </div>
                 </div>
               </div>
             ))

@@ -373,7 +373,25 @@ const userSchema = new mongoose.Schema({
         default: 'USD'
       }
     }
-  }
+  },
+  
+  // Saved Jobs for Applicants
+  savedJobs: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Job'
+  }],
+  
+  // Metadata for saved jobs (when they were saved)
+  savedJobsMetadata: [{
+    jobId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Job'
+    },
+    savedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }]
 }, {
   timestamps: true
 });

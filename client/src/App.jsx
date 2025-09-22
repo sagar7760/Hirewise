@@ -28,6 +28,7 @@ import ApplicantDashboard from './pages/applicant/ApplicantDashboard.jsx'
 import JobsPage from './pages/applicant/JobsPage.jsx'
 import JobDetailsPage from './pages/applicant/JobDetailsPage.jsx'
 import MyApplicationsPage from './pages/applicant/MyApplicationsPage.jsx'
+import SavedJobsPage from './pages/applicant/SavedJobsPage.jsx'
 import ProfilePage from './pages/applicant/ProfilePage.jsx'
 import JobApplicationPage from './pages/applicant/JobApplicationPage.jsx'
 import NotificationsPage from './pages/applicant/NotificationsPage.jsx'
@@ -114,6 +115,11 @@ function App() {
           <Route path="/my-applications" element={
             <ProtectedRoute roles={['applicant']}>
               <MyApplicationsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/saved-jobs" element={
+            <ProtectedRoute roles={['applicant']}>
+              <SavedJobsPage />
             </ProtectedRoute>
           } />
           <Route path="/profile" element={

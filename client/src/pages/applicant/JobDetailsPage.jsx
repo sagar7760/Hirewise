@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import { useAuth } from '../../contexts/AuthContext';
 import { CACHE_PREFIXES, CACHE_DURATIONS } from '../../utils/cacheUtils';
+import { smartCacheSet, clearExpiredCache } from '../../utils/cacheManager';
 
 const JobDetailsPage = () => {
   const { jobId } = useParams();
   const navigate = useNavigate();
+  const { apiRequest } = useAuth();
   const [isSaved, setIsSaved] = useState(false);
+  const [savingJob, setSavingJob] = useState(false);
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -42,17 +46,21 @@ const JobDetailsPage = () => {
 
   // Save job to cache
   const saveJobToCache = (jobId, jobData) => {
-    try {
-      const cacheKey = JOB_CACHE_KEY_PREFIX + jobId;
-      const cacheData = {
-        timestamp: new Date().getTime(),
-        data: jobData
-      };
-      localStorage.setItem(cacheKey, JSON.stringify(cacheData));
-    } catch (error) {
-      console.error('Error saving job to cache:', error);
-      // If localStorage is full, try to clear old job detail caches
-      clearOldJobDetailCaches();
+    const cacheKey = JOB_CACHE_KEY_PREFIX + jobId;
+    const cacheData = {
+      timestamp: new Date().getTime(),
+      data: jobData
+    };
+    
+    // Use smart cache setter with aggressive cleanup options
+    const success = smartCacheSet(cacheKey, JSON.stringify(cacheData), {
+      maxRetries: 2,
+      clearOldCaches: true,
+      clearAllOnFinalFailure: true
+    });
+    
+    if (!success) {
+      console.warn('Failed to cache job details after multiple attempts');
     }
   };
 
@@ -80,6 +88,26 @@ const JobDetailsPage = () => {
       });
     } catch (error) {
       console.error('Error clearing old job detail caches:', error);
+    }
+  };
+
+  // Clear all job detail caches (more aggressive cleanup)
+  const clearAllJobDetailCaches = () => {
+    try {
+      const keys = Object.keys(localStorage);
+      const jobDetailCacheKeys = keys.filter(key => key.startsWith(JOB_CACHE_KEY_PREFIX));
+      
+      jobDetailCacheKeys.forEach(key => {
+        try {
+          localStorage.removeItem(key);
+        } catch (error) {
+          console.error('Error removing cache key:', key, error);
+        }
+      });
+      
+      console.log(`Cleared ${jobDetailCacheKeys.length} job detail cache entries`);
+    } catch (error) {
+      console.error('Error clearing all job detail caches:', error);
     }
   };
 
@@ -130,10 +158,31 @@ const JobDetailsPage = () => {
     fetchJobDetails(false);
   };
 
+  // Check if job is saved
+  const checkIfJobIsSaved = async () => {
+    try {
+      const response = await apiRequest('/api/applicant/saved-jobs', {
+        method: 'GET'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          // Check if current job is in the saved jobs list
+          const isCurrentJobSaved = data.data.some(job => job.id === jobId);
+          setIsSaved(isCurrentJobSaved);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking saved job status:', error);
+    }
+  };
+
   // Fetch job details on component mount
   useEffect(() => {
     if (jobId) {
       fetchJobDetails();
+      checkIfJobIsSaved();
     }
   }, [jobId]);
 
@@ -141,9 +190,48 @@ const JobDetailsPage = () => {
     navigate(`/jobs/${jobId}/apply`);
   };
 
-  const handleSave = () => {
-    setIsSaved(!isSaved);
-    console.log(isSaved ? 'Unsaved job:' : 'Saved job:', jobId);
+  const handleSave = async () => {
+    if (savingJob) return; // Prevent multiple simultaneous saves
+    
+    try {
+      setSavingJob(true);
+      
+      if (isSaved) {
+        // Unsave the job
+        const response = await apiRequest(`/api/applicant/saved-jobs/${jobId}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setIsSaved(false);
+          }
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Error unsaving job:', errorData.message);
+        }
+      } else {
+        // Save the job
+        const response = await apiRequest(`/api/applicant/saved-jobs/${jobId}`, {
+          method: 'POST'
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setIsSaved(true);
+          }
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Error saving job:', errorData.message);
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling saved job:', error);
+    } finally {
+      setSavingJob(false);
+    }
   };
 
   // Skeleton loading component
@@ -483,13 +571,31 @@ const JobDetailsPage = () => {
           </button>
           <button
             onClick={handleSave}
-            className={`border px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors ${
+            disabled={savingJob}
+            className={`border px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors disabled:opacity-50 ${
               isSaved
-                ? 'border-black text-black bg-gray-50'
+                ? 'border-red-300 text-red-600 bg-red-50 hover:bg-red-100'
                 : 'border-gray-300 text-gray-700 hover:bg-gray-50'
             }`}
           >
-            {isSaved ? 'Saved' : 'Save'}
+            {savingJob ? (
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                {isSaved ? 'Removing...' : 'Saving...'}
+              </div>
+            ) : (
+              <div className="flex items-center">
+                <svg 
+                  className={`w-4 h-4 mr-2 ${isSaved ? 'fill-current' : 'stroke-current'}`} 
+                  fill={isSaved ? 'currentColor' : 'none'} 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+                {isSaved ? 'Saved' : 'Save'}
+              </div>
+            )}
           </button>
           <Link
             to="/jobs"
