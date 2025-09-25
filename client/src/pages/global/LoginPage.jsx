@@ -60,11 +60,11 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-6">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 transition-colors duration-300 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900 font-['Open_Sans'] mb-2">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white transition-colors duration-300 mb-2">
             Welcome back
           </h1>
         </div>
@@ -73,7 +73,7 @@ const LoginPage = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Email Field */}
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
               Email or username
             </label>
             <input
@@ -85,13 +85,13 @@ const LoginPage = () => {
               value={formData.email}
               onChange={handleInputChange}
               placeholder="Enter your email or username"
-              className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+              className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-400 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-gray-300 focus:border-black dark:focus:border-gray-300 font-['Roboto'] transition-colors"
             />
           </div>
 
           {/* Password Field */}
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
               Password
             </label>
             <div className="relative">
@@ -104,7 +104,7 @@ const LoginPage = () => {
                 value={formData.password}
                 onChange={handleInputChange}
                 placeholder="Enter your password"
-                className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors pr-12"
+                className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-400 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-gray-300 focus:border-black dark:focus:border-gray-300 font-['Roboto'] transition-colors pr-12"
               />
               <button
                 type="button"
@@ -112,7 +112,7 @@ const LoginPage = () => {
                 className="absolute inset-y-0 right-0 pr-3 flex items-center"
               >
                 <svg
-                  className="h-5 w-5 text-gray-400 hover:text-gray-600"
+                  className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -131,7 +131,7 @@ const LoginPage = () => {
           <div className="text-left">
             <a 
               href="#" 
-              className="text-sm text-gray-600 hover:text-black font-['Roboto'] transition-colors"
+              className="text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white font-['Roboto'] transition-colors"
             >
               Forgot password?
             </a>
@@ -139,7 +139,7 @@ const LoginPage = () => {
 
           {/* Error Display */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm font-['Roboto']">
+            <div className="bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg text-sm font-['Roboto']">
               {error}
             </div>
           )}
@@ -150,8 +150,8 @@ const LoginPage = () => {
             disabled={loading}
             className={`w-full py-3 px-4 rounded-lg text-lg font-semibold font-['Open_Sans'] transition-colors ${
               loading 
-                ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
-                : 'bg-black text-white hover:bg-gray-800'
+                ? 'bg-gray-400 text-gray-600 cursor-not-allowed dark:bg-gray-600 dark:text-gray-300' 
+                : 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200'
             }`}
           >
             {loading ? 'Signing in...' : 'Sign in'}
@@ -159,11 +159,11 @@ const LoginPage = () => {
 
           {/* Sign Up Link */}
           <div className="text-center pt-4">
-            <p className="text-sm text-gray-600 font-['Roboto']">
+            <p className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto']">
               Don't have an account?{' '}
               <Link 
                 to="/signup" 
-                className="text-black hover:underline font-semibold transition-colors"
+                className="text-black dark:text-indigo-400 hover:underline font-semibold transition-colors"
               >
                 Sign up
               </Link>

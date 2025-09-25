@@ -481,11 +481,11 @@ const SignupPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white py-12 px-6">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 transition-colors duration-300 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold text-gray-900 font-['Open_Sans'] mb-2">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white transition-colors duration-300 mb-2">
             Create your account
           </h1>
           <p className="text-lg text-gray-600 font-['Roboto']">
@@ -497,15 +497,15 @@ const SignupPage = () => {
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Resume Upload Section */}
           <div className="space-y-6">
-            <h2 className="text-2xl font-semibold text-gray-900 font-['Open_Sans'] border-b border-gray-200 pb-2">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white transition-colors duration-300 border-b border-gray-200 pb-2">
               Resume Upload
             </h2>
             
             <div>
-              <label htmlFor="resume" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+              <label htmlFor="resume" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
                 Upload Resume <span className="text-gray-400">(Optional - can be added later)</span>
               </label>
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-400 transition-colors">
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-400 transition-colors dark:border-gray-600 dark:hover:border-gray-500">
                 <div className="space-y-1 text-center">
                   <svg
                     className="mx-auto h-12 w-12 text-gray-400"
@@ -523,7 +523,7 @@ const SignupPage = () => {
                   <div className="flex text-sm text-gray-600">
                     <label
                       htmlFor="resume"
-                      className="relative cursor-pointer bg-white rounded-md font-medium text-black hover:underline focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-black"
+                      className="relative cursor-pointer bg-white rounded-md font-medium text-black hover:underline focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-black dark:bg-gray-800 dark:text-gray-100 dark:focus-within:ring-gray-300"
                     >
                       <span>Upload a file</span>
                       <input
@@ -569,13 +569,13 @@ const SignupPage = () => {
           
           {/* Account Information Section */}
           <div className="space-y-6">
-            <h2 className="text-2xl font-semibold text-gray-900 font-['Open_Sans'] border-b border-gray-200 pb-2">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white transition-colors duration-300 border-b border-gray-200 pb-2">
               Account Information
             </h2>
             
             {/* Full Name */}
             <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
                 Full Name <span className="text-red-500">*</span>
               </label>
               <input
@@ -586,14 +586,14 @@ const SignupPage = () => {
                 value={formData.fullName}
                 onChange={handleInputChange}
                 placeholder="Enter your full name"
-                className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-400 dark:text-gray-100 dark:focus:ring-gray-300 dark:focus:border-gray-300"
               />
               {errors.fullName && <p className="mt-1 text-sm text-red-600">{errors.fullName}</p>}
             </div>
 
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
                 Email Address <span className="text-red-500">*</span>
               </label>
               <input
@@ -605,14 +605,14 @@ const SignupPage = () => {
                 value={formData.email}
                 onChange={handleInputChange}
                 placeholder="Enter your email address"
-                className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-400 dark:text-gray-100 dark:focus:ring-gray-300 dark:focus:border-gray-300"
               />
               {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
             </div>
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
                 Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -625,7 +625,7 @@ const SignupPage = () => {
                   value={formData.password}
                   onChange={handleInputChange}
                   placeholder="Create a strong password"
-                  className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors pr-12"
+                  className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors pr-12 dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-400 dark:text-gray-100 dark:focus:ring-gray-300 dark:focus:border-gray-300"
                 />
                 <button
                   type="button"
@@ -633,7 +633,7 @@ const SignupPage = () => {
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 >
                   <svg
-                    className="h-5 w-5 text-gray-400 hover:text-gray-600"
+                    className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-200"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -654,7 +654,7 @@ const SignupPage = () => {
 
             {/* Confirm Password */}
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
                 Confirm Password <span className="text-red-500">*</span>
               </label>
               <input
@@ -666,14 +666,14 @@ const SignupPage = () => {
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
                 placeholder="Re-enter your password"
-                className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-400 dark:text-gray-100 dark:focus:ring-gray-300 dark:focus:border-gray-300"
               />
               {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
             </div>
 
             {/* Phone Number (Optional) */}
             <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
                 Phone Number <span className="text-gray-400">(Optional)</span>
               </label>
               <input
@@ -683,20 +683,20 @@ const SignupPage = () => {
                 value={formData.phone}
                 onChange={handleInputChange}
                 placeholder="Enter your phone number"
-                className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-400 dark:text-gray-100 dark:focus:ring-gray-300 dark:focus:border-gray-300"
               />
             </div>
           </div>
 
           {/* Profile Information Section */}
           <div className="space-y-6">
-            <h2 className="text-2xl font-semibold text-gray-900 font-['Open_Sans'] border-b border-gray-200 pb-2">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white transition-colors duration-300 border-b border-gray-200 pb-2">
               Profile Information
             </h2>
             
             {/* Current Location */}
             <div>
-              <label htmlFor="currentLocation" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+              <label htmlFor="currentLocation" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
                 Current Location / City <span className="text-red-500">*</span>
               </label>
               <input
@@ -707,7 +707,7 @@ const SignupPage = () => {
                 value={formData.currentLocation}
                 onChange={handleInputChange}
                 placeholder="e.g., Mumbai, Bangalore, Delhi"
-                className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-400 dark:text-gray-100 dark:focus:ring-gray-300 dark:focus:border-gray-300"
               />
               {errors.currentLocation && <p className="mt-1 text-sm text-red-600">{errors.currentLocation}</p>}
             </div>
@@ -715,13 +715,13 @@ const SignupPage = () => {
             {/* Education Section */}
             <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-semibold text-gray-900 font-['Open_Sans'] border-b border-gray-200 pb-2 flex-1 mr-4">
+                <h3 className="text-2xl font-semibold text-gray-900 dark:text-white transition-colors duration-300 border-b border-gray-200 pb-2 flex-1 mr-4">
                   Education Details
                 </h3>
                 <button
                   type="button"
                   onClick={addEducationEntry}
-                  className="bg-black text-white hover:bg-gray-800 px-4 py-2 rounded-lg text-sm font-medium font-['Open_Sans'] transition-colors flex items-center gap-2 shrink-0"
+                  className="bg-black text-white hover:bg-gray-800 px-4 py-2 rounded-lg text-sm font-medium font-['Open_Sans'] transition-colors flex items-center gap-2 shrink-0 dark:bg-white dark:text-black dark:hover:bg-gray-200"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -731,16 +731,16 @@ const SignupPage = () => {
               </div>
               
               {formData.educationEntries.map((education, index) => (
-                <div key={education.id} className="space-y-4 p-6 border border-gray-200 rounded-lg bg-gray-50">
+                <div key={education.id} className="space-y-4 p-6 border border-gray-200 rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-lg font-semibold text-gray-900 font-['Open_Sans']">
+                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white transition-colors duration-300 font-['Open_Sans']">
                       Education {index + 1}
                     </h4>
                     {formData.educationEntries.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeEducationEntry(education.id)}
-                        className="text-red-600 hover:text-red-800 p-1 rounded-lg hover:bg-red-50 transition-colors"
+                        className="text-red-600 hover:text-red-800 p-1 rounded-lg hover:bg-red-50 transition-colors dark:hover:bg-red-900 dark:hover:text-red-300"
                         title="Remove this education entry"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -752,7 +752,7 @@ const SignupPage = () => {
 
                   {/* Qualification */}
                   <div>
-                    <label htmlFor={`qualification_${education.id}`} className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+                    <label htmlFor={`qualification_${education.id}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
                       Qualification <span className="text-red-500">*</span>
                     </label>
                     <select
@@ -761,7 +761,7 @@ const SignupPage = () => {
                       required
                       value={education.qualification}
                       onChange={(e) => handleEducationChange(education.id, 'qualification', e.target.value)}
-                      className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                      className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 dark:focus:ring-gray-300 dark:focus:border-gray-300"
                     >
                       <option value="">Select qualification</option>
                       {qualificationOptions.map(option => (
@@ -775,7 +775,7 @@ const SignupPage = () => {
 
                   {/* Field of Study */}
                   <div>
-                    <label htmlFor={`fieldOfStudy_${education.id}`} className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+                    <label htmlFor={`fieldOfStudy_${education.id}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
                       Field of Study / Specialization <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -786,7 +786,7 @@ const SignupPage = () => {
                       value={education.fieldOfStudy}
                       onChange={(e) => handleEducationChange(education.id, 'fieldOfStudy', e.target.value)}
                       placeholder="e.g., Computer Science, Mechanical Engineering, MBA"
-                      className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                      className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-400 dark:text-gray-100 dark:focus:ring-gray-300 dark:focus:border-gray-300"
                     />
                     {errors[`education_${education.id}_fieldOfStudy`] && (
                       <p className="mt-1 text-sm text-red-600">{errors[`education_${education.id}_fieldOfStudy`]}</p>
@@ -795,7 +795,7 @@ const SignupPage = () => {
 
                   {/* University/College Name */}
                   <div>
-                    <label htmlFor={`universityName_${education.id}`} className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+                    <label htmlFor={`universityName_${education.id}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
                       University/College Name <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -806,7 +806,7 @@ const SignupPage = () => {
                       value={education.universityName}
                       onChange={(e) => handleEducationChange(education.id, 'universityName', e.target.value)}
                       placeholder="e.g., Indian Institute of Technology, Delhi University"
-                      className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                      className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-400 dark:text-gray-100 dark:focus:ring-gray-300 dark:focus:border-gray-300"
                     />
                     {errors[`education_${education.id}_universityName`] && (
                       <p className="mt-1 text-sm text-red-600">{errors[`education_${education.id}_universityName`]}</p>
@@ -817,7 +817,7 @@ const SignupPage = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Graduation Year */}
                     <div>
-                      <label htmlFor={`graduationYear_${education.id}`} className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+                      <label htmlFor={`graduationYear_${education.id}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
                         Graduation Year <span className="text-red-500">*</span>
                       </label>
                       <select
@@ -826,7 +826,7 @@ const SignupPage = () => {
                         required
                         value={education.graduationYear}
                         onChange={(e) => handleEducationChange(education.id, 'graduationYear', e.target.value)}
-                        className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                        className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 dark:focus:ring-gray-300 dark:focus:border-gray-300"
                       >
                         <option value="">Select year</option>
                         {graduationYears.map(year => (
@@ -840,7 +840,7 @@ const SignupPage = () => {
 
                     {/* CGPA/Percentage */}
                     <div>
-                      <label htmlFor={`cgpaPercentage_${education.id}`} className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+                      <label htmlFor={`cgpaPercentage_${education.id}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
                         CGPA / Percentage <span className="text-gray-400">(Optional)</span>
                       </label>
                       <input
@@ -850,7 +850,7 @@ const SignupPage = () => {
                         value={education.cgpaPercentage}
                         onChange={(e) => handleEducationChange(education.id, 'cgpaPercentage', e.target.value)}
                         placeholder="e.g., 8.5 CGPA or 85%"
-                        className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                        className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-400 dark:text-gray-100 dark:focus:ring-gray-300 dark:focus:border-gray-300"
                       />
                      
                     </div>
@@ -866,7 +866,7 @@ const SignupPage = () => {
 
             {/* Current Status */}
             <div>
-              <label htmlFor="currentStatus" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+              <label htmlFor="currentStatus" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
                 Current Status <span className="text-red-500">*</span>
               </label>
               <select
@@ -875,7 +875,7 @@ const SignupPage = () => {
                 required
                 value={formData.currentStatus}
                 onChange={handleInputChange}
-                className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 dark:focus:ring-gray-300 dark:focus:border-gray-300"
               >
                 <option value="">Select status</option>
                 {currentStatusOptions.map(option => (
@@ -887,23 +887,23 @@ const SignupPage = () => {
 
             {/* Primary Skills */}
             <div className="space-y-4">
-              <label className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
                 Primary Skills / Technologies <span className="text-red-500">*</span>
               </label>
               
               {/* Selected Skills Display */}
               {formData.primarySkills.length > 0 && (
-                <div className="flex flex-wrap gap-2 p-3 border border-gray-200 rounded-lg bg-gray-50 min-h-[60px]">
+                <div className="flex flex-wrap gap-2 p-3 border border-gray-200 rounded-lg bg-gray-50 min-h-[60px] dark:border-gray-700 dark:bg-gray-800">
                   {formData.primarySkills.map((skill, index) => (
                     <span
                       key={index}
-                      className="inline-flex items-center gap-1 px-3 py-1 bg-black text-white text-sm rounded-full font-['Roboto']"
+                      className="inline-flex items-center gap-1 px-3 py-1 bg-black text-white text-sm rounded-full font-['Roboto'] dark:bg-white dark:text-black"
                     >
                       {skill}
                       <button
                         type="button"
                         onClick={() => removeSkill(skill)}
-                        className="ml-1 text-gray-300 hover:text-white transition-colors"
+                        className="ml-1 text-gray-300 hover:text-white transition-colors dark:text-gray-400 dark:hover:text-gray-200"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -919,7 +919,7 @@ const SignupPage = () => {
                 <input
                   type="text"
                   placeholder="Type a skill and press Enter"
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-400 dark:text-gray-100 dark:focus:ring-gray-300 dark:focus:border-gray-300"
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
@@ -941,7 +941,7 @@ const SignupPage = () => {
                       input.value = '';
                     }
                   }}
-                  className="px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-['Open_Sans'] text-sm"
+                  className="px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-['Open_Sans'] text-sm dark:bg-gray-700 dark:hover:bg-gray-600"
                 >
                   Add
                 </button>
@@ -949,7 +949,7 @@ const SignupPage = () => {
               
               {/* Suggested Skills */}
               <div>
-                <p className="text-sm text-gray-600 font-['Open_Sans'] mb-2">Popular Skills (click to add):</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 font-['Open_Sans'] mb-2">Popular Skills (click to add):</p>
                 <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
                   {suggestedSkills
                     .filter(skill => !formData.primarySkills.includes(skill))
@@ -959,7 +959,7 @@ const SignupPage = () => {
                       key={skill}
                       type="button"
                       onClick={() => addSkill(skill)}
-                      className="px-3 py-1 text-sm border border-gray-300 rounded-full hover:bg-gray-100 hover:border-gray-400 transition-colors font-['Roboto'] text-gray-700"
+                      className="px-3 py-1 text-sm border border-gray-300 rounded-full hover:bg-gray-100 hover:border-gray-400 transition-colors font-['Roboto'] text-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:border-gray-500"
                     >
                       + {skill}
                     </button>
@@ -977,13 +977,13 @@ const SignupPage = () => {
             {formData.currentStatus === 'Working Professional' && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-2xl font-semibold text-gray-900 font-['Open_Sans'] border-b border-gray-200 pb-2 flex-1 mr-4">
+                  <h3 className="text-2xl font-semibold text-gray-900 dark:text-white transition-colors duration-300 border-b border-gray-200 pb-2 flex-1 mr-4">
                     Work Experience Details <span className="text-gray-400 text-sm font-normal">(Optional)</span>
                   </h3>
                   <button
                     type="button"
                     onClick={addWorkExperience}
-                    className="bg-black text-white hover:bg-gray-800 px-4 py-2 rounded-lg text-sm font-medium font-['Open_Sans'] transition-colors flex items-center gap-2 shrink-0"
+                    className="bg-black text-white hover:bg-gray-800 px-4 py-2 rounded-lg text-sm font-medium font-['Open_Sans'] transition-colors flex items-center gap-2 shrink-0 dark:bg-white dark:text-black dark:hover:bg-gray-200"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -993,16 +993,16 @@ const SignupPage = () => {
                 </div>
                 
                 {formData.workExperienceEntries.map((experience, index) => (
-                  <div key={experience.id} className="space-y-4 p-6 border border-gray-200 rounded-lg bg-gray-50">
+                  <div key={experience.id} className="space-y-4 p-6 border border-gray-200 rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-lg font-semibold text-gray-900 font-['Open_Sans']">
+                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white transition-colors duration-300 font-['Open_Sans']">
                         Experience {index + 1}
                       </h4>
                       {formData.workExperienceEntries.length > 1 && (
                         <button
                           type="button"
                           onClick={() => removeWorkExperience(experience.id)}
-                          className="text-red-600 hover:text-red-800 p-1 rounded-lg hover:bg-red-50 transition-colors"
+                          className="text-red-600 hover:text-red-800 p-1 rounded-lg hover:bg-red-50 transition-colors dark:hover:bg-red-900 dark:hover:text-red-300"
                           title="Remove this work experience"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1014,14 +1014,14 @@ const SignupPage = () => {
 
                     {/* Years of Experience for this role */}
                     <div>
-                      <label htmlFor={`yearsOfExperience_${experience.id}`} className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+                      <label htmlFor={`yearsOfExperience_${experience.id}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
                         Experience Level for this Role
                       </label>
                       <select
                         id={`yearsOfExperience_${experience.id}`}
                         value={experience.yearsOfExperience}
                         onChange={(e) => handleWorkExperienceChange(experience.id, 'yearsOfExperience', e.target.value)}
-                        className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                        className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 dark:focus:ring-gray-300 dark:focus:border-gray-300"
                       >
                         <option value="">Select experience level</option>
                         {experienceOptions.map(option => (
@@ -1032,7 +1032,7 @@ const SignupPage = () => {
 
                     {/* Company Name */}
                     <div>
-                      <label htmlFor={`company_${experience.id}`} className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+                      <label htmlFor={`company_${experience.id}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
                         Company Name
                       </label>
                       <input
@@ -1041,13 +1041,13 @@ const SignupPage = () => {
                         value={experience.company}
                         onChange={(e) => handleWorkExperienceChange(experience.id, 'company', e.target.value)}
                         placeholder="e.g., Google, Microsoft, TCS, Infosys"
-                        className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                        className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-400 dark:text-gray-100 dark:focus:ring-gray-300 dark:focus:border-gray-300"
                       />
                     </div>
 
                     {/* Position */}
                     <div>
-                      <label htmlFor={`position_${experience.id}`} className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+                      <label htmlFor={`position_${experience.id}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
                         Position/Role
                       </label>
                       <input
@@ -1056,7 +1056,7 @@ const SignupPage = () => {
                         value={experience.position}
                         onChange={(e) => handleWorkExperienceChange(experience.id, 'position', e.target.value)}
                         placeholder="e.g., Software Engineer, Data Analyst, Project Manager"
-                        className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                        className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-400 dark:text-gray-100 dark:focus:ring-gray-300 dark:focus:border-gray-300"
                       />
                     </div>
 
@@ -1064,7 +1064,7 @@ const SignupPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Start Date */}
                       <div>
-                        <label htmlFor={`startDate_${experience.id}`} className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+                        <label htmlFor={`startDate_${experience.id}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
                           Start Date
                         </label>
                         <input
@@ -1072,13 +1072,13 @@ const SignupPage = () => {
                           type="month"
                           value={experience.startDate}
                           onChange={(e) => handleWorkExperienceChange(experience.id, 'startDate', e.target.value)}
-                          className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+                          className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 dark:focus:ring-gray-300 dark:focus:border-gray-300"
                         />
                       </div>
 
                       {/* End Date or Currently Working */}
                       <div>
-                        <label htmlFor={`endDate_${experience.id}`} className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+                        <label htmlFor={`endDate_${experience.id}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
                           End Date
                         </label>
                         <div className="space-y-2">
@@ -1088,14 +1088,14 @@ const SignupPage = () => {
                             value={experience.endDate}
                             onChange={(e) => handleWorkExperienceChange(experience.id, 'endDate', e.target.value)}
                             disabled={experience.isCurrentlyWorking}
-                            className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 dark:disabled:bg-gray-700"
                           />
                           <label className="flex items-center text-sm text-gray-600 font-['Roboto']">
                             <input
                               type="checkbox"
                               checked={experience.isCurrentlyWorking}
                               onChange={(e) => handleWorkExperienceChange(experience.id, 'isCurrentlyWorking', e.target.checked)}
-                              className="mr-2 rounded border-gray-300 text-black focus:ring-black"
+                              className="mr-2 rounded border-gray-300 text-black focus:ring-black dark:border-gray-600 dark:text-white dark:focus:ring-gray-300"
                             />
                             I currently work here
                           </label>
@@ -1105,7 +1105,7 @@ const SignupPage = () => {
 
                     {/* Work Description */}
                     <div>
-                      <label htmlFor={`description_${experience.id}`} className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+                      <label htmlFor={`description_${experience.id}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
                         Job Description/Responsibilities
                       </label>
                       <textarea
@@ -1114,7 +1114,7 @@ const SignupPage = () => {
                         value={experience.description}
                         onChange={(e) => handleWorkExperienceChange(experience.id, 'description', e.target.value)}
                         placeholder="Briefly describe your key responsibilities and achievements..."
-                        className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors resize-vertical"
+                        className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors resize-vertical dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-400 dark:text-gray-100 dark:focus:ring-gray-300 dark:focus:border-gray-300"
                       />
                     </div>
                     <p className="text-sm text-gray-500 font-['Roboto']">
@@ -1134,7 +1134,7 @@ const SignupPage = () => {
           <div className="pt-6">
             {/* Display submit errors */}
             {errors.submit && (
-              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg dark:bg-red-900 dark:border-red-700 dark:text-red-300">
                 <p className="text-sm text-red-600 font-['Roboto']">{errors.submit}</p>
               </div>
             )}
@@ -1142,7 +1142,7 @@ const SignupPage = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-black text-white hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed py-3 px-4 rounded-lg text-lg font-semibold font-['Open_Sans'] transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-black text-white hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed py-3 px-4 rounded-lg text-lg font-semibold font-['Open_Sans'] transition-colors flex items-center justify-center gap-2 dark:bg-white dark:text-black dark:hover:bg-gray-200 dark:disabled:bg-gray-600"
             >
               {isSubmitting ? (
                 <>
@@ -1160,11 +1160,11 @@ const SignupPage = () => {
 
           {/* Sign In Link */}
           <div className="text-center pt-4">
-            <p className="text-sm text-gray-600 font-['Roboto']">
+            <p className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto']">
               Already have an account?{' '}
               <Link 
                 to="/login" 
-                className="text-black hover:underline font-semibold transition-colors"
+                className="text-black dark:text-white hover:underline font-semibold transition-colors"
               >
                 Sign in
               </Link>

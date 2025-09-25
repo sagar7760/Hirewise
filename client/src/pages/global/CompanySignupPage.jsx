@@ -282,8 +282,8 @@ const CompanySignupPage = () => {
           <div
             className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium font-['Open_Sans'] ${
               step <= currentStep
-                ? 'bg-black text-white'
-                : 'bg-gray-200 text-gray-500'
+                ? 'bg-black text-white dark:bg-white dark:text-black'
+                : 'bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
             }`}
           >
             {step}
@@ -291,7 +291,7 @@ const CompanySignupPage = () => {
           {step < totalSteps && (
             <div
               className={`w-16 h-0.5 mx-4 ${
-                step < currentStep ? 'bg-black' : 'bg-gray-200'
+                step < currentStep ? 'bg-black dark:bg-white' : 'bg-gray-200 dark:bg-gray-700'
               }`}
             />
           )}
@@ -303,10 +303,10 @@ const CompanySignupPage = () => {
   const renderStep1 = () => (
     <div className="space-y-6">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 font-['Open_Sans']">
+        <h2 className="text-3xl font-bold text-gray-900 dark:text-white font-['Open_Sans']">
           Organization Details
         </h2>
-        <p className="mt-2 text-gray-600 font-['Roboto']">
+        <p className="mt-2 text-gray-600 dark:text-gray-300 font-['Roboto']">
           Tell us about your company
         </p>
       </div>
@@ -314,7 +314,7 @@ const CompanySignupPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Company Name */}
         <div className="md:col-span-2">
-          <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+          <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
             Company Name <span className="text-red-500">*</span>
           </label>
           <input
@@ -325,7 +325,7 @@ const CompanySignupPage = () => {
             value={formData.companyName}
             onChange={handleInputChange}
             placeholder="Enter your company's official name"
-            className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+            className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] transition-colors"
           />
           {errors.companyName && (
             <p className="mt-1 text-sm text-red-600 font-['Roboto']">{errors.companyName}</p>
@@ -334,7 +334,7 @@ const CompanySignupPage = () => {
 
         {/* Industry */}
         <div>
-          <label htmlFor="industry" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+          <label htmlFor="industry" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
             Industry <span className="text-red-500">*</span>
           </label>
           <select
@@ -342,7 +342,7 @@ const CompanySignupPage = () => {
             name="industry"
             value={formData.industry}
             onChange={handleInputChange}
-            className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+            className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] transition-colors"
           >
             <option value="">Select industry</option>
             {industryOptions.map(option => (
@@ -356,7 +356,7 @@ const CompanySignupPage = () => {
 
         {/* Company Size */}
         <div>
-          <label htmlFor="companySize" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+          <label htmlFor="companySize" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
             Company Size <span className="text-red-500">*</span>
           </label>
           <select
@@ -364,7 +364,7 @@ const CompanySignupPage = () => {
             name="companySize"
             value={formData.companySize}
             onChange={handleInputChange}
-            className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+            className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] transition-colors"
           >
             <option value="">Select company size</option>
             {companySizeOptions.map(option => (
@@ -378,7 +378,7 @@ const CompanySignupPage = () => {
 
         {/* Headquarters */}
         <div>
-          <label htmlFor="headquarters" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+          <label htmlFor="headquarters" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
             Headquarters <span className="text-red-500">*</span>
           </label>
           <select
@@ -386,7 +386,7 @@ const CompanySignupPage = () => {
             name="headquarters"
             value={formData.headquarters}
             onChange={handleInputChange}
-            className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+            className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] transition-colors"
           >
             <option value="">Select city</option>
             {indianCities.map(city => (
@@ -400,7 +400,7 @@ const CompanySignupPage = () => {
 
         {/* Website */}
         <div>
-          <label htmlFor="website" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+          <label htmlFor="website" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
             Website URL
           </label>
           <input
@@ -410,13 +410,13 @@ const CompanySignupPage = () => {
             value={formData.website}
             onChange={handleInputChange}
             placeholder="https://www.yourcompany.com"
-            className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+            className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] transition-colors"
           />
         </div>
 
         {/* Company Logo */}
         <div className="md:col-span-2">
-          <label htmlFor="companyLogo" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+          <label htmlFor="companyLogo" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
             Company Logo
           </label>
           <div className="flex items-center space-x-4">
@@ -426,7 +426,7 @@ const CompanySignupPage = () => {
               type="file"
               accept="image/*"
               onChange={handleFileChange}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-black file:text-white hover:file:bg-gray-800 font-['Roboto']"
+              className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-black dark:file:bg-gray-100 file:text-white dark:file:text-black hover:file:bg-gray-800 dark:hover:file:bg-gray-200 font-['Roboto']"
             />
             {formData.companyLogo && (
               <span className="text-green-600 text-sm font-['Roboto']">
@@ -441,7 +441,7 @@ const CompanySignupPage = () => {
 
         {/* Registration Number */}
         <div className="md:col-span-2">
-          <label htmlFor="registrationNumber" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+          <label htmlFor="registrationNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
             Registration Number / GST (Optional)
           </label>
           <input
@@ -451,7 +451,7 @@ const CompanySignupPage = () => {
             value={formData.registrationNumber}
             onChange={handleInputChange}
             placeholder="Company registration number or GST number"
-            className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+            className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] transition-colors"
           />
         </div>
       </div>
@@ -461,10 +461,10 @@ const CompanySignupPage = () => {
   const renderStep2 = () => (
     <div className="space-y-6">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 font-['Open_Sans']">
+        <h2 className="text-3xl font-bold text-gray-900 dark:text-white font-['Open_Sans']">
           Admin Account Setup
         </h2>
-        <p className="mt-2 text-gray-600 font-['Roboto']">
+        <p className="mt-2 text-gray-600 dark:text-gray-300 font-['Roboto']">
           Create the primary admin account for your organization
         </p>
       </div>
@@ -472,7 +472,7 @@ const CompanySignupPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Full Name */}
         <div className="md:col-span-2">
-          <label htmlFor="adminFullName" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+          <label htmlFor="adminFullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
             Full Name <span className="text-red-500">*</span>
           </label>
           <input
@@ -483,7 +483,7 @@ const CompanySignupPage = () => {
             value={formData.adminFullName}
             onChange={handleInputChange}
             placeholder="Enter your full name"
-            className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+            className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] transition-colors"
           />
           {errors.adminFullName && (
             <p className="mt-1 text-sm text-red-600 font-['Roboto']">{errors.adminFullName}</p>
@@ -492,7 +492,7 @@ const CompanySignupPage = () => {
 
         {/* Work Email */}
         <div>
-          <label htmlFor="adminEmail" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+          <label htmlFor="adminEmail" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
             Work Email <span className="text-red-500">*</span>
           </label>
           <input
@@ -503,7 +503,7 @@ const CompanySignupPage = () => {
             value={formData.adminEmail}
             onChange={handleInputChange}
             placeholder="admin@yourcompany.com"
-            className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+            className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] transition-colors"
           />
           {errors.adminEmail && (
             <p className="mt-1 text-sm text-red-600 font-['Roboto']">{errors.adminEmail}</p>
@@ -512,7 +512,7 @@ const CompanySignupPage = () => {
 
         {/* Phone Number */}
         <div>
-          <label htmlFor="adminPhone" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+          <label htmlFor="adminPhone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
             Phone Number
           </label>
           <input
@@ -522,10 +522,10 @@ const CompanySignupPage = () => {
             value={formData.adminPhone}
             onChange={handleInputChange}
             placeholder="+91 12345 67890"
-            className={`block w-full px-4 py-3 border rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:border-black font-['Roboto'] transition-colors ${
+            className={`block w-full px-4 py-3 border rounded-lg placeholder-gray-500 text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400 focus:outline-none focus:ring-2 font-['Roboto'] transition-colors ${
               errors.adminPhone 
                 ? 'border-red-500 focus:ring-red-500' 
-                : 'border-gray-300 focus:ring-black'
+                : 'border-gray-300 dark:border-gray-600 focus:ring-black dark:focus:ring-white'
             }`}
           />
           {errors.adminPhone && (
@@ -535,7 +535,7 @@ const CompanySignupPage = () => {
 
         {/* Password */}
         <div>
-          <label htmlFor="adminPassword" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+          <label htmlFor="adminPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
             Password <span className="text-red-500">*</span>
           </label>
           <div className="relative">
@@ -547,7 +547,7 @@ const CompanySignupPage = () => {
               value={formData.adminPassword}
               onChange={handleInputChange}
               placeholder="Create a strong password"
-              className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors pr-12"
+              className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] transition-colors pr-12"
             />
             <button
               type="button"
@@ -555,7 +555,7 @@ const CompanySignupPage = () => {
               className="absolute inset-y-0 right-0 pr-3 flex items-center"
             >
               <svg
-                className="h-5 w-5 text-gray-400 hover:text-gray-600"
+                className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -575,7 +575,7 @@ const CompanySignupPage = () => {
 
         {/* Confirm Password */}
         <div>
-          <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+          <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
             Confirm Password <span className="text-red-500">*</span>
           </label>
           <input
@@ -586,7 +586,7 @@ const CompanySignupPage = () => {
             value={formData.confirmPassword}
             onChange={handleInputChange}
             placeholder="Confirm your password"
-            className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+            className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] transition-colors"
           />
           {errors.confirmPassword && (
             <p className="mt-1 text-sm text-red-600 font-['Roboto']">{errors.confirmPassword}</p>
@@ -595,14 +595,14 @@ const CompanySignupPage = () => {
       </div>
 
       {/* Role Information */}
-      <div className="bg-gray-50 p-4 rounded-lg border">
+      <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
         <div className="flex items-start space-x-3">
           <svg className="h-5 w-5 text-blue-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
           </svg>
           <div>
-            <h4 className="text-sm font-medium text-gray-900 font-['Open_Sans']">Admin Role</h4>
-            <p className="text-sm text-gray-600 font-['Roboto'] mt-1">
+            <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 font-['Open_Sans']">Admin Role</h4>
+            <p className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto'] mt-1">
               As the first user, you'll be assigned the Admin role with full access to manage HR users, interviewers, and organization settings.
             </p>
           </div>
@@ -614,10 +614,10 @@ const CompanySignupPage = () => {
   const renderStep3 = () => (
     <div className="space-y-6">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 font-['Open_Sans']">
+        <h2 className="text-3xl font-bold text-gray-900 dark:text-white font-['Open_Sans']">
           Additional Information
         </h2>
-        <p className="mt-2 text-gray-600 font-['Roboto']">
+        <p className="mt-2 text-gray-600 dark:text-gray-300 font-['Roboto']">
           Help us understand your hiring needs (optional)
         </p>
       </div>
@@ -625,7 +625,7 @@ const CompanySignupPage = () => {
       <div className="space-y-6">
         {/* Company Description */}
         <div>
-          <label htmlFor="companyDescription" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+          <label htmlFor="companyDescription" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
             Company Description
           </label>
           <textarea
@@ -635,14 +635,14 @@ const CompanySignupPage = () => {
             value={formData.companyDescription}
             onChange={handleInputChange}
             placeholder="Brief description of your company, mission, and values..."
-            className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors resize-none"
+            className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] transition-colors resize-none"
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* LinkedIn URL */}
           <div>
-            <label htmlFor="linkedinUrl" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+            <label htmlFor="linkedinUrl" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
               LinkedIn Company Page
             </label>
             <input
@@ -652,10 +652,10 @@ const CompanySignupPage = () => {
               value={formData.linkedinUrl}
               onChange={handleInputChange}
               placeholder="https://linkedin.com/company/yourcompany"
-              className={`block w-full px-4 py-3 border rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:border-black font-['Roboto'] transition-colors ${
+              className={`block w-full px-4 py-3 border rounded-lg placeholder-gray-500 text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400 focus:outline-none focus:ring-2 font-['Roboto'] transition-colors ${
                 errors.linkedinUrl 
                   ? 'border-red-500 focus:ring-red-500' 
-                  : 'border-gray-300 focus:ring-black'
+                  : 'border-gray-300 dark:border-gray-600 focus:ring-black dark:focus:ring-white'
               }`}
             />
             {errors.linkedinUrl && (
@@ -665,7 +665,7 @@ const CompanySignupPage = () => {
 
           {/* Careers Page */}
           <div>
-            <label htmlFor="careersPageUrl" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+            <label htmlFor="careersPageUrl" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
               Careers Page URL
             </label>
             <input
@@ -675,10 +675,10 @@ const CompanySignupPage = () => {
               value={formData.careersPageUrl}
               onChange={handleInputChange}
               placeholder="https://www.yourcompany.com/careers"
-              className={`block w-full px-4 py-3 border rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:border-black font-['Roboto'] transition-colors ${
+              className={`block w-full px-4 py-3 border rounded-lg placeholder-gray-500 text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400 focus:outline-none focus:ring-2 font-['Roboto'] transition-colors ${
                 errors.careersPageUrl 
                   ? 'border-red-500 focus:ring-red-500' 
-                  : 'border-gray-300 focus:ring-black'
+                  : 'border-gray-300 dark:border-gray-600 focus:ring-black dark:focus:ring-white'
               }`}
             />
             {errors.careersPageUrl && (
@@ -688,7 +688,7 @@ const CompanySignupPage = () => {
 
           {/* Hiring Regions */}
           <div>
-            <label htmlFor="hiringRegions" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+            <label htmlFor="hiringRegions" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
               Primary Hiring Regions
             </label>
             <input
@@ -698,13 +698,13 @@ const CompanySignupPage = () => {
               value={formData.hiringRegions}
               onChange={handleInputChange}
               placeholder="e.g., India, Asia-Pacific, Global"
-              className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+              className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] transition-colors"
             />
           </div>
 
           {/* Remote Policy */}
           <div>
-            <label htmlFor="remotePolicy" className="block text-sm font-medium text-gray-700 font-['Open_Sans'] mb-2">
+            <label htmlFor="remotePolicy" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
               Remote Work Policy
             </label>
             <select
@@ -712,7 +712,7 @@ const CompanySignupPage = () => {
               name="remotePolicy"
               value={formData.remotePolicy}
               onChange={handleInputChange}
-              className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
+              className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] transition-colors"
             >
               <option value="">Select remote policy</option>
               {remotePolicyOptions.map(option => (
@@ -723,32 +723,32 @@ const CompanySignupPage = () => {
         </div>
 
         {/* Review Summary */}
-        <div className="bg-gray-50 p-6 rounded-lg border">
-          <h3 className="text-lg font-semibold text-gray-900 font-['Open_Sans'] mb-4">Registration Summary</h3>
+        <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-600">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 font-['Open_Sans'] mb-4">Registration Summary</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="font-medium text-gray-700 font-['Open_Sans']">Company:</span>
-              <span className="ml-2 text-gray-900 font-['Roboto']">{formData.companyName}</span>
+              <span className="font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans']">Company:</span>
+              <span className="ml-2 text-gray-900 dark:text-gray-100 font-['Roboto']">{formData.companyName}</span>
             </div>
             <div>
-              <span className="font-medium text-gray-700 font-['Open_Sans']">Industry:</span>
-              <span className="ml-2 text-gray-900 font-['Roboto']">{formData.industry}</span>
+              <span className="font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans']">Industry:</span>
+              <span className="ml-2 text-gray-900 dark:text-gray-100 font-['Roboto']">{formData.industry}</span>
             </div>
             <div>
-              <span className="font-medium text-gray-700 font-['Open_Sans']">Size:</span>
-              <span className="ml-2 text-gray-900 font-['Roboto']">{formData.companySize}</span>
+              <span className="font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans']">Size:</span>
+              <span className="ml-2 text-gray-900 dark:text-gray-100 font-['Roboto']">{formData.companySize}</span>
             </div>
             <div>
-              <span className="font-medium text-gray-700 font-['Open_Sans']">Location:</span>
-              <span className="ml-2 text-gray-900 font-['Roboto']">{formData.headquarters}, {formData.country}</span>
+              <span className="font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans']">Location:</span>
+              <span className="ml-2 text-gray-900 dark:text-gray-100 font-['Roboto']">{formData.headquarters}, {formData.country}</span>
             </div>
             <div>
-              <span className="font-medium text-gray-700 font-['Open_Sans']">Admin:</span>
-              <span className="ml-2 text-gray-900 font-['Roboto']">{formData.adminFullName}</span>
+              <span className="font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans']">Admin:</span>
+              <span className="ml-2 text-gray-900 dark:text-gray-100 font-['Roboto']">{formData.adminFullName}</span>
             </div>
             <div>
-              <span className="font-medium text-gray-700 font-['Open_Sans']">Admin Email:</span>
-              <span className="ml-2 text-gray-900 font-['Roboto']">{formData.adminEmail}</span>
+              <span className="font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans']">Admin Email:</span>
+              <span className="ml-2 text-gray-900 dark:text-gray-100 font-['Roboto']">{formData.adminEmail}</span>
             </div>
           </div>
         </div>
@@ -757,14 +757,14 @@ const CompanySignupPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-white py-12 px-6">
+    <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300 py-12 px-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 font-['Open_Sans'] mb-2">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white transition-colors duration-300 font-['Open_Sans'] mb-2">
             Join HireWise
           </h1>
-          <p className="text-gray-600 font-['Roboto']">
+          <p className="text-gray-600 dark:text-gray-300 transition-colors duration-300 font-['Roboto']">
             Register your company and start your hiring journey
           </p>
         </div>
@@ -773,7 +773,7 @@ const CompanySignupPage = () => {
         {renderStepIndicator()}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-xl p-8 shadow-sm">
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-8 shadow-sm transition-colors duration-300">
           {/* Render current step */}
           {currentStep === 1 && renderStep1()}
           {currentStep === 2 && renderStep2()}
@@ -787,13 +787,13 @@ const CompanySignupPage = () => {
           )}
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
+          <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200 dark:border-gray-600">
             <div>
               {currentStep > 1 && (
                 <button
                   type="button"
                   onClick={handlePrevious}
-                  className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium font-['Open_Sans'] hover:bg-gray-50 transition-colors"
+                  className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 font-medium font-['Open_Sans'] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   Previous
                 </button>
@@ -805,7 +805,7 @@ const CompanySignupPage = () => {
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="px-8 py-3 bg-black text-white rounded-lg font-medium font-['Open_Sans'] hover:bg-gray-800 transition-colors"
+                  className="px-8 py-3 bg-black text-white dark:bg-white dark:text-black rounded-lg font-medium font-['Open_Sans'] hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
                 >
                   Next Step
                 </button>
@@ -813,10 +813,10 @@ const CompanySignupPage = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-8 py-3 bg-black text-white rounded-lg font-medium font-['Open_Sans'] hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  className="px-8 py-3 bg-black text-white dark:bg-white dark:text-black rounded-lg font-medium font-['Open_Sans'] hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                 >
                   {isSubmitting && (
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white dark:text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
@@ -830,9 +830,9 @@ const CompanySignupPage = () => {
 
         {/* Footer */}
         <div className="text-center mt-6">
-          <p className="text-gray-600 font-['Roboto']">
+          <p className="text-gray-600 dark:text-gray-300 font-['Roboto']">
             Already have an account?{' '}
-            <Link to="/login" className="text-black font-medium hover:underline font-['Open_Sans']">
+            <Link to="/login" className="text-black dark:text-gray-100 font-medium hover:underline font-['Open_Sans']">
               Sign in here
             </Link>
           </p>

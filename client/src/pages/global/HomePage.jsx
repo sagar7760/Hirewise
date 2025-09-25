@@ -329,7 +329,7 @@ const HomePage = () => {
             <p className="text-gray-600 dark:text-gray-300 mb-6 font-['Roboto'] transition-colors duration-300">Streamline your hiring process with AI-powered tools that help you find, evaluate, and hire the best candidates.</p>
             <Link 
               to="/company/signup"
-              className="bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 px-6 py-3 rounded-lg font-semibold font-['Open_Sans'] transition-colors hover-glow cursor-pointer inline-block text-center"
+              className="bg-black dark:bg-white text-white dark:text-white hover:bg-gray-800 dark:hover:bg-gray-200 px-6 py-3 rounded-lg font-semibold font-['Open_Sans'] transition-colors hover-gradient hover-glow cursor-pointer inline-block text-center"
             >
               Register Company
             </Link>
@@ -341,7 +341,7 @@ const HomePage = () => {
             <p className="text-gray-600 dark:text-gray-300 mb-6 font-['Roboto'] transition-colors duration-300">Get discovered by top companies. Receive personalized job recommendations and stand out with AI-optimized profiles.</p>
             <Link 
               to="/signup"
-              className="bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 px-6 py-3 rounded-lg font-semibold font-['Open_Sans'] transition-colors hover-glow cursor-pointer inline-block text-center"
+              className="bg-black dark:bg-white text-white dark:text-white hover:bg-gray-800 dark:hover:bg-gray-200 px-6 py-3 rounded-lg font-semibold font-['Open_Sans'] transition-colors hover-gradient hover-glow cursor-pointer inline-block text-center"
             >
               Join Now
             </Link>
