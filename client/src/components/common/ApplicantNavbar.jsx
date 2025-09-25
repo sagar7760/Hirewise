@@ -21,6 +21,7 @@ const ApplicantNavbar = () => {
   const navItems = [
     { name: 'Home', path: '/dashboard' },
     { name: 'Jobs', path: '/jobs' },
+    { name: 'Applications', path: '/applicant/applications' },
   ];
 
   // Mock notification data
@@ -116,7 +117,7 @@ const ApplicantNavbar = () => {
     if (action === 'Profile') {
       navigate('/profile');
     } else if (action === 'My Applications') {
-      navigate('/my-applications');
+      navigate('/applicant/applications');
     } else if (action === 'Saved Jobs') {
       navigate('/saved-jobs');
     } else if (action === 'Sign Out') {

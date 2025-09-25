@@ -12,7 +12,10 @@ const router = express.Router();
 // @access  Private
 router.get('/', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).lean();
+    console.log("Profile API - Finding user:", req.user.id);
+    const user = await User.findById(req.user.id)
+      .populate('profile.currentResumeId', 'fileName originalName fileSize mimeType uploadDate parsedData')
+      .lean();
     
     if (!user) {
       return res.status(404).json({
@@ -21,9 +24,30 @@ router.get('/', auth, async (req, res) => {
       });
     }
 
+    // Check if the resume is populated
+    console.log("Profile API - Resume check:", {
+      "profile.currentResumeId exists": !!user.profile?.currentResumeId,
+      "resume data": user.profile?.currentResumeId
+    });
+
+    // Make sure the frontend knows about the resume even if it's nested in profile
+    const enhancedUser = {
+      ...user,
+      // Add top-level references to the resume for easier access in the frontend
+      resumeAvailable: !!user.profile?.currentResumeId || !!user.profile?.resume?.fileName,
+      currentResumeId: user.profile?.currentResumeId,
+      resume: user.profile?.resume
+    };
+    
+    console.log("Profile API - Enhanced user data:", {
+      resumeAvailable: enhancedUser.resumeAvailable,
+      currentResumeIdExists: !!enhancedUser.currentResumeId,
+      resumeExists: !!enhancedUser.resume
+    });
+
     res.json({
       success: true,
-      data: user
+      data: enhancedUser
     });
 
   } catch (error) {

@@ -18,6 +18,7 @@ const aiRoutes = require('./routes/ai');
 const resumeRoutes = require('./routes/applicant/resumes');
 const applicantProfileRoutes = require('./routes/applicant/profile');
 const savedJobsRoutes = require('./routes/applicant/saved-jobs');
+const applicantApplicationRoutes = require('./routes/applicant/applications');
 
 // HR routes
 const hrDashboardRoutes = require('./routes/hr/dashboard');
@@ -82,6 +83,7 @@ app.use('/api/profile', applicantProfileRoutes); // Use the new applicant profil
 app.use('/api/ai', aiRoutes);
 app.use('/api/resumes', resumeRoutes);
 app.use('/api/applicant/saved-jobs', savedJobsRoutes);
+app.use('/api/applicant/applications', applicantApplicationRoutes);
 
 // HR API Routes
 app.use('/api/hr/dashboard', hrDashboardRoutes);

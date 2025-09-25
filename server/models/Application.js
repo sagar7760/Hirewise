@@ -46,14 +46,42 @@ const applicationSchema = new mongoose.Schema({
       required: [true, 'Phone number is required']
     }
   },
-  resume: {
+  // Resume handling - profile vs custom
+  useProfileResume: {
+    type: Boolean,
+    default: true
+  },
+  profileResumeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Resume'
+  },
+  customResume: {
     fileName: String,
     fileUrl: String,
+    fileData: Buffer,
+    fileMimeType: String,
     uploadDate: {
       type: Date,
       default: Date.now
     },
     fileSize: Number
+  },
+  // Professional information
+  skills: [{
+    type: String,
+    trim: true
+  }],
+  experience: {
+    type: String,
+    enum: ['fresher', 'mid-level', 'senior', 'expert']
+  },
+  expectedSalary: {
+    min: Number,
+    max: Number,
+    currency: {
+      type: String,
+      default: 'USD'
+    }
   },
   coverLetter: {
     type: String,

@@ -25,6 +25,9 @@ export const AuthProvider = ({ children }) => {
         const parsedUser = JSON.parse(storedUser);
         setToken(storedToken);
         setUser(parsedUser);
+        
+        // Refresh user data to get latest profile information including resume
+        refreshUserData(storedToken);
       } catch (error) {
         console.error('Error parsing stored user data:', error);
         localStorage.removeItem('token');
@@ -34,6 +37,40 @@ export const AuthProvider = ({ children }) => {
     
     setLoading(false);
   }, []);
+
+  const refreshUserData = async (authToken) => {
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          // Process the data to make sure it's structured consistently and preserve ALL data
+          const processedUserData = {
+            ...data.data,
+            // Explicitly preserve the profile object
+            profile: data.data.profile,
+            // Add resume fields to root level for easier access
+            resume: data.data.resume || data.data.profile?.resume,
+            currentResumeId: data.data.currentResumeId || data.data.profile?.currentResumeId,
+            resumeAvailable: data.data.resumeAvailable,
+            skills: data.data.profile?.primarySkills || data.data.skills
+          };
+          
+          setUser(processedUserData);
+          localStorage.setItem('user', JSON.stringify(processedUserData));
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing user data on startup:', error);
+    }
+  };
 
   const login = async (email, password) => {
     try {
@@ -73,6 +110,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const updateUser = (updatedUser) => {
+    console.log("updateUser - Setting user to:", updatedUser);
     setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
   };
@@ -88,18 +126,23 @@ export const AuthProvider = ({ children }) => {
           'Content-Type': 'application/json'
         }
       });
-
+      
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          // Update user context with fresh data from profile API
+          // Process the data to make sure it's structured consistently and preserve ALL data
           const updatedUser = {
-            ...user,
-            fullName: data.data.fullName,
-            profilePicture: data.data.profilePicture,
-            phone: data.data.phone,
-            location: data.data.location
+            ...user, // Keep existing user data
+            ...data.data, // Include all new data from API
+            // Explicitly preserve the profile object
+            profile: data.data.profile,
+            // Add resume fields to root level for easier access
+            resume: data.data.resume || data.data.profile?.resume, 
+            currentResumeId: data.data.currentResumeId || data.data.profile?.currentResumeId,
+            resumeAvailable: data.data.resumeAvailable,
+            skills: data.data.profile?.primarySkills || data.data.skills
           };
+          
           updateUser(updatedUser);
           return updatedUser;
         }
@@ -179,6 +222,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     updateUser,
+    refreshUser,
     isAuthenticated,
     hasRole,
     isCompanyAdmin,

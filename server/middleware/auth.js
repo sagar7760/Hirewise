@@ -25,9 +25,12 @@ const auth = async (req, res, next) => {
     // Add company context to request
     req.user = {
       ...user.toObject(),
+      id: user._id.toString(), // Explicitly set id field
       companyId: user.companyId || decoded.companyId,
       isCompanyAdmin: decoded.isCompanyAdmin
     };
+    
+    console.log('Auth middleware - Setting req.user:', req.user.id); // Debug
     
     next();
   } catch (error) {
