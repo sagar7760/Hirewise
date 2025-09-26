@@ -30,8 +30,7 @@ const JobsPage = () => {
     hasNextPage: false,
     hasPrevPage: false
   });
-  const [savedJobs, setSavedJobs] = useState([]);
-  const [savingJobId, setSavingJobId] = useState(null);
+
 
   // Cache management
   const CACHE_DURATION = CACHE_DURATIONS.JOBS;
@@ -107,10 +106,28 @@ const JobsPage = () => {
       };
       
       const dataSize = JSON.stringify(cacheData).length;
+      console.log(`💾 Cache data size: ${(dataSize / 1024).toFixed(2)}KB`);
       
       // Check if data is too large (localStorage limit is typically 5-10MB, but let's be conservative)
-      if (dataSize > 1000000) { // 1MB limit
-        console.warn('Jobs data too large for cache, skipping');
+      if (dataSize > 2000000) { // 2MB limit (increased to accommodate logos)
+        console.warn('Jobs data too large for cache, creating minimal version');
+        // Create minimal version without logos if too large
+        const minimalData = {
+          ...cacheData,
+          data: {
+            ...data,
+            jobs: data.jobs.map(job => ({
+              ...job,
+              companyLogo: job.companyLogo ? 'LOGO_PLACEHOLDER' : null // Placeholder for large logos
+            }))
+          }
+        };
+        const success = smartCacheSet(cacheKey, JSON.stringify(minimalData), {
+          maxRetries: 1,
+          clearOldCaches: true,
+          clearAllOnFinalFailure: false
+        });
+        if (success) console.log('💾 Saved minimal cache version');
         return;
       }
       
@@ -219,6 +236,7 @@ const JobsPage = () => {
       if (useCache) {
         const cachedData = loadFromCache(cacheKey);
         if (cachedData) {
+          console.log('📦 Loading jobs from cache');
           setJobs(cachedData.jobs);
           setPagination(cachedData.pagination);
           setLoading(false);
@@ -271,28 +289,39 @@ const JobsPage = () => {
           pagination: data.data.pagination
         };
         
+        // Debug: Check if logos are present in API response
+        const firstJob = data.data.jobs[0];
+        console.log('🔍 API Response check:', {
+          hasJobs: data.data.jobs.length > 0,
+          firstJobHasLogo: !!firstJob?.companyLogo,
+          logoSize: firstJob?.companyLogo ? `${(firstJob.companyLogo.length / 1024).toFixed(1)}KB` : 'No logo'
+        });
+        
         setJobs(responseData.jobs);
         setPagination(responseData.pagination);
         
-        // Create a lightweight version for caching (only essential fields)
-        const lightweightData = {
+        // Create cache data with logo information included
+        const cacheData = {
           jobs: data.data.jobs.map(job => ({
             id: job.id,
             title: job.title,
             company: job.company,
+            companyLogo: job.companyLogo, // Include full logo data
             location: job.location,
             workType: job.workType,
             jobType: job.jobType,
             experience: job.experience,
             salary: job.salary,
             postedDate: job.postedDate,
-            // Skip any large fields like descriptions, requirements, etc.
+            country: job.country,
+            // Include all essential fields for job display
           })),
           pagination: data.data.pagination
         };
         
-        // Save lightweight version to cache
-        saveToCache(cacheKey, lightweightData);
+        // Save to cache with logo data
+        console.log('💾 Saving jobs to cache with logo data');
+        saveToCache(cacheKey, cacheData);
       } else {
         setError(data.message || 'Failed to fetch jobs');
       }
@@ -325,29 +354,7 @@ const JobsPage = () => {
     fetchJobs();
   }, [debouncedSearchTerm, filters, currentPage, fetchJobs]);
 
-  // Load saved jobs on component mount
-  useEffect(() => {
-    const loadSavedJobs = async () => {
-      try {
-        const response = await apiRequest('/api/applicant/saved-jobs', {
-          method: 'GET'
-        });
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            // Extract just the job IDs from the saved jobs data
-            const savedJobIds = data.data.map(job => job.id);
-            setSavedJobs(savedJobIds);
-          }
-        }
-      } catch (error) {
-        console.error('Error loading saved jobs:', error);
-      }
-    };
-
-    loadSavedJobs();
-  }, [apiRequest]);
 
   const totalJobs = pagination.totalJobs;
   const totalPages = pagination.totalPages;
@@ -364,59 +371,7 @@ const JobsPage = () => {
     navigate(`/jobs/${jobId}/apply`);
   };
 
-  const handleSaveJob = async (e, jobId) => {
-    e.stopPropagation();
-    
-    try {
-      setSavingJobId(jobId);
-      
-      const response = await apiRequest(`/api/applicant/saved-jobs/${jobId}`, {
-        method: 'POST'
-      });
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          // Add to saved jobs list
-          setSavedJobs(prev => [...prev, jobId]);
-        }
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Error saving job:', errorData.message);
-      }
-    } catch (error) {
-      console.error('Error saving job:', error);
-    } finally {
-      setSavingJobId(null);
-    }
-  };
-
-  const handleUnsaveJob = async (e, jobId) => {
-    e.stopPropagation();
-    
-    try {
-      setSavingJobId(jobId);
-      
-      const response = await apiRequest(`/api/applicant/saved-jobs/${jobId}`, {
-        method: 'DELETE'
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          // Remove from saved jobs list
-          setSavedJobs(prev => prev.filter(id => id !== jobId));
-        }
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Error unsaving job:', errorData.message);
-      }
-    } catch (error) {
-      console.error('Error unsaving job:', error);
-    } finally {
-      setSavingJobId(null);
-    }
-  };
 
   const handleSearch = (e) => {
     const value = e.target.value;
@@ -676,63 +631,113 @@ const JobsPage = () => {
               </button>
             </div>
           ) : filteredJobs.length > 0 ? (
-            filteredJobs.map((job) => (
+            filteredJobs.map((job) => {
+              // Minimal debug: Only log if there's an issue
+              if (!job.companyLogo && !job.company?.logo) {
+                console.log(`⚠️ No logo data for ${job.title}`);
+              }
+              
+              return (
               <div
                 key={job.id}
                 onClick={() => handleJobClick(job.id)}
-                className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer"
+                className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md hover:border-gray-300 transition-all duration-200 cursor-pointer group"
               >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 font-['Open_Sans'] mb-2">
-                      {job.title}
-                    </h3>
-                    <div className="space-y-1">
-                      <p className="text-sm text-gray-600 font-['Roboto']">
-                        Posted {job.postedDate}
-                      </p>
-                      <p className="text-sm text-gray-600 font-['Roboto']">
-                        {job.company} • {job.location} • {job.workType}
-                      </p>
-                      <p className="text-sm text-gray-600 font-['Roboto']">
-                        {job.jobType} • {job.experience} Level • {job.salary}
-                      </p>
+                <div className="flex items-start space-x-4">
+                  {/* Company Logo */}
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden relative">
+                      {/* Company Logo Image */}
+                      {(() => {
+                        const hasLogo = job.companyLogo || (job.company && job.company.logo);
+                        const logoSrc = job.companyLogo || job.company?.logo;
+                        
+                        return hasLogo ? (
+                          <img 
+                            src={logoSrc} 
+                            alt={`${(typeof job.company === 'string' ? job.company : job.company?.name) || 'Company'} logo`}
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              console.log(`❌ Logo failed to load for ${job.title}`);
+                              e.target.style.display = 'none';
+                              const fallback = e.target.parentElement.querySelector('.logo-fallback');
+                              if (fallback) fallback.style.display = 'flex';
+                            }}
+                          />
+                        ) : null;
+                      })()}
+                      {/* Fallback Letter */}
+                      <div className={`logo-fallback w-full h-full flex items-center justify-center text-gray-600 font-semibold text-sm ${(job.companyLogo || (job.company && job.company.logo)) ? 'hidden' : 'flex'}`}>
+                        {((typeof job.company === 'string' ? job.company : job.company?.name) || 'Company').charAt(0).toUpperCase()}
+                      </div>
                     </div>
                   </div>
-                  <div className="ml-6 flex items-center space-x-2">
-                    <button
-                      onClick={(e) => savedJobs.includes(job.id) ? handleUnsaveJob(e, job.id) : handleSaveJob(e, job.id)}
-                      disabled={savingJobId === job.id}
-                      className={`px-3 py-2 rounded-lg font-medium font-['Roboto'] transition-colors ${
-                        savedJobs.includes(job.id)
-                          ? 'bg-red-50 border border-red-200 text-red-600 hover:bg-red-100'
-                          : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                      } disabled:opacity-50`}
-                      title={savedJobs.includes(job.id) ? 'Remove from saved' : 'Save job'}
-                    >
-                      {savingJobId === job.id ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
-                      ) : (
-                        <svg 
-                          className={`w-4 h-4 ${savedJobs.includes(job.id) ? 'fill-current' : 'stroke-current'}`} 
-                          fill={savedJobs.includes(job.id) ? 'currentColor' : 'none'} 
-                          stroke="currentColor" 
-                          viewBox="0 0 24 24"
+                  
+                  {/* Job Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-gray-900 font-['Open_Sans'] mb-1 group-hover:text-indigo-600 transition-colors duration-200">
+                          {job.title}
+                        </h3>
+                        <p className="text-lg font-medium text-gray-600 font-['Roboto'] mb-3">
+                          {typeof job.company === 'string' ? job.company : job.company?.name || 'Company'}
+                        </p>
+                        
+                        {/* Job Details with Icons */}
+                        <div className="flex flex-wrap items-center gap-4 mb-3">
+                          <div className="flex items-center text-gray-600">
+                            <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span className="text-sm font-['Roboto']">{job.location}</span>
+                          </div>
+                          
+                          <div className="flex items-center text-gray-600">
+                            <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0H8m8 0v2a2 2 0 01-2 2H10a2 2 0 01-2-2V6" />
+                            </svg>
+                            <span className="text-sm font-['Roboto']">{job.workType}</span>
+                          </div>
+                          
+                          <div className="flex items-center text-gray-600">
+                            <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="text-sm font-['Roboto']">{job.jobType}</span>
+                          </div>
+                        </div>
+                        
+                        {/* Tags */}
+                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                            {job.experience} Level
+                          </span>
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                            {job.salary}
+                          </span>
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200">
+                            Posted {job.postedDate}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Apply Button */}
+                      <div className="flex-shrink-0 ml-4">
+                        <button
+                          onClick={(e) => handleApply(e, job.id)}
+                          className="bg-black text-white hover:bg-gray-800 px-6 py-2.5 rounded-lg font-medium font-['Roboto'] transition-colors duration-200"
                         >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                        </svg>
-                      )}
-                    </button>
-                    <button
-                      onClick={(e) => handleApply(e, job.id)}
-                      className="bg-black text-white hover:bg-gray-800 px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
-                    >
-                      Apply
-                    </button>
+                          Apply
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-            ))
+              );
+            })
           ) : (
             <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
               <div className="text-gray-400 mb-4">

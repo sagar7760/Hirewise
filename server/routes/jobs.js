@@ -93,6 +93,7 @@ router.get('/', [
     // Execute query
     const jobs = await Job.find(query)
       .populate('postedBy', 'firstName lastName email')
+      .populate('company', 'name logo website')
       .sort(sortOptions)
       .skip(skip)
       .limit(parseInt(limit))
@@ -132,6 +133,7 @@ router.get('/:id', async (req, res) => {
   try {
     const job = await Job.findById(req.params.id)
       .populate('postedBy', 'firstName lastName email company')
+      .populate('company', 'name logo website')
       .lean();
 
     if (!job) {
