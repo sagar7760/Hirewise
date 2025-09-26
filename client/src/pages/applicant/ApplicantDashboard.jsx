@@ -1,129 +1,318 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import { useAuth } from '../../contexts/AuthContext';
 
 const ApplicantDashboard = () => {
-  // Enhanced dashboard data
-  const [dashboardData] = useState({
+  const { user, apiRequest } = useAuth();
+  const [dashboardData, setDashboardData] = useState({
     stats: {
-      jobsApplied: 12,
-      interviewsScheduled: 3,
-      applicationsInReview: 5,
-      profileViews: 28
+      jobsApplied: 0,
+      applicationsInReview: 0,
+      shortlisted: 0,
+      totalJobs: 0
     },
-    recentApplications: [
-      {
-        id: 1,
-        jobTitle: 'Senior React Developer',
-        company: 'TechFlow Solutions',
-        location: 'San Francisco, CA',
-        appliedDate: '2025-09-10',
-        status: 'interview_scheduled',
-        interviewDate: '2025-09-18',
-        salary: '$90k - $120k'
-      },
-      {
-        id: 2,
-        jobTitle: 'Full Stack Engineer',
-        company: 'InnovateHub',
-        location: 'Remote',
-        appliedDate: '2025-09-08',
-        status: 'in_review',
-        salary: '$80k - $110k'
-      },
-      {
-        id: 3,
-        jobTitle: 'Product Manager',
-        company: 'Growth Dynamics',
-        location: 'New York, NY',
-        appliedDate: '2025-09-05',
-        status: 'submitted',
-        salary: '$100k - $130k'
-      }
-    ],
-    recommendedJobs: [
-      {
-        id: 1,
-        title: 'Frontend Developer',
-        company: 'Creative Labs',
-        location: 'Austin, TX',
-        type: 'Full-time',
-        posted: '2 days ago',
-        match: 95,
-        salary: '$70k - $95k'
-      },
-      {
-        id: 2,
-        title: 'React Developer',
-        company: 'Digital Minds',
-        location: 'Seattle, WA',
-        type: 'Full-time',
-        posted: '1 week ago',
-        match: 88,
-        salary: '$85k - $110k'
-      },
-      {
-        id: 3,
-        title: 'Software Engineer',
-        company: 'NextGen Tech',
-        location: 'Boston, MA',
-        type: 'Full-time',
-        posted: '3 days ago',
-        match: 92,
-        salary: '$75k - $100k'
-      }
-    ],
-    upcomingInterviews: [
-      {
-        id: 1,
-        company: 'TechFlow Solutions',
-        position: 'Senior React Developer',
-        date: '2025-09-18',
-        time: '2:00 PM',
-        type: 'Technical Interview',
-        interviewer: 'Sarah Johnson',
-        platform: 'Google Meet'
-      }
-    ],
-    recentActivity: [
-      {
-        id: 1,
-        type: 'application_viewed',
-        message: 'Your application for Senior React Developer was viewed by TechFlow Solutions',
-        timestamp: '2 hours ago',
-        company: 'TechFlow Solutions'
-      },
-      {
-        id: 2,
-        type: 'interview_scheduled',
-        message: 'Interview scheduled for Senior React Developer position',
-        timestamp: '1 day ago',
-        company: 'TechFlow Solutions'
-      },
-      {
-        id: 3,
-        type: 'application_submitted',
-        message: 'Application submitted for Full Stack Engineer',
-        timestamp: '1 week ago',
-        company: 'InnovateHub'
-      }
-    ]
+    recentApplications: [],
+    recommendedJobs: [],
+
+    recentActivity: []
   });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Fetch dashboard stats and recent applications
+      const [statsResponse, applicationsResponse, jobsResponse] = await Promise.all([
+        apiRequest('/api/applications/stats/dashboard'),
+        apiRequest('/api/applicant/applications?limit=5'),
+        apiRequest('/api/jobs?limit=6') // For recommendations
+      ]);
+
+      // Parse responses with error handling
+      let statsData = { data: { stats: {} } };
+      let applicationsData = { applications: [], data: [] };
+      let jobsData = { jobs: [], data: [] };
+
+      try {
+        if (statsResponse && statsResponse.ok) {
+          statsData = await statsResponse.json();
+        }
+      } catch (e) {
+        console.warn('Failed to parse stats data:', e);
+      }
+
+      try {
+        if (applicationsResponse && applicationsResponse.ok) {
+          applicationsData = await applicationsResponse.json();
+        }
+      } catch (e) {
+        console.warn('Failed to parse applications data:', e);
+      }
+
+      try {
+        if (jobsResponse && jobsResponse.ok) {
+          jobsData = await jobsResponse.json();
+        }
+      } catch (e) {
+        console.warn('Failed to parse jobs data:', e);
+      }
+
+      // Extract jobs array from different possible response structures
+      let jobsArray = [];
+      if (jobsData.jobs && Array.isArray(jobsData.jobs)) {
+        jobsArray = jobsData.jobs;
+      } else if (jobsData.data && Array.isArray(jobsData.data)) {
+        jobsArray = jobsData.data;
+      } else if (Array.isArray(jobsData)) {
+        jobsArray = jobsData;
+      }
+
+      // Calculate job recommendations with match algorithm
+      const recommendedJobs = calculateJobRecommendations(jobsArray);
+
+      // Generate activity feed based on applications
+      const recentActivity = generateActivityFeed(applicationsData.applications || applicationsData.data || []);
+
+      // Calculate additional stats
+      const totalApplications = statsData.data?.stats?.totalApplications || 0;
+      const successfulApplications = (statsData.data?.stats?.shortlisted || 0) + (statsData.data?.stats?.interview_scheduled || 0) + (statsData.data?.stats?.offer_extended || 0);
+      const successRate = totalApplications > 0 ? Math.round((successfulApplications / totalApplications) * 100) : 0;
+      const responseApplications = (statsData.data?.stats?.under_review || 0) + (statsData.data?.stats?.shortlisted || 0) + (statsData.data?.stats?.interview_scheduled || 0) + (statsData.data?.stats?.rejected || 0);
+      const responseRate = totalApplications > 0 ? Math.round((responseApplications / totalApplications) * 100) : 0;
+
+      // Calculate profile completion
+      const profileCompletion = calculateProfileCompletion(user);
+
+      setDashboardData({
+        stats: {
+          jobsApplied: totalApplications,
+          applicationsInReview: (statsData.data?.stats?.under_review || 0) + (statsData.data?.stats?.submitted || 0),
+          shortlisted: statsData.data?.stats?.shortlisted || 0,
+          successRate: `${successRate}%`,
+          responseRate: responseRate,
+          successTrend: Math.floor(Math.random() * 10) - 5, // Mock trend for now
+          savedJobs: 0, // Will be fetched from saved jobs API later
+          totalJobs: jobsData.total || jobsArray.length || 0
+        },
+        profileCompletion,
+        topSkills: generateTopSkills(user?.skills || []),
+        recentApplications: applicationsData.applications || applicationsData.data || [],
+        recommendedJobs,
+        recentActivity
+      });
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      setError('Failed to load dashboard data. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Job recommendation algorithm based on user profile and skills
+  const calculateJobRecommendations = (jobs) => {
+    if (!jobs || !Array.isArray(jobs) || jobs.length === 0) return [];
+    
+    const userSkills = user?.skills || [];
+    const userExperience = user?.experience || 'fresher';
+    
+    return jobs.slice(0, 6).map(job => {
+      let matchScore = 50; // Base score
+      
+      // Skills matching
+      if (job.requiredSkills && userSkills.length > 0) {
+        const jobSkills = job.requiredSkills.map(skill => skill.toLowerCase());
+        const matchingSkills = userSkills.filter(skill => 
+          jobSkills.some(jobSkill => jobSkill.includes(skill.toLowerCase()) || skill.toLowerCase().includes(jobSkill))
+        );
+        matchScore += (matchingSkills.length / Math.max(jobSkills.length, userSkills.length)) * 30;
+      }
+      
+      // Experience level matching
+      if (job.experienceLevel) {
+        const experienceMatch = {
+          'fresher': { 'fresher': 20, 'mid-level': 5, 'senior': 0, 'expert': 0 },
+          'mid-level': { 'fresher': 10, 'mid-level': 20, 'senior': 10, 'expert': 0 },
+          'senior': { 'fresher': 0, 'mid-level': 10, 'senior': 20, 'expert': 10 },
+          'expert': { 'fresher': 0, 'mid-level': 5, 'senior': 15, 'expert': 20 }
+        };
+        matchScore += experienceMatch[userExperience]?.[job.experienceLevel] || 0;
+      }
+      
+      // Location preference (if remote, add bonus)
+      if (job.workType === 'remote') {
+        matchScore += 10;
+      }
+      
+      // Ensure score is within 70-98 range for realistic recommendations
+      matchScore = Math.min(98, Math.max(70, Math.round(matchScore)));
+      
+      return {
+        id: job._id,
+        title: job.title,
+        company: job.company?.name || 'Company Name',
+        location: job.location,
+        type: job.jobType || 'Full-time',
+        posted: formatTimeAgo(job.createdAt),
+        match: matchScore,
+        salary: formatSalary(job.salaryRange)
+      };
+    });
+  };
+
+  // Generate activity feed based on application status changes
+  const generateActivityFeed = (applications) => {
+    if (!Array.isArray(applications)) return [];
+    
+    const activities = [];
+    
+    applications.forEach(app => {
+      if (!app || !app._id) return; // Skip invalid applications
+      
+      const companyName = app.job?.company?.name || 'Company';
+      const jobTitle = app.job?.title || 'Position';
+      
+      // Application submitted activity
+      activities.push({
+        id: `submit_${app._id}`,
+        type: 'application_submitted',
+        message: `Application submitted for ${jobTitle}`,
+        timestamp: formatTimeAgo(app.createdAt),
+        company: companyName
+      });
+      
+      // Status-based activities
+      if (app.status === 'under_review') {
+        activities.push({
+          id: `review_${app._id}`,
+          type: 'application_viewed',
+          message: `Your application for ${jobTitle} is under review`,
+          timestamp: formatTimeAgo(app.updatedAt),
+          company: companyName
+        });
+      } else if (app.status === 'shortlisted') {
+        activities.push({
+          id: `shortlist_${app._id}`,
+          type: 'application_shortlisted',
+          message: `You've been shortlisted for ${jobTitle}`,
+          timestamp: formatTimeAgo(app.updatedAt),
+          company: companyName
+        });
+      }
+    });
+    
+    // Sort by most recent and limit to 5
+    return activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5);
+  };
+
+  const formatSalary = (salaryRange) => {
+    if (!salaryRange) return 'Salary not specified';
+    const { min, max, currency = 'USD' } = salaryRange;
+    if (min && max) {
+      return `$${(min / 1000).toFixed(0)}k - $${(max / 1000).toFixed(0)}k`;
+    }
+    return 'Competitive salary';
+  };
+
+  const formatTimeAgo = (dateString) => {
+    if (!dateString) return 'Recently';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffHours < 1) return 'Just now';
+    if (diffHours < 24) return `${diffHours} hours ago`;
+    if (diffDays === 1) return '1 day ago';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    return `${Math.floor(diffDays / 30)} months ago`;
+  };
+
+  // Calculate profile completion percentage
+  const calculateProfileCompletion = (user) => {
+    if (!user) return { percentage: 0, missingItems: [] };
+    
+    const requiredFields = [
+      { field: 'firstName', label: 'First Name', weight: 10 },
+      { field: 'lastName', label: 'Last Name', weight: 10 },
+      { field: 'email', label: 'Email', weight: 10 },
+      { field: 'phone', label: 'Phone', weight: 10 },
+      { field: 'skills', label: 'Skills', weight: 20 },
+      { field: 'experience', label: 'Experience Level', weight: 15 },
+      { field: 'profile.currentResumeId', label: 'Resume', weight: 25 }
+    ];
+
+    let completedWeight = 0;
+    const missingItems = [];
+
+    requiredFields.forEach(({ field, label, weight }) => {
+      const fieldValue = field.includes('.') 
+        ? field.split('.').reduce((obj, key) => obj?.[key], user)
+        : user[field];
+      
+      if (fieldValue && (Array.isArray(fieldValue) ? fieldValue.length > 0 : true)) {
+        completedWeight += weight;
+      } else {
+        missingItems.push(label);
+      }
+    });
+
+    return {
+      percentage: completedWeight,
+      missingItems
+    };
+  };
+
+  // Generate top skills with mock demand data
+  const generateTopSkills = (userSkills) => {
+    if (!userSkills || userSkills.length === 0) return [];
+    
+    const skillDemand = {
+      'JavaScript': 85,
+      'React': 78,
+      'Node.js': 72,
+      'Python': 80,
+      'Java': 75,
+      'CSS': 65,
+      'HTML': 70,
+      'TypeScript': 68,
+      'MongoDB': 60,
+      'SQL': 77
+    };
+
+    return userSkills.slice(0, 5).map(skill => ({
+      name: skill,
+      demand: skillDemand[skill] || Math.floor(Math.random() * 40) + 50
+    })).sort((a, b) => b.demand - a.demand);
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
       case 'interview_scheduled':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-400';
+      case 'under_review':
       case 'in_review':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400';
       case 'submitted':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300';
+      case 'shortlisted':
+        return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400';
       case 'rejected':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400';
       case 'accepted':
-        return 'bg-green-100 text-green-800';
+      case 'offer_extended':
+        return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300';
     }
   };
 
@@ -146,13 +335,15 @@ const ApplicantDashboard = () => {
 
   const getMatchColor = (match) => {
     if (match >= 90) return 'text-green-600';
-    if (match >= 80) return 'text-blue-600';
+    if (match >= 80) return 'text-indigo-600';
     if (match >= 70) return 'text-yellow-600';
     return 'text-gray-600';
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'N/A';
     return date.toLocaleDateString('en-US', { 
       weekday: 'short',
       month: 'short', 
@@ -167,6 +358,12 @@ const ApplicantDashboard = () => {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+        );
+      case 'application_shortlisted':
+        return (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         );
       case 'interview_scheduled':
@@ -190,19 +387,50 @@ const ApplicantDashboard = () => {
     }
   };
 
+  // Show error state
+  if (error) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-white border border-gray-200 rounded-lg p-8 text-center shadow-sm">
+            <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-black font-['Open_Sans'] mb-2">Unable to load dashboard</h3>
+            <p className="text-gray-600 font-['Roboto'] mb-6 max-w-md mx-auto">
+              We're having trouble loading your dashboard data. Please check your connection and try again.
+            </p>
+            <button 
+              onClick={fetchDashboardData}
+              className="bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors font-['Roboto']"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-black font-['Open_Sans']">Welcome back, John!</h1>
+          <h1 className="text-3xl font-bold text-black font-['Open_Sans']">
+            Welcome back, {user?.firstName || 'there'}!
+          </h1>
           <p className="text-gray-600 font-['Roboto'] mt-2">
             Here's what's happening with your job search today.
           </p>
         </div>
 
+
+
         {/* Dashboard Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
           <Link to="/my-applications" className="block">
             <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
               <div className="flex items-center">
@@ -213,25 +441,11 @@ const ApplicantDashboard = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600 font-['Roboto']">Applications</p>
-                  <p className="text-2xl font-bold text-black font-['Open_Sans']">{dashboardData.stats.jobsApplied}</p>
+                  <p className="text-2xl font-bold text-black font-['Open_Sans']">{isLoading ? '...' : dashboardData.stats.jobsApplied}</p>
                 </div>
               </div>
             </div>
           </Link>
-
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-gray-100 rounded-lg">
-                <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 font-['Roboto']">Interviews</p>
-                <p className="text-2xl font-bold text-black font-['Open_Sans']">{dashboardData.stats.interviewsScheduled}</p>
-              </div>
-            </div>
-          </div>
 
           <div className="bg-white border border-gray-200 rounded-lg p-6">
             <div className="flex items-center">
@@ -242,7 +456,7 @@ const ApplicantDashboard = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600 font-['Roboto']">In Review</p>
-                <p className="text-2xl font-bold text-black font-['Open_Sans']">{dashboardData.stats.applicationsInReview}</p>
+                <p className="text-2xl font-bold text-black font-['Open_Sans']">{isLoading ? '...' : dashboardData.stats.applicationsInReview}</p>
               </div>
             </div>
           </div>
@@ -251,129 +465,228 @@ const ApplicantDashboard = () => {
             <div className="flex items-center">
               <div className="p-3 bg-gray-100 rounded-lg">
                 <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 font-['Roboto']">Profile Views</p>
-                <p className="text-2xl font-bold text-black font-['Open_Sans']">{dashboardData.stats.profileViews}</p>
+                <p className="text-sm font-medium text-gray-600 font-['Roboto']">Shortlisted</p>
+                <p className="text-2xl font-bold text-black font-['Open_Sans']">{isLoading ? '...' : dashboardData.stats.shortlisted}</p>
+              </div>
+            </div>
+          </div>
+
+          <Link to="/jobs" className="block">
+            <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-center">
+                <div className="p-3 bg-gray-100 rounded-lg">
+                  <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0H8M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 font-['Roboto']">Available Jobs</p>
+                  <p className="text-2xl font-bold text-black font-['Open_Sans']">{isLoading ? '...' : dashboardData.stats.totalJobs}</p>
+                </div>
+              </div>
+            </div>
+          </Link>
+
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <div className="flex items-center">
+              <div className="p-3 bg-gray-100 rounded-lg">
+                <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600 font-['Roboto']">Response Rate</p>
+                <p className="text-2xl font-bold text-black font-['Open_Sans']">{isLoading ? '...' : dashboardData.stats.responseRate}%</p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Recent Applications & Upcoming Interviews */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Upcoming Interviews */}
-            {dashboardData.upcomingInterviews.length > 0 && (
-              <div className="bg-white rounded-lg border border-gray-200">
-                <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-black font-['Open_Sans']">Upcoming Interviews</h2>
-                  <span className="text-sm text-gray-500 font-['Roboto']">
-                    {dashboardData.upcomingInterviews.length} scheduled
+        {/* Additional Info Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {/* Skill Gap Analysis */}
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-black font-['Open_Sans']">Skill Insights</h3>
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+            <div className="space-y-2">
+              {dashboardData.topSkills?.length > 0 ? (
+                dashboardData.topSkills.slice(0, 3).map((skill, index) => (
+                  <div key={index} className="flex items-center justify-between text-sm">
+                    <span className="font-['Roboto'] text-gray-700">{skill.name}</span>
+                    <span className="font-['Roboto'] text-gray-500">{skill.demand}% demand</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500 font-['Roboto']">Complete your profile to see insights</p>
+              )}
+            </div>
+            <Link 
+              to="/profile" 
+              className="text-sm text-black hover:text-gray-700 font-['Roboto'] mt-3 inline-block"
+            >
+              View All Skills →
+            </Link>
+          </div>
+
+          {/* Profile Completion Circular */}
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-black font-['Open_Sans']">Profile Completion</h3>
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            
+            <div className="flex flex-col items-center">
+              {/* Circular Progress Bar */}
+              <div className="relative w-20 h-20 mb-4">
+                <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 36 36">
+                  {/* Background circle */}
+                  <path
+                    className="text-gray-200"
+                    stroke="currentColor"
+                    strokeWidth="3.5"
+                    fill="transparent"
+                    d="M18 2.0845
+                      a 15.9155 15.9155 0 0 1 0 31.831
+                      a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  {/* Progress circle */}
+                  <path
+                    className="text-black"
+                    stroke="currentColor"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    fill="transparent"
+                    strokeDasharray={`${dashboardData.profileCompletion?.percentage || 0}, 100`}
+                    d="M18 2.0845
+                      a 15.9155 15.9155 0 0 1 0 31.831
+                      a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-xl font-bold text-black font-['Open_Sans']">
+                    {dashboardData.profileCompletion?.percentage || 0}%
                   </span>
                 </div>
-                <div className="p-6">
-                  {dashboardData.upcomingInterviews.map((interview) => (
-                    <div key={interview.id} className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-medium text-black font-['Open_Sans'] mb-1">
-                            {interview.position}
-                          </h3>
-                          <p className="text-gray-600 font-['Roboto'] mb-2">{interview.company}</p>
-                          
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <span className="text-gray-500 font-['Roboto']">Date & Time:</span>
-                              <p className="text-black font-['Roboto'] font-medium">
-                                {formatDate(interview.date)} at {interview.time}
-                              </p>
-                            </div>
-                            <div>
-                              <span className="text-gray-500 font-['Roboto']">Type:</span>
-                              <p className="text-black font-['Roboto'] font-medium">{interview.type}</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-500 font-['Roboto']">Interviewer:</span>
-                              <p className="text-black font-['Roboto'] font-medium">{interview.interviewer}</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-500 font-['Roboto']">Platform:</span>
-                              <p className="text-black font-['Roboto'] font-medium">{interview.platform}</p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="ml-4 flex flex-col gap-2">
-                          <button className="bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors font-['Roboto']">
-                            Join Meeting
-                          </button>
-                          <button className="bg-white text-black border border-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors font-['Roboto']">
-                            View Details
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </div>
-            )}
-
-            {/* Recent Applications */}
-            <div className="bg-white rounded-lg border border-gray-200">
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-black font-['Open_Sans']">Recent Applications</h2>
-                <Link 
-                  to="/my-applications" 
-                  className="text-sm text-black hover:text-gray-700 font-['Roboto'] font-medium"
-                >
-                  View All →
-                </Link>
-              </div>
-              <div className="divide-y divide-gray-200">
-                {dashboardData.recentApplications.map((application) => (
-                  <div key={application.id} className="p-6 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-medium text-black font-['Open_Sans']">
-                            {application.jobTitle}
-                          </h3>
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full font-['Roboto'] ${getStatusColor(application.status)}`}>
-                            {getStatusText(application.status)}
-                          </span>
-                        </div>
-                        <p className="text-gray-600 font-['Roboto'] mb-2">
-                          {application.company} • {application.location}
-                        </p>
-                        <div className="flex items-center gap-4 text-sm text-gray-500 font-['Roboto']">
-                          <span>Applied {formatDate(application.appliedDate)}</span>
-                          <span>•</span>
-                          <span>{application.salary}</span>
-                          {application.interviewDate && (
-                            <>
-                              <span>•</span>
-                              <span className="text-blue-600 font-medium">
-                                Interview: {formatDate(application.interviewDate)}
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      <button className="bg-white text-black border border-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors font-['Roboto']">
-                        View Details
-                      </button>
+              
+              {/* Missing items */}
+              <div className="text-center">
+                {dashboardData.profileCompletion?.missingItems && dashboardData.profileCompletion.missingItems.length > 0 ? (
+                  <div className="mb-3">
+                    <p className="text-xs text-gray-500 font-['Roboto'] mb-2">Missing:</p>
+                    <div className="space-y-1">
+                      {dashboardData.profileCompletion.missingItems.slice(0, 2).map((item, index) => (
+                        <span key={index} className="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full font-['Roboto'] mr-1">
+                          {item}
+                        </span>
+                      ))}
+                      {dashboardData.profileCompletion.missingItems.length > 2 && (
+                        <span className="text-xs text-gray-500 font-['Roboto']">
+                          +{dashboardData.profileCompletion.missingItems.length - 2} more
+                        </span>
+                      )}
                     </div>
                   </div>
-                ))}
+                ) : (
+                  <p className="text-xs text-green-600 font-['Roboto'] mb-3">Profile Complete!</p>
+                )}
+                
+                <Link 
+                  to="/profile"
+                  className="text-xs bg-black text-white px-3 py-1 rounded-lg hover:bg-gray-800 transition-colors font-['Roboto']"
+                >
+                  Update Profile
+                </Link>
               </div>
             </div>
           </div>
 
-          {/* Right Column - Recommendations & Activity */}
-          <div className="space-y-8">
+          {/* Quick Actions Enhanced */}
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-black font-['Open_Sans']">Quick Actions</h3>
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <div className="space-y-4">
+              <Link 
+                to="/jobs"
+                className="group flex items-center gap-4 p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-all duration-300 transform hover:scale-[1.02] border border-gray-100"
+              >
+                <div className="w-10 h-10 bg-gray-100 group-hover:bg-gray-200 rounded-lg flex items-center justify-center transition-colors duration-300">
+                  <svg className="w-5 h-5 text-gray-600 group-hover:text-gray-700 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-900 group-hover:text-black font-['Open_Sans'] transition-colors duration-300">Browse Jobs</span>
+                  <p className="text-xs text-gray-500 group-hover:text-gray-600 font-['Roboto'] mt-1 transition-colors duration-300">Find your next opportunity</p>
+                </div>
+                <div className="ml-auto">
+                  <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-500 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </Link>
+              
+              <Link 
+                to="/profile"
+                className="group flex items-center gap-4 p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-all duration-300 transform hover:scale-[1.02] border border-gray-100"
+              >
+                <div className="w-10 h-10 bg-gray-100 group-hover:bg-gray-200 rounded-lg flex items-center justify-center transition-colors duration-300">
+                  <svg className="w-5 h-5 text-gray-600 group-hover:text-gray-700 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-900 group-hover:text-black font-['Open_Sans'] transition-colors duration-300">Update Profile</span>
+                  <p className="text-xs text-gray-500 group-hover:text-gray-600 font-['Roboto'] mt-1 transition-colors duration-300">Complete your information</p>
+                </div>
+                <div className="ml-auto">
+                  <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-500 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </Link>
+              
+              <Link 
+                to="/applicant/applications"
+                className="group flex items-center gap-4 p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-all duration-300 transform hover:scale-[1.02] border border-gray-100"
+              >
+                <div className="w-10 h-10 bg-gray-100 group-hover:bg-gray-200 rounded-lg flex items-center justify-center transition-colors duration-300">
+                  <svg className="w-5 h-5 text-gray-600 group-hover:text-gray-700 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-900 group-hover:text-black font-['Open_Sans'] transition-colors duration-300">Track Applications</span>
+                  <p className="text-xs text-gray-500 group-hover:text-gray-600 font-['Roboto'] mt-1 transition-colors duration-300">Monitor your progress</p>
+                </div>
+                <div className="ml-auto">
+                  <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-500 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Recommended Jobs */}
+          <div className="lg:col-span-2 space-y-8">
+
             {/* Recommended Jobs */}
             <div className="bg-white rounded-lg border border-gray-200">
               <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
@@ -385,35 +698,151 @@ const ApplicantDashboard = () => {
                   View All →
                 </Link>
               </div>
-              <div className="p-6">
-                <div className="space-y-4">
-                  {dashboardData.recommendedJobs.map((job) => (
-                    <div key={job.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                      <div className="flex items-start justify-between mb-3">
+              <div className="divide-y divide-gray-200">
+                {isLoading ? (
+                  // Loading skeleton
+                  Array.from({ length: 3 }).map((_, index) => (
+                    <div key={index} className="p-6 animate-pulse">
+                      <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h3 className="text-sm font-medium text-black font-['Open_Sans'] mb-1">
-                            {job.title}
-                          </h3>
-                          <p className="text-sm text-gray-600 font-['Roboto']">{job.company}</p>
+                          <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                          <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
+                          <div className="h-3 bg-gray-200 rounded w-2/3"></div>
                         </div>
-                        <div className="flex items-center">
-                          <div className={`w-2 h-2 rounded-full mr-2 ${getMatchColor(job.match).replace('text-', 'bg-')}`}></div>
-                          <span className={`text-xs font-medium font-['Roboto'] ${getMatchColor(job.match)}`}>
-                            {job.match}% match
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-xs text-gray-500 font-['Roboto'] mb-3">
-                        {job.location} • {job.type} • {job.salary}
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500 font-['Roboto']">Posted {job.posted}</span>
-                        <button className="text-xs bg-black text-white px-3 py-1 rounded-lg font-medium hover:bg-gray-800 transition-colors font-['Roboto']">
-                          Apply Now
-                        </button>
+                        <div className="h-8 bg-gray-200 rounded w-20"></div>
                       </div>
                     </div>
-                  ))}
+                  ))
+                ) : dashboardData.recommendedJobs && dashboardData.recommendedJobs.length > 0 ? (
+                  dashboardData.recommendedJobs.map((job) => (
+                    <div key={job.id} className="p-6 hover:bg-gray-50 transition-colors">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-lg font-medium text-black font-['Open_Sans']">
+                              {job.title}
+                            </h3>
+                            <div className="flex items-center">
+                              <div className={`w-2 h-2 rounded-full mr-2 ${getMatchColor(job.match).replace('text-', 'bg-')}`}></div>
+                              <span className={`text-xs font-medium font-['Roboto'] ${getMatchColor(job.match)}`}>
+                                {job.match}% match
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-gray-600 font-['Roboto'] mb-2">
+                            {job.company} • {job.location}
+                          </p>
+                          <div className="flex items-center gap-4 text-sm text-gray-500 font-['Roboto']">
+                            <span>Posted {job.posted}</span>
+                            <span>•</span>
+                            <span>{job.salary}</span>
+                            <span>•</span>
+                            <span>{job.type}</span>
+                          </div>
+                        </div>
+                        <Link 
+                          to={`/jobs/${job.id}/apply`}
+                          className="bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors font-['Roboto']"
+                        >
+                          Apply Now
+                        </Link>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-6 text-center">
+                    <div className="text-gray-500 font-['Roboto']">
+                      <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0H8M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      <p>No job recommendations available</p>
+                      <p className="text-sm mt-1">Complete your profile to get personalized recommendations</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Recommendations & Activity */}
+          <div className="space-y-8">
+            {/* Recent Applications */}
+            <div className="bg-white rounded-lg border border-gray-200">
+              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-black font-['Open_Sans']">Recent Applications</h2>
+                <Link 
+                  to="/applicant/applications" 
+                  className="text-sm text-black hover:text-gray-700 font-['Roboto'] font-medium"
+                >
+                  View All →
+                </Link>
+              </div>
+              <div className="p-6">
+                <div className="space-y-4">
+                  {isLoading ? (
+                    // Loading skeleton
+                    Array.from({ length: 2 }).map((_, index) => (
+                      <div key={index} className="border border-gray-200 rounded-lg p-4 animate-pulse">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                            <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                          </div>
+                          <div className="h-3 bg-gray-200 rounded w-16"></div>
+                        </div>
+                        <div className="h-3 bg-gray-200 rounded w-full mb-3"></div>
+                        <div className="flex items-center justify-between">
+                          <div className="h-3 bg-gray-200 rounded w-20"></div>
+                          <div className="h-6 bg-gray-200 rounded w-16"></div>
+                        </div>
+                      </div>
+                    ))
+                  ) : dashboardData.recentApplications && dashboardData.recentApplications.length > 0 ? (
+                    dashboardData.recentApplications.slice(0, 2).map((application) => (
+                      <div key={application._id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h3 className="text-sm font-medium text-black font-['Open_Sans'] mb-1">
+                              {application.job?.title || 'Job Title'}
+                            </h3>
+                            <p className="text-sm text-gray-600 font-['Roboto']">
+                              {application.job?.company?.name || application.job?.company || 'Company Name'}
+                            </p>
+                          </div>
+                          <div className="flex items-center">
+                            <div className={`px-2 py-1 rounded-full text-xs font-medium font-['Roboto'] ${getStatusColor(application.status)}`}>
+                              {application.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-500 font-['Roboto'] mb-3">
+                          {application.job?.location || 'Location not specified'} • {application.job?.type || 'Full-time'} • 
+                          {application.job?.salaryRange ? formatSalary(application.job.salaryRange) : 'Salary not specified'}
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-500 font-['Roboto']">
+                            Applied {formatTimeAgo(application.appliedAt || application.createdAt)}
+                          </span>
+                          <Link 
+                            to={`/applicant/applications/${application._id}`}
+                            className="text-xs bg-black text-white px-3 py-1 rounded-lg font-medium hover:bg-gray-800 transition-colors font-['Roboto']"
+                          >
+                            View Details
+                          </Link>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="text-gray-500 font-['Roboto']">
+                        <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p>No recent applications</p>
+                        <p className="text-sm mt-1">Start applying to jobs to see your applications here</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -425,55 +854,55 @@ const ApplicantDashboard = () => {
               </div>
               <div className="p-6">
                 <div className="space-y-4">
-                  {dashboardData.recentActivity.map((activity) => (
-                    <div key={activity.id} className="flex items-start space-x-3">
-                      <div className="flex-shrink-0">
-                        <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-gray-600">
-                          {getActivityIcon(activity.type)}
+                  {isLoading ? (
+                    // Loading skeleton
+                    Array.from({ length: 3 }).map((_, index) => (
+                      <div key={index} className="flex items-start space-x-3 animate-pulse">
+                        <div className="w-8 h-8 bg-gray-200 rounded-lg"></div>
+                        <div className="flex-1 min-w-0">
+                          <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                          <div className="h-3 bg-gray-200 rounded w-1/2"></div>
                         </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-black font-['Roboto']">{activity.message}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <p className="text-xs text-gray-500 font-['Roboto']">{activity.timestamp}</p>
-                          {activity.company && (
-                            <>
-                              <span className="text-xs text-gray-400">•</span>
-                              <p className="text-xs text-gray-500 font-['Roboto']">{activity.company}</p>
-                            </>
-                          )}
+                    ))
+                  ) : dashboardData.recentActivity.length > 0 ? (
+                    dashboardData.recentActivity.map((activity) => (
+                      <div key={activity.id} className="flex items-start space-x-3">
+                        <div className="flex-shrink-0">
+                          <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-gray-600">
+                            {getActivityIcon(activity.type)}
+                          </div>
                         </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-black font-['Roboto']">{activity.message}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <p className="text-xs text-gray-500 font-['Roboto']">{activity.timestamp}</p>
+                            {activity.company && (
+                              <>
+                                <span className="text-xs text-gray-400">•</span>
+                                <p className="text-xs text-gray-500 font-['Roboto']">{activity.company}</p>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="text-gray-500 font-['Roboto']">
+                        <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p>No recent activity</p>
+                        <p className="text-sm mt-1">Your application activities will appear here</p>
                       </div>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="text-lg font-medium text-black font-['Open_Sans'] mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                <Link 
-                  to="/jobs"
-                  className="block w-full bg-black text-white px-4 py-3 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors font-['Roboto'] text-center"
-                >
-                  Browse New Jobs
-                </Link>
-                <Link 
-                  to="/profile"
-                  className="block w-full bg-white text-black border border-gray-300 px-4 py-3 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors font-['Roboto'] text-center"
-                >
-                  Update Profile
-                </Link>
-                <Link 
-                  to="/my-applications"
-                  className="block w-full bg-white text-black border border-gray-300 px-4 py-3 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors font-['Roboto'] text-center"
-                >
-                  Track Applications
-                </Link>
-              </div>
-            </div>
+
           </div>
         </div>
       </div>
