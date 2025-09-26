@@ -93,7 +93,9 @@ const ApplicantDashboard = () => {
 
       // Extract jobs array from different possible response structures
       let jobsArray = [];
-      if (jobsData.jobs && Array.isArray(jobsData.jobs)) {
+      if (jobsData.data && jobsData.data.jobs && Array.isArray(jobsData.data.jobs)) {
+        jobsArray = jobsData.data.jobs;
+      } else if (jobsData.jobs && Array.isArray(jobsData.jobs)) {
         jobsArray = jobsData.jobs;
       } else if (jobsData.data && Array.isArray(jobsData.data)) {
         jobsArray = jobsData.data;
@@ -126,7 +128,7 @@ const ApplicantDashboard = () => {
           responseRate: responseRate,
           successTrend: Math.floor(Math.random() * 10) - 5, // Mock trend for now
           savedJobs: 0, // Will be fetched from saved jobs API later
-          totalJobs: jobsData.total || jobsArray.length || 0
+          totalJobs: jobsData.data?.pagination?.totalJobs || jobsArray.length || 0
         },
         profileCompletion,
         topSkills: generateTopSkills(user?.skills || []),

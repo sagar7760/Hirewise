@@ -51,7 +51,7 @@ router.get('/', [
     } = req.query;
 
     // Build query
-    let query = { status: 'published' };
+    let query = { status: 'active' };
 
     // Text search
     if (search) {
@@ -143,8 +143,8 @@ router.get('/:id', async (req, res) => {
       });
     }
 
-    // Only show published jobs to public
-    if (job.status !== 'published') {
+    // Only show active jobs to public
+    if (job.status !== 'active') {
       return res.status(404).json({
         success: false,
         message: 'Job not found'
@@ -255,13 +255,13 @@ router.post('/', auth, authorize('hr', 'admin'), [
 // @access  Public
 router.get('/stats/overview', async (req, res) => {
   try {
-    const totalJobs = await Job.countDocuments({ status: 'published' });
+    const totalJobs = await Job.countDocuments({ status: 'active' });
     const jobsByType = await Job.aggregate([
-      { $match: { status: 'published' } },
+      { $match: { status: 'active' } },
       { $group: { _id: '$jobType', count: { $sum: 1 } } }
     ]);
     const jobsByWorkType = await Job.aggregate([
-      { $match: { status: 'published' } },
+      { $match: { status: 'active' } },
       { $group: { _id: '$workType', count: { $sum: 1 } } }
     ]);
 

@@ -32,9 +32,9 @@ router.post('/', auth, authorize('applicant'), uploadResume.single('resume'), [
 
     const { jobId, firstName, lastName, email, phone, coverLetter } = req.body;
 
-    // Check if job exists and is published
+    // Check if job exists and is active
     const job = await Job.findById(jobId);
-    if (!job || job.status !== 'published') {
+    if (!job || job.status !== 'active') {
       return res.status(404).json({
         success: false,
         message: 'Job not found or not available for applications'
