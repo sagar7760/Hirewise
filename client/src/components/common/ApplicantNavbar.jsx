@@ -1,12 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import hirewiseLogo from '../../assets/hirewise.svg';
+import ThemeToggle from './ThemeToggle';
 
 const ApplicantNavbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { isDark } = useTheme();
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isNotificationDropdownOpen, setIsNotificationDropdownOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -193,7 +196,7 @@ const ApplicantNavbar = () => {
   };
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200">
+    <nav className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           {/* Logo only */}
@@ -206,7 +209,7 @@ const ApplicantNavbar = () => {
                   alt="HireWise"
                 />
               </div>
-              <span className="ml-2 text-xl font-bold text-gray-900 font-['Open_Sans']">
+              <span className="ml-2 text-xl font-bold text-gray-900 dark:text-white font-['Open_Sans'] transition-colors duration-300">
                 HireWise
               </span>
             </Link>
@@ -222,13 +225,18 @@ const ApplicantNavbar = () => {
                   to={item.path}
                   className={`inline-flex items-center px-1 pt-1 text-sm font-medium transition-colors font-['Roboto'] ${
                     isActivePath(item.path)
-                      ? 'text-black border-b-2 border-black'
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'text-black dark:text-white border-b-2 border-black dark:border-white'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                   }`}
                 >
                   {item.name}
                 </Link>
               ))}
+            </div>
+            
+            {/* Theme Toggle */}
+            <div className="mr-4">
+              <ThemeToggle />
             </div>
             {/* Notifications Dropdown */}
             <div 
@@ -239,8 +247,8 @@ const ApplicantNavbar = () => {
             >
               <button 
                 onClick={handleNotificationClick}
-                className={`relative p-2 text-gray-400 hover:text-gray-600 transition-colors duration-200 rounded-full hover:bg-gray-100 ${
-                  isNotificationDropdownOpen ? 'text-gray-600 bg-gray-100' : ''
+                className={`relative p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 ${
+                  isNotificationDropdownOpen ? 'text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800' : ''
                 }`}
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -255,15 +263,15 @@ const ApplicantNavbar = () => {
               </button>
 
               {/* Notifications Dropdown */}
-              <div className={`absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 transition-all duration-200 ease-out transform origin-top-right ${
+              <div className={`absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50 transition-all duration-200 ease-out transform origin-top-right ${
                 isNotificationDropdownOpen 
                   ? 'opacity-100 scale-100 translate-y-0' 
                   : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
               }`}>
                 {/* Header */}
-                <div className="px-4 py-3 border-b border-gray-100">
+                <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium text-gray-900 font-['Open_Sans']">Notifications</h3>
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-white font-['Open_Sans']">Notifications</h3>
                     {unreadNotifications.length > 0 && (
                       <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-medium">
                         {unreadNotifications.length} unread
@@ -279,13 +287,13 @@ const ApplicantNavbar = () => {
                       <button
                         key={notification.id}
                         onClick={() => handleNotificationItemClick(notification.id)}
-                        className={`w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-b-0 ${
-                          !notification.read ? 'bg-blue-50' : ''
+                        className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-50 dark:border-gray-700 last:border-b-0 ${
+                          !notification.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''
                         }`}
                       >
                         <div className="flex items-start space-x-3">
                           <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
-                            !notification.read ? 'bg-white shadow-sm' : 'bg-gray-100'
+                            !notification.read ? 'bg-white dark:bg-gray-700 shadow-sm' : 'bg-gray-100 dark:bg-gray-600'
                           } ${notification.type === 'application' ? 'text-blue-500' : 
                              notification.type === 'interview' ? 'text-green-500' : 
                              notification.type === 'message' ? 'text-purple-500' : 'text-gray-500'}`}>
@@ -295,7 +303,7 @@ const ApplicantNavbar = () => {
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
                                 <p className={`text-sm font-medium font-['Open_Sans'] ${
-                                  !notification.read ? 'text-gray-900' : 'text-gray-700'
+                                  !notification.read ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'
                                 }`}>
                                   {notification.title}
                                   {!notification.read && (
@@ -303,12 +311,12 @@ const ApplicantNavbar = () => {
                                   )}
                                 </p>
                                 <p className={`mt-1 text-xs font-['Roboto'] ${
-                                  !notification.read ? 'text-gray-600' : 'text-gray-500'
+                                  !notification.read ? 'text-gray-600 dark:text-gray-400' : 'text-gray-500 dark:text-gray-500'
                                 } line-clamp-2`}>
                                   {notification.message}
                                 </p>
                               </div>
-                              <p className="text-xs text-gray-500 font-['Roboto'] flex-shrink-0 ml-2">
+                              <p className="text-xs text-gray-500 dark:text-gray-400 font-['Roboto'] flex-shrink-0 ml-2">
                                 {notification.time}
                               </p>
                             </div>
@@ -323,17 +331,17 @@ const ApplicantNavbar = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                         </svg>
                       </div>
-                      <p className="text-sm text-gray-500 font-['Roboto']">No notifications</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">No notifications</p>
                     </div>
                   )}
                 </div>
 
                 {/* Footer */}
                 {mockNotifications.length > 0 && (
-                  <div className="border-t border-gray-100 px-4 py-3">
+                  <div className="border-t border-gray-100 dark:border-gray-700 px-4 py-3">
                     <button
                       onClick={handleViewAllNotifications}
-                      className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium font-['Roboto'] transition-colors"
+                      className="w-full text-center text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium font-['Roboto'] transition-colors"
                     >
                       View all notifications
                     </button>
@@ -351,8 +359,8 @@ const ApplicantNavbar = () => {
             >
               <button 
                 onClick={handleClick}
-                className={`flex items-center text-sm rounded-full focus:outline-none transition-all duration-200 hover:ring-2 hover:ring-gray-300 ${
-                  isProfileDropdownOpen ? 'ring-2 ring-gray-400' : ''
+                className={`flex items-center text-sm rounded-full focus:outline-none transition-all duration-200 hover:ring-2 hover:ring-gray-300 dark:hover:ring-gray-600 ${
+                  isProfileDropdownOpen ? 'ring-2 ring-gray-400 dark:ring-gray-500' : ''
                 }`}
               >
                 <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
@@ -390,19 +398,19 @@ const ApplicantNavbar = () => {
               </button>
 
               {/* Profile Dropdown with Animation */}
-              <div className={`absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 transition-all duration-200 ease-out transform origin-top-right ${
+              <div className={`absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50 transition-all duration-200 ease-out transform origin-top-right ${
                 isProfileDropdownOpen 
                   ? 'opacity-100 scale-100 translate-y-0' 
                   : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
               }`}>
                 {/* User Info */}
-                <div className="px-4 py-3 border-b border-gray-100">
-                  <p className="text-sm font-medium text-gray-900 font-['Open_Sans']">
+                <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white font-['Open_Sans']">
                     {user?.fullName || 
                      (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : '') ||
                      user?.email?.split('@')[0] || 'User'}
                   </p>
-                  <p className="text-sm text-gray-500 font-['Roboto']">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">
                     {user?.email || 'user@example.com'}
                   </p>
                 </div>
@@ -411,9 +419,9 @@ const ApplicantNavbar = () => {
                 <div className="py-1">
                   <button
                     onClick={() => handleProfileMenuClick('Profile')}
-                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 font-['Roboto'] transition-colors duration-150"
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-['Roboto'] transition-colors duration-150"
                   >
-                    <svg className="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 mr-3 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                     Profile
@@ -421,9 +429,9 @@ const ApplicantNavbar = () => {
                   
                   <button
                     onClick={() => handleProfileMenuClick('My Applications')}
-                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 font-['Roboto'] transition-colors duration-150"
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-['Roboto'] transition-colors duration-150"
                   >
-                    <svg className="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 mr-3 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     My Applications
@@ -431,9 +439,9 @@ const ApplicantNavbar = () => {
                   
                   <button
                     onClick={() => handleProfileMenuClick('Saved Jobs')}
-                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 font-['Roboto'] transition-colors duration-150"
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-['Roboto'] transition-colors duration-150"
                   >
-                    <svg className="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 mr-3 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                     </svg>
                     Saved Jobs
@@ -441,12 +449,12 @@ const ApplicantNavbar = () => {
                 </div>
 
                 {/* Divider */}
-                <div className="border-t border-gray-100 my-1"></div>
+                <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
 
                 {/* Sign Out */}
                 <button
                   onClick={() => handleProfileMenuClick('Sign Out')}
-                  className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-['Roboto'] transition-colors duration-150"
+                  className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 font-['Roboto'] transition-colors duration-150"
                 >
                   <svg className="w-4 h-4 mr-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -468,8 +476,8 @@ const ApplicantNavbar = () => {
               to={item.path}
               className={`block pl-3 pr-4 py-2 text-base font-medium transition-colors font-['Roboto'] ${
                 isActivePath(item.path)
-                  ? 'text-black bg-gray-50 border-l-4 border-black'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  ? 'text-black dark:text-white bg-gray-50 dark:bg-gray-800 border-l-4 border-black dark:border-white'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
             >
               {item.name}

@@ -110,10 +110,10 @@ const NotificationsPage = () => {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 font-['Open_Sans'] mb-2">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white font-['Open_Sans'] mb-2 transition-colors duration-300">
                 Notifications
               </h1>
-              <p className="text-gray-600 font-['Roboto']">
+              <p className="text-gray-600 dark:text-gray-300 font-['Roboto'] transition-colors duration-300">
                 Stay updated with your job applications and messages.
               </p>
             </div>
@@ -125,18 +125,18 @@ const NotificationsPage = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700 transition-colors duration-300">
           {notifications.map((notification) => (
             <div
               key={notification.id}
-              className={`p-6 hover:bg-gray-50 transition-colors ${
-                !notification.read ? 'bg-blue-50' : ''
+              className={`p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                !notification.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''
               }`}
             >
               <div className="flex items-start space-x-4">
                 <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${
-                  !notification.read ? 'bg-white shadow-sm' : 'bg-gray-100'
-                } ${getNotificationColor(notification.type, notification.read)}`}>
+                  !notification.read ? 'bg-white dark:bg-gray-700 shadow-sm' : 'bg-gray-100 dark:bg-gray-600'
+                } ${getNotificationColor(notification.type, notification.read)} transition-colors duration-300`}>
                   {getNotificationIcon(notification.icon)}
                 </div>
                 
@@ -144,20 +144,20 @@ const NotificationsPage = () => {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <h3 className={`text-sm font-medium font-['Open_Sans'] ${
-                        !notification.read ? 'text-gray-900' : 'text-gray-700'
-                      }`}>
+                        !notification.read ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'
+                      } transition-colors duration-300`}>
                         {notification.title}
                         {!notification.read && (
                           <span className="ml-2 w-2 h-2 bg-blue-500 rounded-full inline-block"></span>
                         )}
                       </h3>
                       <p className={`mt-1 text-sm font-['Roboto'] ${
-                        !notification.read ? 'text-gray-700' : 'text-gray-500'
-                      }`}>
+                        !notification.read ? 'text-gray-700 dark:text-gray-400' : 'text-gray-500 dark:text-gray-500'
+                      } transition-colors duration-300`}>
                         {notification.message}
                       </p>
                     </div>
-                    <p className="text-xs text-gray-500 font-['Roboto'] flex-shrink-0 ml-4">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-['Roboto'] flex-shrink-0 ml-4 transition-colors duration-300">
                       {notification.time}
                     </p>
                   </div>
@@ -168,16 +168,16 @@ const NotificationsPage = () => {
         </div>
 
         {notifications.length === 0 && (
-          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-            <div className="text-gray-400 mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-12 text-center transition-colors duration-300">
+            <div className="text-gray-400 dark:text-gray-500 mb-4">
               <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 font-['Open_Sans'] mb-2">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white font-['Open_Sans'] mb-2 transition-colors duration-300">
               No notifications
             </h3>
-            <p className="text-gray-600 font-['Roboto']">
+            <p className="text-gray-600 dark:text-gray-300 font-['Roboto'] transition-colors duration-300">
               You're all caught up! New notifications will appear here.
             </p>
           </div>

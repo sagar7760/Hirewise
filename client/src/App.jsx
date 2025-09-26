@@ -27,12 +27,11 @@ import UnauthorizedPage from './pages/global/UnauthorizedPage.jsx'
 import ApplicantDashboard from './pages/applicant/ApplicantDashboard.jsx'
 import JobsPage from './pages/applicant/JobsPage.jsx'
 import JobDetailsPage from './pages/applicant/JobDetailsPage.jsx'
-import MyApplicationsPage from './pages/applicant/MyApplicationsPage.jsx'
 import ApplicationsPage from './pages/applicant/ApplicationsPage.jsx'
 import SavedJobsPage from './pages/applicant/SavedJobsPage.jsx'
 import ProfilePage from './pages/applicant/ProfilePage.jsx'
 import JobApplicationPage from './pages/applicant/JobApplicationPage.jsx'
-import NotificationsPage from './pages/applicant/NotificationsPage.jsx'
+import NotificationsPage from './pages/applicant/MessagesPage.jsx'
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard.jsx'
@@ -111,11 +110,6 @@ function App() {
           <Route path="/jobs/:jobId/apply" element={
             <ProtectedRoute roles={['applicant']}>
               <JobApplicationPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/my-applications" element={
-            <ProtectedRoute roles={['applicant']}>
-              <MyApplicationsPage />
             </ProtectedRoute>
           } />
           <Route path="/applicant/applications" element={

@@ -111,10 +111,10 @@ const SavedJobsPage = () => {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 font-['Open_Sans'] mb-2">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white font-['Open_Sans'] mb-2">
             Saved Jobs
           </h1>
-          <p className="text-gray-600 font-['Roboto']">
+          <p className="text-gray-600 dark:text-gray-300 font-['Roboto']">
             Jobs you've bookmarked for later review
           </p>
         </div>
@@ -123,12 +123,12 @@ const SavedJobsPage = () => {
         {loading && (
           <div className="space-y-4">
             {[...Array(3)].map((_, index) => (
-              <div key={index} className="bg-white border border-gray-200 rounded-lg p-6 animate-pulse">
+              <div key={index} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 animate-pulse transition-colors duration-300">
                 <div className="space-y-3">
-                  <div className="h-5 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-2/3"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                  <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
                 </div>
               </div>
             ))}
@@ -137,21 +137,21 @@ const SavedJobsPage = () => {
 
         {/* Error State */}
         {error && !loading && (
-          <div className="bg-white border border-red-200 rounded-lg p-12 text-center">
-            <div className="text-red-400 mb-4">
+          <div className="bg-white dark:bg-gray-800 border border-red-200 dark:border-red-700 rounded-lg p-12 text-center transition-colors duration-300">
+            <div className="text-red-400 dark:text-red-300 mb-4">
               <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 font-['Open_Sans'] mb-2">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white font-['Open_Sans'] mb-2">
               Failed to load saved jobs
             </h3>
-            <p className="text-gray-600 font-['Roboto'] mb-4">
+            <p className="text-gray-600 dark:text-gray-300 font-['Roboto'] mb-4">
               {error}
             </p>
             <button
               onClick={loadSavedJobs}
-              className="bg-black text-white hover:bg-gray-800 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
+              className="bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
             >
               Try Again
             </button>
@@ -166,16 +166,16 @@ const SavedJobsPage = () => {
                 <div
                   key={job.id}
                   onClick={() => handleJobClick(job.id)}
-                  className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer"
+                  className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:shadow-lg dark:hover:shadow-white/10 transition-shadow cursor-pointer"
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-2">
-                        <h3 className="text-lg font-semibold text-gray-900 font-['Open_Sans']">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white font-['Open_Sans']">
                           {job.title}
                         </h3>
-                        <div className="flex items-center text-sm text-gray-500 font-['Roboto']">
-                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">
+                          <svg className="w-4 h-4 mr-1 fill-red-500 dark:fill-red-400 stroke-red-500 dark:stroke-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                           </svg>
                           Saved {formatDate(job.savedAt)}
@@ -183,39 +183,39 @@ const SavedJobsPage = () => {
                       </div>
                       
                       <div className="space-y-1">
-                        <p className="text-sm text-gray-600 font-['Roboto']">
+                        <p className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto']">
                           Posted {formatDate(job.postedDate)}
                         </p>
-                        <p className="text-sm text-gray-600 font-['Roboto']">
+                        <p className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto']">
                           {job.company} • {job.location} • {job.workType}
                         </p>
-                        <p className="text-sm text-gray-600 font-['Roboto']">
+                        <p className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto']">
                           {job.jobType} • {job.experience} Level • {job.salary}
                         </p>
                       </div>
                     </div>
                     
-                    <div className="ml-6 flex items-center space-x-2">
+                    <div className="ml-6 flex items-center space-x-2 flex-shrink-0">
                       <button
                         onClick={(e) => handleApply(e, job.id)}
-                        className="bg-black text-white hover:bg-gray-800 px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
+                        className="bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
                       >
                         Apply
                       </button>
                       <button
                         onClick={(e) => handleRemoveFromSaved(e, job.id)}
                         disabled={removingJobId === job.id}
-                        className="bg-white border border-gray-300 text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-300 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors disabled:opacity-50"
+                        className="bg-white border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/50 hover:text-red-600 dark:hover:text-red-400 hover:border-red-300 dark:hover:border-red-600 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors disabled:opacity-50"
                         title="Remove from saved"
                       >
                         {removingJobId === job.id ? (
                           <div className="flex items-center">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 dark:border-white mr-2"></div>
                             Removing...
                           </div>
                         ) : (
                           <div className="flex items-center">
-                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 mr-1 stroke-current" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                             Remove
@@ -227,21 +227,21 @@ const SavedJobsPage = () => {
                 </div>
               ))
             ) : (
-              <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
-                <div className="text-gray-400 mb-4">
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-12 text-center transition-colors duration-300">
+                <div className="text-gray-400 dark:text-gray-600 mb-4">
                   <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 font-['Open_Sans'] mb-2">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white font-['Open_Sans'] mb-2">
                   No saved jobs yet
                 </h3>
-                <p className="text-gray-600 font-['Roboto'] mb-4">
+                <p className="text-gray-600 dark:text-gray-300 font-['Roboto'] mb-4">
                   Browse jobs and click the heart icon to save them for later.
                 </p>
                 <button
                   onClick={() => navigate('/jobs')}
-                  className="bg-black text-white hover:bg-gray-800 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
+                  className="bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
                 >
                   Browse Jobs
                 </button>

@@ -725,25 +725,12 @@ const ProfilePage = () => {
                 </div>
                 
                 {!isEditing ? (
-                  <div className="flex space-x-3">
-                    <button
-                      onClick={forceRefresh}
-                      disabled={isLoading}
-                      className="border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors disabled:opacity-50 flex items-center"
-                      title="Refresh profile data"
-                    >
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      Refresh
-                    </button>
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="bg-black text-white hover:bg-gray-800 px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
-                    >
-                      Edit Profile
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="bg-black text-white hover:bg-gray-800 px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
+                  >
+                    Edit Profile
+                  </button>
                 ) : (
                   <div className="flex space-x-3">
                     <button

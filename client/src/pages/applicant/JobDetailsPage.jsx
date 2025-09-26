@@ -240,38 +240,38 @@ const JobDetailsPage = () => {
       {/* Breadcrumb skeleton */}
       <div className="mb-6">
         <div className="flex items-center space-x-4">
-          <div className="h-4 bg-gray-200 rounded w-12"></div>
-          <div className="h-4 w-4 bg-gray-200 rounded"></div>
-          <div className="h-4 bg-gray-200 rounded w-32"></div>
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-12"></div>
+          <div className="h-4 w-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
         </div>
       </div>
 
       {/* Header skeleton */}
       <div className="mb-8">
-        <div className="h-8 bg-gray-200 rounded w-3/4 mb-2"></div>
-        <div className="h-6 bg-gray-200 rounded w-1/2 mb-6"></div>
+        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
+        <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-6"></div>
       </div>
 
       {/* Content skeleton */}
-      <div className="bg-white rounded-lg border border-gray-200 p-8 mb-8">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 mb-8 transition-colors duration-300">
         {/* About section */}
         <div className="mb-8">
-          <div className="h-7 bg-gray-200 rounded w-32 mb-4"></div>
+          <div className="h-7 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-4"></div>
           <div className="space-y-2">
-            <div className="h-4 bg-gray-200 rounded w-full"></div>
-            <div className="h-4 bg-gray-200 rounded w-full"></div>
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
           </div>
         </div>
 
         {/* Responsibilities section */}
         <div className="mb-8">
-          <div className="h-7 bg-gray-200 rounded w-40 mb-4"></div>
+          <div className="h-7 bg-gray-200 dark:bg-gray-700 rounded w-40 mb-4"></div>
           <div className="space-y-3">
             {[...Array(4)].map((_, index) => (
               <div key={index} className="flex items-start">
-                <div className="w-2 h-2 bg-gray-200 rounded-full mt-2.5 mr-4 flex-shrink-0"></div>
-                <div className="h-4 bg-gray-200 rounded w-full"></div>
+                <div className="w-2 h-2 bg-gray-200 dark:bg-gray-700 rounded-full mt-2.5 mr-4 flex-shrink-0"></div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
               </div>
             ))}
           </div>
@@ -279,25 +279,12 @@ const JobDetailsPage = () => {
 
         {/* Qualifications section */}
         <div className="mb-8">
-          <div className="h-7 bg-gray-200 rounded w-36 mb-4"></div>
+          <div className="h-7 bg-gray-200 dark:bg-gray-700 rounded w-36 mb-4"></div>
           <div className="space-y-3">
             {[...Array(4)].map((_, index) => (
               <div key={index} className="flex items-start">
-                <div className="w-2 h-2 bg-gray-200 rounded-full mt-2.5 mr-4 flex-shrink-0"></div>
-                <div className="h-4 bg-gray-200 rounded w-full"></div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Benefits section */}
-        <div>
-          <div className="h-7 bg-gray-200 rounded w-24 mb-4"></div>
-          <div className="space-y-3">
-            {[...Array(4)].map((_, index) => (
-              <div key={index} className="flex items-start">
-                <div className="w-2 h-2 bg-gray-200 rounded-full mt-2.5 mr-4 flex-shrink-0"></div>
-                <div className="h-4 bg-gray-200 rounded w-full"></div>
+                <div className="w-2 h-2 bg-gray-200 dark:bg-gray-700 rounded-full mt-2.5 mr-4 flex-shrink-0"></div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
               </div>
             ))}
           </div>
@@ -306,8 +293,8 @@ const JobDetailsPage = () => {
 
       {/* Action buttons skeleton */}
       <div className="mt-8 flex space-x-4">
-        <div className="h-12 bg-gray-200 rounded w-32"></div>
-        <div className="h-12 bg-gray-200 rounded w-24"></div>
+        <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
+        <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
       </div>
     </div>
   );
@@ -319,28 +306,28 @@ const JobDetailsPage = () => {
       ) : error ? (
         // Error state
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-white border border-red-200 rounded-lg p-12 text-center">
+          <div className="bg-white dark:bg-gray-800 border border-red-200 dark:border-red-700 rounded-lg p-12 text-center transition-colors duration-300">
             <div className="text-red-400 mb-4">
               <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 font-['Open_Sans'] mb-2">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white font-['Open_Sans'] mb-2">
               Job not found
             </h3>
-            <p className="text-gray-600 font-['Roboto'] mb-4">
+            <p className="text-gray-600 dark:text-gray-300 font-['Roboto'] mb-4">
               {error}
             </p>
             <div className="space-x-4">
               <button
                 onClick={refreshJobDetails}
-                className="bg-black text-white hover:bg-gray-800 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
+                className="bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
               >
                 Try again
               </button>
               <Link
                 to="/jobs"
-                className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors inline-block"
+                className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors inline-block"
               >
                 Back to jobs
               </Link>
@@ -354,17 +341,17 @@ const JobDetailsPage = () => {
           <nav className="flex" aria-label="Breadcrumb">
             <ol className="flex items-center space-x-4">
               <li>
-                <Link to="/jobs" className="text-gray-500 hover:text-gray-700 font-['Roboto'] text-sm">
+                <Link to="/jobs" className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 font-['Roboto'] text-sm transition-colors duration-300">
                   Jobs
                 </Link>
               </li>
               <li>
-                <svg className="flex-shrink-0 h-4 w-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="flex-shrink-0 h-4 w-4 text-gray-400 dark:text-gray-500" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
                 </svg>
               </li>
               <li>
-                <span className="text-gray-900 font-['Roboto'] text-sm font-medium">
+                <span className="text-gray-900 dark:text-white font-['Roboto'] text-sm font-medium transition-colors duration-300">
                   {job.title || 'Job Details'}
                 </span>
               </li>
@@ -374,10 +361,10 @@ const JobDetailsPage = () => {
 
         {/* Job Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 font-['Open_Sans'] mb-2">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white font-['Open_Sans'] mb-2">
             {job.title}
           </h1>
-          <div className="flex flex-wrap items-center gap-2 text-lg text-gray-600 font-['Roboto'] mb-6">
+          <div className="flex flex-wrap items-center gap-2 text-lg text-gray-600 dark:text-gray-300 font-['Roboto'] mb-6">
             <span>{job.company}</span>
             <span>•</span>
             <span>{job.location}</span>
@@ -392,7 +379,7 @@ const JobDetailsPage = () => {
               </>
             )}
           </div>
-          <div className="flex flex-wrap gap-2 text-sm text-gray-500 font-['Roboto']">
+          <div className="flex flex-wrap gap-2 text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">
             <span>Posted {job.postedDate}</span>
             {job.applicationDeadline && (
               <>
@@ -410,18 +397,18 @@ const JobDetailsPage = () => {
         </div>
 
         {/* Job Content */}
-        <div className="bg-white rounded-lg border border-gray-200 p-8 mb-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 mb-8 transition-colors duration-300">
           {/* About the job */}
           <div className="mb-8">
-            <h2 className="text-2xl font-semibold text-gray-900 font-['Open_Sans'] mb-4">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white font-['Open_Sans'] mb-4">
               About the job
             </h2>
-            <div className="text-gray-700 font-['Roboto'] leading-relaxed text-base whitespace-pre-line">
+            <div className="text-gray-700 dark:text-gray-300 font-['Roboto'] leading-relaxed text-base whitespace-pre-line">
               {job.description}
             </div>
             {job.department && (
               <div className="mt-4">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 transition-colors duration-300">
                   {job.department}
                 </span>
               </div>
@@ -431,14 +418,15 @@ const JobDetailsPage = () => {
           {/* Required Skills */}
           {job.requiredSkills && job.requiredSkills.length > 0 && (
             <div className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 font-['Open_Sans'] mb-4">
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white font-['Open_Sans'] mb-4">
                 Required Skills
               </h2>
               <div className="flex flex-wrap gap-2">
                 {job.requiredSkills.map((skill, index) => (
                   <span
                     key={index}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-black text-white"
+                    // Primary, high-contrast style for required skills
+                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-black dark:bg-white text-white dark:text-black transition-colors duration-300"
                   >
                     {skill}
                   </span>
@@ -450,14 +438,15 @@ const JobDetailsPage = () => {
           {/* Preferred Skills */}
           {job.preferredSkills && job.preferredSkills.length > 0 && (
             <div className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 font-['Open_Sans'] mb-4">
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white font-['Open_Sans'] mb-4">
                 Preferred Skills
               </h2>
               <div className="flex flex-wrap gap-2">
                 {job.preferredSkills.map((skill, index) => (
                   <span
                     key={index}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800"
+                    // Secondary style for preferred skills
+                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 transition-colors duration-300"
                   >
                     {skill}
                   </span>
@@ -469,14 +458,14 @@ const JobDetailsPage = () => {
           {/* Qualifications */}
           {job.qualification && job.qualification.length > 0 && (
             <div className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 font-['Open_Sans'] mb-4">
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white font-['Open_Sans'] mb-4">
                 Qualifications
               </h2>
               <ul className="space-y-3">
                 {job.qualification.map((qualification, index) => (
                   <li key={index} className="flex items-start">
-                    <div className="flex-shrink-0 w-2 h-2 bg-black rounded-full mt-2.5 mr-4"></div>
-                    <span className="text-gray-700 font-['Roboto'] text-base leading-relaxed">{qualification}</span>
+                    <div className="flex-shrink-0 w-2 h-2 bg-black dark:bg-white rounded-full mt-2.5 mr-4 transition-colors duration-300"></div>
+                    <span className="text-gray-700 dark:text-gray-300 font-['Roboto'] text-base leading-relaxed">{qualification}</span>
                   </li>
                 ))}
               </ul>
@@ -486,30 +475,30 @@ const JobDetailsPage = () => {
           {/* Company Details */}
           {job.companyDetails && (
             <div className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 font-['Open_Sans'] mb-4">
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white font-['Open_Sans'] mb-4">
                 About {job.company}
               </h2>
-              <div className="bg-gray-50 rounded-lg p-6">
+              <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-6 border border-gray-200 dark:border-gray-700 transition-colors duration-300">
                 {job.companyDetails.description && (
-                  <p className="text-gray-700 font-['Roboto'] text-base leading-relaxed mb-4">
+                  <p className="text-gray-700 dark:text-gray-300 font-['Roboto'] text-base leading-relaxed mb-4">
                     {job.companyDetails.description}
                   </p>
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   {job.companyDetails.headquarters && (
                     <div>
-                      <span className="font-medium text-gray-900">Location:</span>
-                      <span className="text-gray-600 ml-2">{job.companyDetails.headquarters}</span>
+                      <span className="font-medium text-gray-900 dark:text-white">Location:</span>
+                      <span className="text-gray-600 dark:text-gray-300 ml-2">{job.companyDetails.headquarters}</span>
                     </div>
                   )}
                   {job.companyDetails.website && (
                     <div>
-                      <span className="font-medium text-gray-900">Website:</span>
+                      <span className="font-medium text-gray-900 dark:text-white">Website:</span>
                       <a
                         href={job.companyDetails.website}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 ml-2 underline"
+                        className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-500 ml-2 underline"
                       >
                         {job.companyDetails.website}
                       </a>
@@ -521,33 +510,33 @@ const JobDetailsPage = () => {
           )}
 
           {/* Application Info */}
-          <div className="mb-8 bg-blue-50 rounded-lg p-6">
-            <h2 className="text-2xl font-semibold text-gray-900 font-['Open_Sans'] mb-4">
+          <div className="mb-8 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg p-6 border border-indigo-200 dark:border-indigo-700 transition-colors duration-300">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white font-['Open_Sans'] mb-4">
               Application Information
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               {job.applicationsCount !== undefined && (
                 <div>
-                  <span className="font-medium text-gray-900">Applications:</span>
-                  <span className="text-gray-600 ml-2">{job.applicationsCount} submitted</span>
+                  <span className="font-medium text-gray-900 dark:text-white">Applications:</span>
+                  <span className="text-gray-600 dark:text-gray-300 ml-2">{job.applicationsCount} submitted</span>
                 </div>
               )}
               {job.maxApplicants && (
                 <div>
-                  <span className="font-medium text-gray-900">Max Applicants:</span>
-                  <span className="text-gray-600 ml-2">{job.maxApplicants}</span>
+                  <span className="font-medium text-gray-900 dark:text-white">Max Applicants:</span>
+                  <span className="text-gray-600 dark:text-gray-300 ml-2">{job.maxApplicants}</span>
                 </div>
               )}
               {job.experience && (
                 <div>
-                  <span className="font-medium text-gray-900">Experience Level:</span>
-                  <span className="text-gray-600 ml-2">{job.experience}</span>
+                  <span className="font-medium text-gray-900 dark:text-white">Experience Level:</span>
+                  <span className="text-gray-600 dark:text-gray-300 ml-2">{job.experience}</span>
                 </div>
               )}
               {job.applicationDeadline && (
                 <div>
-                  <span className="font-medium text-gray-900">Deadline:</span>
-                  <span className="text-gray-600 ml-2">
+                  <span className="font-medium text-gray-900 dark:text-white">Deadline:</span>
+                  <span className="text-gray-600 dark:text-gray-300 ml-2">
                     {new Date(job.applicationDeadline).toLocaleDateString()}
                   </span>
                 </div>
@@ -561,10 +550,10 @@ const JobDetailsPage = () => {
           <button
             onClick={handleApply}
             disabled={job.hasApplied}
-            className={`px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors ${
+            className={`px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors duration-300 ${
               job.hasApplied
-                ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                : 'bg-black text-white hover:bg-gray-800'
+                ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                : 'bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200'
             }`}
           >
             {job.hasApplied ? 'Already Applied' : 'Apply Now'}
@@ -572,15 +561,15 @@ const JobDetailsPage = () => {
           <button
             onClick={handleSave}
             disabled={savingJob}
-            className={`border px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors disabled:opacity-50 ${
+            className={`border px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors disabled:opacity-50 duration-300 ${
               isSaved
-                ? 'border-red-300 text-red-600 bg-red-50 hover:bg-red-100'
-                : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                ? 'border-red-400 text-red-600 dark:border-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50'
+                : 'border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700'
             }`}
           >
             {savingJob ? (
               <div className="flex items-center">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 dark:border-white mr-2"></div>
                 {isSaved ? 'Removing...' : 'Saving...'}
               </div>
             ) : (
@@ -599,7 +588,7 @@ const JobDetailsPage = () => {
           </button>
           <Link
             to="/jobs"
-            className="border border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors inline-flex items-center"
+            className="border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors inline-flex items-center"
           >
             Back to Jobs
           </Link>
