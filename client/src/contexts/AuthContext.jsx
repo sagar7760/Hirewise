@@ -14,6 +14,8 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(null);
+  const [isRefreshingUser, setIsRefreshingUser] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState(0);
 
   useEffect(() => {
     // Check for stored auth data on component mount
@@ -27,7 +29,25 @@ export const AuthProvider = ({ children }) => {
         setUser(parsedUser);
         
         // Refresh user data to get latest profile information including resume
-        refreshUserData(storedToken);
+        // Only refresh if user data seems incomplete or is missing key fields
+        const needsRefresh = !parsedUser.phone || 
+                           !parsedUser.skills || 
+                           !parsedUser.profile?.primarySkills || 
+                           (!parsedUser.currentResumeId && !parsedUser.resumeAvailable);
+        
+        if (needsRefresh) {
+          console.log('🔄 AuthContext: User data incomplete, refreshing...', {
+            hasPhone: !!parsedUser.phone,
+            hasSkills: !!parsedUser.skills,
+            hasPrimarySkills: !!parsedUser.profile?.primarySkills,
+            hasResume: !!(parsedUser.currentResumeId || parsedUser.resumeAvailable)
+          });
+          // Reset the refresh timer when we detect incomplete data
+          setLastRefreshTime(0);
+          refreshUserData(storedToken);
+        } else {
+          console.log('✅ AuthContext: User data looks complete, skipping refresh');
+        }
       } catch (error) {
         console.error('Error parsing stored user data:', error);
         localStorage.removeItem('token');
@@ -39,7 +59,24 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const refreshUserData = async (authToken) => {
+    // Rate limiting: don't refresh more than once every 10 seconds
+    const now = Date.now();
+    const REFRESH_COOLDOWN = 10 * 1000; // 10 seconds
+    
+    if (isRefreshingUser) {
+      console.log('User data refresh already in progress, skipping...');
+      return;
+    }
+    
+    if (now - lastRefreshTime < REFRESH_COOLDOWN) {
+      console.log('User data refreshed recently, skipping...');
+      return;
+    }
+
     try {
+      setIsRefreshingUser(true);
+      setLastRefreshTime(now);
+      
       const response = await fetch('/api/profile', {
         method: 'GET',
         headers: {
@@ -69,6 +106,8 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Error refreshing user data on startup:', error);
+    } finally {
+      setIsRefreshingUser(false);
     }
   };
 
@@ -115,9 +154,26 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('user', JSON.stringify(updatedUser));
   };
 
-  const refreshUser = async () => {
+  const refreshUser = async (forceRefresh = false) => {
     try {
       if (!token) return;
+      
+      // Rate limiting: don't refresh more than once every 10 seconds (unless forced)
+      const now = Date.now();
+      const REFRESH_COOLDOWN = 10 * 1000; // 10 seconds
+      
+      if (isRefreshingUser) {
+        console.log('User data refresh already in progress, skipping...');
+        return;
+      }
+      
+      if (!forceRefresh && now - lastRefreshTime < REFRESH_COOLDOWN) {
+        console.log('User data refreshed recently, skipping...');
+        return;
+      }
+
+      setIsRefreshingUser(true);
+      setLastRefreshTime(now);
       
       const response = await fetch('/api/profile', {
         method: 'GET',
@@ -149,6 +205,8 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Error refreshing user data:', error);
+    } finally {
+      setIsRefreshingUser(false);
     }
   };
 

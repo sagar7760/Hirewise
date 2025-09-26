@@ -19,7 +19,7 @@ const ApplicantNavbar = () => {
   const notificationHoverTimeoutRef = useRef(null);
   
   const navItems = [
-    { name: 'Home', path: '/dashboard' },
+    { name: 'Dashboard', path: '/dashboard' },
     { name: 'Jobs', path: '/jobs' },
     { name: 'Applications', path: '/applicant/applications' },
   ];

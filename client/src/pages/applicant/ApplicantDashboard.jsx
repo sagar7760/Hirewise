@@ -4,7 +4,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import { useAuth } from '../../contexts/AuthContext';
 
 const ApplicantDashboard = () => {
-  const { user, apiRequest } = useAuth();
+  const { user, apiRequest, refreshUser } = useAuth();
   const [dashboardData, setDashboardData] = useState({
     stats: {
       jobsApplied: 0,
@@ -23,6 +23,32 @@ const ApplicantDashboard = () => {
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  // Fallback: If profile completion is low after initial load, try refreshing user data
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (user && dashboardData.profileCompletion && dashboardData.profileCompletion.percentage < 50) {
+        console.log('🔄 Dashboard: Profile completion low, forcing user data refresh...');
+        refreshUser(true).catch(error => { // Force refresh to bypass rate limiting
+          console.error('Failed to refresh user data:', error);
+        });
+      }
+    }, 2000); // Wait 2 seconds after initial load
+
+    return () => clearTimeout(timer);
+  }, [dashboardData.profileCompletion, user, refreshUser]);
+
+  // Recalculate profile completion whenever user data changes
+  useEffect(() => {
+    if (user && user.firstName && user.email) { // Basic validation to ensure user data is loaded
+      console.log('📊 Recalculating profile completion...');
+      const profileCompletion = calculateProfileCompletion(user);
+      setDashboardData(prevData => ({
+        ...prevData,
+        profileCompletion
+      }));
+    }
+  }, [user]); // This will trigger whenever the user object changes
 
   const fetchDashboardData = async () => {
     try {
@@ -239,37 +265,79 @@ const ApplicantDashboard = () => {
 
   // Calculate profile completion percentage
   const calculateProfileCompletion = (user) => {
-    if (!user) return { percentage: 0, missingItems: [] };
+    if (!user) {
+      console.log('Profile completion: No user data');
+      return { percentage: 0, missingItems: [] };
+    }
+    
+    console.log('📊 Calculating profile completion - Fields check:', {
+      phone: !!user.phone,
+      skills: !!(user.skills && user.skills.length > 0),
+      workExp: !!(user.profile?.workExperienceEntries && user.profile.workExperienceEntries.length > 0),
+      resume: !!(user.currentResumeId || user.resumeAvailable),
+      resumeFields: {
+        currentResumeId: user.currentResumeId,
+        resumeAvailable: user.resumeAvailable,
+        resume: user.resume,
+        profileCurrentResumeId: user.profile?.currentResumeId
+      }
+    });
     
     const requiredFields = [
       { field: 'firstName', label: 'First Name', weight: 10 },
       { field: 'lastName', label: 'Last Name', weight: 10 },
       { field: 'email', label: 'Email', weight: 10 },
       { field: 'phone', label: 'Phone', weight: 10 },
-      { field: 'skills', label: 'Skills', weight: 20 },
-      { field: 'experience', label: 'Experience Level', weight: 15 },
-      { field: 'profile.currentResumeId', label: 'Resume', weight: 25 }
+      { field: 'skills', label: 'Skills', weight: 20 }, // This is mapped from profile.primarySkills in AuthContext
+      { field: 'profile.workExperienceEntries', label: 'Experience Level', weight: 15 },
+      { field: 'currentResumeId', label: 'Resume', weight: 25 }
     ];
 
     let completedWeight = 0;
     const missingItems = [];
 
     requiredFields.forEach(({ field, label, weight }) => {
-      const fieldValue = field.includes('.') 
-        ? field.split('.').reduce((obj, key) => obj?.[key], user)
-        : user[field];
+      let fieldValue;
+      let isFieldComplete = false;
       
-      if (fieldValue && (Array.isArray(fieldValue) ? fieldValue.length > 0 : true)) {
+      // Special handling for different field types
+      if (field === 'skills') {
+        // Check multiple possible locations for skills
+        fieldValue = user.skills || user.profile?.primarySkills;
+        isFieldComplete = fieldValue && Array.isArray(fieldValue) && fieldValue.length > 0;
+      } else if (field === 'currentResumeId') {
+        // Check for resume ID, resume availability, or resume object
+        fieldValue = user.currentResumeId || user.resumeAvailable || user.resume || user.profile?.currentResumeId;
+        // Also check if user has resume file name or any resume-related field
+        const hasResumeFile = user.profile?.resume?.fileName || user.resume?.fileName;
+        isFieldComplete = !!fieldValue || !!hasResumeFile;
+      } else if (field === 'profile.workExperienceEntries') {
+        // Check for work experience entries
+        fieldValue = user.profile?.workExperienceEntries || user.workExperience;
+        isFieldComplete = fieldValue && Array.isArray(fieldValue) && fieldValue.length > 0;
+      } else {
+        // Standard field checking
+        fieldValue = field.includes('.') 
+          ? field.split('.').reduce((obj, key) => obj?.[key], user)
+          : user[field];
+        isFieldComplete = fieldValue && (Array.isArray(fieldValue) ? fieldValue.length > 0 : true);
+      }
+      
+      if (isFieldComplete) {
         completedWeight += weight;
       } else {
         missingItems.push(label);
+        console.log(`❌ Missing: ${label}`);
       }
     });
 
-    return {
+    const result = {
       percentage: completedWeight,
       missingItems
     };
+    
+    console.log('Profile completion result:', result);
+    return result;
   };
 
   // Generate top skills with mock demand data

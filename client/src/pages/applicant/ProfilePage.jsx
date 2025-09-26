@@ -4,7 +4,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import { SkeletonProfile } from '../../components/common/Skeleton';
 
 const ProfilePage = () => {
-  const { apiRequest, updateUser, user } = useAuth();
+  const { apiRequest, updateUser, refreshUser, user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -49,7 +49,7 @@ const ProfilePage = () => {
 
   // Cache key for browser storage
   const CACHE_KEY = 'hirewise_profile_data';
-  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+  const CACHE_DURATION = 2 * 60 * 1000; // 2 minutes
 
   // Suggested skills for better UX (same as signup page)
   const suggestedSkills = [
@@ -81,33 +81,7 @@ const ProfilePage = () => {
       setIsLoading(true);
       setError('');
 
-      // Check cache first
-      const cachedData = getCachedData();
-      if (cachedData) {
-        console.log('Loading profile from cache');
-        const safeData = {
-          ...cachedData,
-          // Merge with user context data for missing fields
-          fullName: cachedData.fullName || user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
-          email: cachedData.email || user?.email,
-          phone: cachedData.phone || user?.phone || '',
-          location: cachedData.location || user?.location || '',
-          summary: cachedData.summary || '',
-          profilePicture: cachedData.profilePicture || user?.profilePicture || user?.avatar,
-          // Ensure arrays are always defined
-          education: cachedData.education || [],
-          workExperience: cachedData.workExperience || [],
-          skills: cachedData.skills || [],
-          projects: cachedData.projects || []
-        };
-        console.log('Cached profile data with user context:', safeData);
-        setFormData(safeData);
-        setOriginalData(safeData);
-        setIsLoading(false);
-        return;
-      }
-
-      // Fetch from API
+      // Always fetch from API first for fresh data
       console.log('Loading profile from API');
       const response = await apiRequest('/api/profile', {
         method: 'GET',
@@ -143,6 +117,25 @@ const ProfilePage = () => {
           
           // Cache the data
           setCachedData(profileData);
+          
+          // Update AuthContext user object with fresh profile data
+          const updatedUser = {
+            ...user,
+            ...profileData,
+            // Map profile fields to user object structure
+            phone: profileData.phone,
+            skills: profileData.skills,
+            profile: {
+              ...user?.profile,
+              primarySkills: profileData.skills,
+              workExperienceEntries: profileData.workExperience
+            },
+            currentResumeId: profileData.currentResumeId || user?.currentResumeId,
+            resumeAvailable: !!profileData.currentResumeId || user?.resumeAvailable
+          };
+          
+          console.log('Updating AuthContext user with fresh profile data:', updatedUser);
+          updateUser(updatedUser);
         } else {
           setError(responseData.message || 'Failed to load profile data');
         }
@@ -152,10 +145,46 @@ const ProfilePage = () => {
       }
     } catch (error) {
       console.error('Profile load error:', error);
-      setError('Failed to load profile data. Please try again.');
       
-      // Fallback to user context data if API fails
-      if (user) {
+      // Try to use cached data as fallback
+      const cachedData = getCachedData();
+      if (cachedData) {
+        console.log('API failed, falling back to cache');
+        const safeData = {
+          ...cachedData,
+          // Merge with user context data for missing fields
+          fullName: cachedData.fullName || user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
+          email: cachedData.email || user?.email,
+          phone: cachedData.phone || user?.phone || '',
+          location: cachedData.location || user?.location || '',
+          summary: cachedData.summary || '',
+          profilePicture: cachedData.profilePicture || user?.profilePicture || user?.avatar,
+          // Ensure arrays are always defined
+          education: cachedData.education || [],
+          workExperience: cachedData.workExperience || [],
+          skills: cachedData.skills || [],
+          projects: cachedData.projects || []
+        };
+        console.log('Using cached profile data as fallback:', safeData);
+        setFormData(safeData);
+        setOriginalData(safeData);
+        setError('Using offline data. Some information may be outdated.');
+        
+        // Update AuthContext with cached data too
+        const updatedUser = {
+          ...user,
+          ...safeData,
+          phone: safeData.phone,
+          skills: safeData.skills,
+          profile: {
+            ...user?.profile,
+            primarySkills: safeData.skills,
+            workExperienceEntries: safeData.workExperience
+          }
+        };
+        updateUser(updatedUser);
+      } else if (user) {
+        // Final fallback to user context data if no cache available
         const fallbackData = {
           fullName: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
           email: user.email,
@@ -168,9 +197,12 @@ const ProfilePage = () => {
           skills: [],
           projects: []
         };
-        console.log('Using fallback user data:', fallbackData);
+        console.log('Using basic user data as fallback:', fallbackData);
         setFormData(fallbackData);
         setOriginalData(fallbackData);
+        setError('Failed to load complete profile data. Please try again.');
+      } else {
+        setError('Failed to load profile data. Please try again.');
       }
     } finally {
       setIsLoading(false);
@@ -214,6 +246,11 @@ const ProfilePage = () => {
 
   const clearCache = () => {
     localStorage.removeItem(CACHE_KEY);
+  };
+
+  const forceRefresh = async () => {
+    clearCache();
+    await loadProfileData();
   };
 
   const handleInputChange = (e) => {
@@ -632,6 +669,9 @@ const ProfilePage = () => {
             ...prev,
             ...responseData.data
           }));
+
+          // Refresh user data in AuthContext to update profile completion on dashboard
+          await refreshUser();
         } else {
           setError(responseData.message || 'Failed to save profile');
         }
@@ -685,12 +725,25 @@ const ProfilePage = () => {
                 </div>
                 
                 {!isEditing ? (
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="bg-black text-white hover:bg-gray-800 px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
-                  >
-                    Edit Profile
-                  </button>
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={forceRefresh}
+                      disabled={isLoading}
+                      className="border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors disabled:opacity-50 flex items-center"
+                      title="Refresh profile data"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Refresh
+                    </button>
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="bg-black text-white hover:bg-gray-800 px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
+                    >
+                      Edit Profile
+                    </button>
+                  </div>
                 ) : (
                   <div className="flex space-x-3">
                     <button
