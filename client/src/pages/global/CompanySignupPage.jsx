@@ -832,7 +832,7 @@ const CompanySignupPage = () => {
         <div className="text-center mt-6">
           <p className="text-gray-600 dark:text-gray-300 font-['Roboto']">
             Already have an account?{' '}
-            <Link to="/login" className="text-black dark:text-gray-100 font-medium hover:underline font-['Open_Sans']">
+            <Link to="/login" className="text-black dark:text-indigo-400 hover:underline font-semibold transition-colors font-['Open_Sans']">
               Sign in here
             </Link>
           </p>

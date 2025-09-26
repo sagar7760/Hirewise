@@ -523,7 +523,7 @@ const SignupPage = () => {
                   <div className="flex text-sm text-gray-600">
                     <label
                       htmlFor="resume"
-                      className="relative cursor-pointer bg-white rounded-md font-medium text-black hover:underline focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-black dark:bg-gray-800 dark:text-gray-100 dark:focus-within:ring-gray-300"
+                      className="relative cursor-pointer  rounded-md font-medium text-black hover:underline focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-black  dark:text-gray-100 dark:focus-within:ring-gray-300"
                     >
                       <span>Upload a file</span>
                       <input
@@ -1164,7 +1164,7 @@ const SignupPage = () => {
               Already have an account?{' '}
               <Link 
                 to="/login" 
-                className="text-black dark:text-white hover:underline font-semibold transition-colors"
+                className="text-black dark:text-indigo-400 hover:underline font-semibold transition-colors"
               >
                 Sign in
               </Link>
