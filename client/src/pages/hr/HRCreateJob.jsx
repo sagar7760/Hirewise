@@ -23,7 +23,8 @@ const HRCreateJob = () => {
       min: '',
       max: '',
       currency: 'INR',
-      period: 'year' // year, month, hour
+      period: 'year', // year, month, hour
+      format: 'lpa' // lpa, absolute (default to lpa for new jobs for better UX)
     },
     applicationDeadline: '',
     maxApplicants: '',
@@ -114,10 +115,32 @@ const HRCreateJob = () => {
   ];
 
   const handleInputChange = (field, value) => {
-    setJobData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    if (typeof field === 'object' && field.target) {
+      // Handle event objects for form inputs
+      const { name, value: inputValue, type, checked } = field.target;
+      
+      if (name.startsWith('salaryRange.')) {
+        const salaryField = name.split('.')[1];
+        setJobData(prev => ({
+          ...prev,
+          salaryRange: {
+            ...prev.salaryRange,
+            [salaryField]: inputValue
+          }
+        }));
+      } else {
+        setJobData(prev => ({
+          ...prev,
+          [name]: type === 'checkbox' ? checked : inputValue
+        }));
+      }
+    } else {
+      // Handle direct field/value calls
+      setJobData(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
   };
 
   const handleSkillAdd = (skillType) => {
@@ -217,6 +240,19 @@ const HRCreateJob = () => {
         return;
       }
 
+      // Process salary based on format
+      const processSalaryValue = (value, format) => {
+        if (!value) return '';
+        const numValue = parseFloat(value);
+        if (format === 'lpa') {
+          // Convert LPA to absolute value for storage
+          return (numValue * 100000).toString();
+        } else {
+          // Store as string for absolute values
+          return numValue.toString();
+        }
+      };
+
       const submitData = {
         title: jobData.title,
         description: jobData.description,
@@ -225,10 +261,11 @@ const HRCreateJob = () => {
         location: jobData.location,
         locationType: jobData.locationType,
         salaryRange: {
-          min: jobData.salaryRange.min ? String(jobData.salaryRange.min) : '',
-          max: jobData.salaryRange.max ? String(jobData.salaryRange.max) : '',
+          min: processSalaryValue(jobData.salaryRange.min, jobData.salaryRange.format),
+          max: processSalaryValue(jobData.salaryRange.max, jobData.salaryRange.format),
           currency: jobData.salaryRange.currency,
-          period: jobData.salaryRange.period
+          period: jobData.salaryRange.period,
+          format: jobData.salaryRange.format
         },
         qualification: [...jobData.qualification, ...jobData.customQualifications],
         experienceLevel: jobData.experienceLevel,
@@ -244,6 +281,9 @@ const HRCreateJob = () => {
       };
       
       console.log('Submitting job data:', submitData);
+      console.log('Original job data:', jobData);
+      console.log('Processed salary min:', processSalaryValue(jobData.salaryRange.min, jobData.salaryRange.format));
+      console.log('Processed salary max:', processSalaryValue(jobData.salaryRange.max, jobData.salaryRange.format));
       
       const response = await makeJsonRequest('/api/hr/jobs', {
         method: 'POST',
@@ -453,15 +493,49 @@ const HRCreateJob = () => {
                   <label className="block text-sm font-medium text-black mb-2 font-['Roboto']">
                     Salary Range (Optional)
                   </label>
+                  
+                  {/* Salary Format Selection */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+                      Salary Input Format
+                    </label>
+                    <div className="flex items-center space-x-6">
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="salaryRange.format"
+                          value="absolute"
+                          checked={jobData.salaryRange.format === 'absolute'}
+                          onChange={handleInputChange}
+                          className="rounded border-gray-300 text-gray-600 focus:ring-gray-500 focus:ring-offset-0"
+                        />
+                        <span className="ml-2 text-sm text-gray-900 font-['Roboto']">
+                          Absolute Amount (e.g., 500000 for ₹5,00,000)
+                        </span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="salaryRange.format"
+                          value="lpa"
+                          checked={jobData.salaryRange.format === 'lpa'}
+                          onChange={handleInputChange}
+                          className="rounded border-gray-300 text-gray-600 focus:ring-gray-500 focus:ring-offset-0"
+                        />
+                        <span className="ml-2 text-sm text-gray-900 font-['Roboto']">
+                          Lakhs Per Annum (e.g., 5 for ₹5 LPA)
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div>
                       <label className="block text-xs text-gray-600 mb-1 font-['Roboto']">Currency</label>
                       <select
+                        name="salaryRange.currency"
                         value={jobData.salaryRange.currency}
-                        onChange={(e) => handleInputChange('salaryRange', {
-                          ...jobData.salaryRange,
-                          currency: e.target.value
-                        })}
+                        onChange={handleInputChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-sm text-gray-900"
                       >
                         <option value="INR">INR</option>
@@ -474,48 +548,50 @@ const HRCreateJob = () => {
                     </div>
                     <div>
                       <label className="block text-xs text-gray-600 mb-1 font-['Roboto']">
-                        Min Amount {jobData.salaryRange.currency === 'INR' ? '(LPA)' : ''}
+                        Min Amount
+                        {jobData.salaryRange.format === 'lpa' && (
+                          <span className="text-xs text-blue-600 ml-1">(in Lakhs)</span>
+                        )}
                       </label>
                       <input
                         type="number"
+                        name="salaryRange.min"
                         value={jobData.salaryRange.min}
-                        onChange={(e) => handleInputChange('salaryRange', {
-                          ...jobData.salaryRange,
-                          min: e.target.value
-                        })}
-                        placeholder={jobData.salaryRange.currency === 'INR' ? '5' : '50,000'}
+                        onChange={handleInputChange}
+                        placeholder={jobData.salaryRange.format === 'lpa' ? '5' : '500000'}
+                        step={jobData.salaryRange.format === 'lpa' ? '0.1' : '1000'}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-sm text-gray-900 placeholder-gray-400"
                       />
-                      {jobData.salaryRange.currency === 'INR' && (
-                        <p className="text-xs text-gray-500 mt-1">Enter in Lakhs Per Annum (e.g., 5 for ₹5 LPA)</p>
+                      {jobData.salaryRange.format === 'lpa' && (
+                        <p className="text-xs text-gray-500 mt-1">Enter amount in lakhs (e.g., 5 for ₹5 LPA)</p>
                       )}
                     </div>
                     <div>
                       <label className="block text-xs text-gray-600 mb-1 font-['Roboto']">
-                        Max Amount {jobData.salaryRange.currency === 'INR' ? '(LPA)' : ''}
+                        Max Amount
+                        {jobData.salaryRange.format === 'lpa' && (
+                          <span className="text-xs text-blue-600 ml-1">(in Lakhs)</span>
+                        )}
                       </label>
                       <input
                         type="number"
+                        name="salaryRange.max"
                         value={jobData.salaryRange.max}
-                        onChange={(e) => handleInputChange('salaryRange', {
-                          ...jobData.salaryRange,
-                          max: e.target.value
-                        })}
-                        placeholder={jobData.salaryRange.currency === 'INR' ? '8' : '80,000'}
+                        onChange={handleInputChange}
+                        placeholder={jobData.salaryRange.format === 'lpa' ? '8' : '800000'}
+                        step={jobData.salaryRange.format === 'lpa' ? '0.1' : '1000'}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-sm text-gray-900 placeholder-gray-400"
                       />
-                      {jobData.salaryRange.currency === 'INR' && (
-                        <p className="text-xs text-gray-500 mt-1">Enter in Lakhs Per Annum (e.g., 8 for ₹8 LPA)</p>
+                      {jobData.salaryRange.format === 'lpa' && (
+                        <p className="text-xs text-gray-500 mt-1">Enter amount in lakhs (e.g., 8 for ₹8 LPA)</p>
                       )}
                     </div>
                     <div>
                       <label className="block text-xs text-gray-600 mb-1 font-['Roboto']">Period</label>
                       <select
+                        name="salaryRange.period"
                         value={jobData.salaryRange.period}
-                        onChange={(e) => handleInputChange('salaryRange', {
-                          ...jobData.salaryRange,
-                          period: e.target.value
-                        })}
+                        onChange={handleInputChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-sm text-gray-900"
                       >
                         <option value="year">Per Year</option>
@@ -525,10 +601,10 @@ const HRCreateJob = () => {
                     </div>
                   </div>
                   <p className="text-xs text-gray-600 mt-2 font-['Roboto']">
-                    {jobData.salaryRange.currency === 'INR' 
-                      ? 'For INR, enter amounts in Lakhs Per Annum (LPA). This helps attract qualified candidates.'
-                      : 'Providing salary information helps attract qualified candidates'
-                    }
+                    {jobData.salaryRange.format === 'lpa' 
+                      ? 'Enter amounts in Lakhs Per Annum (LPA) for better readability.'
+                      : 'Enter absolute amounts (e.g., 500000 for ₹5,00,000).'
+                    } Providing salary information helps attract qualified candidates.
                   </p>
                 </div>
 
@@ -885,7 +961,7 @@ const HRCreateJob = () => {
             {/* Submit Actions */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 font-['Open_Sans']">
-                Publish Job
+                Job Actions
               </h3>
               <div className="space-y-3">
                 <button
@@ -901,15 +977,27 @@ const HRCreateJob = () => {
                   disabled={!isFormValid() || isSubmitting}
                   className="w-full bg-black hover:bg-gray-800 text-white px-4 py-3 rounded-lg font-medium font-['Roboto'] transition-colors disabled:opacity-50 disabled:bg-gray-300"
                 >
-                  {isSubmitting ? 'Publishing...' : 'Post Job'}
+                  {isSubmitting ? 'Publishing...' : 'Publish Job Immediately'}
                 </button>
               </div>
               
               {!isFormValid() && (
                 <p className="text-xs text-red-500 mt-2 font-['Roboto']">
-                  Please fill in all required fields to post the job
+                  Please fill in all required fields to publish the job immediately
                 </p>
               )}
+              
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <p className="text-sm text-gray-600 font-['Roboto'] mb-2">
+                  <strong>Tip:</strong> You can save as draft now and publish later from the job management page.
+                </p>
+                <div className="flex items-center text-xs text-gray-500 font-['Roboto']">
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Draft jobs can be edited and published with quick actions from the jobs list
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -46,6 +46,11 @@ const jobSchema = new mongoose.Schema({
       type: String,
       enum: ['year', 'month', 'hour'],
       default: 'year'
+    },
+    format: {
+      type: String,
+      enum: ['absolute', 'lpa'], // absolute = actual amount (e.g., 500000), lpa = lakhs per annum (e.g., 5)
+      default: 'absolute'
     }
   },
   qualification: {

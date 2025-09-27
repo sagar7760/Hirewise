@@ -21,14 +21,14 @@ const getJobs = async (req, res) => {
     } = req.query;
 
     // Validate user authentication
-    if (!req.user || !req.user._id) {
+    if (!req.user || !req.user.id) {
       return res.status(401).json({
         success: false,
         message: 'Authentication required'
       });
     }
 
-    const userId = req.user._id;
+    const userId = req.user.id;
     const companyId = req.user.company?._id || req.user.companyId;
 
     if (!companyId) {
@@ -105,14 +105,39 @@ const getJobs = async (req, res) => {
         // Format salary range if exists
         let salaryDisplay = 'Not specified';
         if (job.salaryRange && (job.salaryRange.min || job.salaryRange.max)) {
-          const currency = job.salaryRange.currency || 'USD';
+          const currency = job.salaryRange.currency || 'INR';
           const period = job.salaryRange.period || 'year';
-          if (job.salaryRange.min && job.salaryRange.max) {
-            salaryDisplay = `${currency} ${job.salaryRange.min} - ${job.salaryRange.max} per ${period}`;
-          } else if (job.salaryRange.min) {
-            salaryDisplay = `${currency} ${job.salaryRange.min}+ per ${period}`;
-          } else if (job.salaryRange.max) {
-            salaryDisplay = `Up to ${currency} ${job.salaryRange.max} per ${period}`;
+          const format = job.salaryRange.format || 'absolute';
+          
+          const formatSalaryValue = (value) => {
+            if (!value) return null;
+            const numValue = parseFloat(value);
+            if (format === 'lpa') {
+              return `${numValue} LPA`;
+            } else {
+              // Format as Indian currency for INR
+              if (currency === 'INR') {
+                const lakhs = numValue / 100000;
+                if (lakhs >= 1) {
+                  return `${lakhs.toFixed(1)} LPA`;
+                } else {
+                  return `₹${numValue.toLocaleString('en-IN')}`;
+                }
+              } else {
+                return `${currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency}${numValue.toLocaleString()}`;
+              }
+            }
+          };
+
+          const minFormatted = formatSalaryValue(job.salaryRange.min);
+          const maxFormatted = formatSalaryValue(job.salaryRange.max);
+          
+          if (minFormatted && maxFormatted) {
+            salaryDisplay = `${minFormatted} - ${maxFormatted} per ${period}`;
+          } else if (minFormatted) {
+            salaryDisplay = `${minFormatted}+ per ${period}`;
+          } else if (maxFormatted) {
+            salaryDisplay = `Up to ${maxFormatted} per ${period}`;
           }
         }
 
@@ -155,7 +180,8 @@ const getJobs = async (req, res) => {
     // Summary statistics
     const totalActive = await Job.countDocuments({ company: companyId, status: 'active' });
     const totalDraft = await Job.countDocuments({ company: companyId, status: 'draft' });
-    const totalArchived = await Job.countDocuments({ company: companyId, status: 'archived' });
+    const totalClosed = await Job.countDocuments({ company: companyId, status: 'closed' });
+    const totalInactive = await Job.countDocuments({ company: companyId, status: 'inactive' });
     const myJobs = await Job.countDocuments({ company: companyId, postedBy: userId });
 
     // Set headers to prevent caching and 304 responses
@@ -180,7 +206,8 @@ const getJobs = async (req, res) => {
         totalJobs,
         totalActive,
         totalDraft,
-        totalArchived,
+        totalClosed,
+        totalInactive,
         myJobs,
         totalApplicants: jobsWithStats.reduce((sum, job) => sum + job.applicants, 0)
       },
@@ -210,7 +237,7 @@ const getJobs = async (req, res) => {
 const createJob = async (req, res) => {
   try {
     // Validate user authentication
-    if (!req.user || !req.user._id) {
+    if (!req.user || !req.user.id) {
       return res.status(401).json({
         success: false,
         message: 'Authentication required'
@@ -218,7 +245,7 @@ const createJob = async (req, res) => {
     }
 
     // Get company ID from user data (already populated by auth middleware)
-    const userId = req.user._id;
+    const userId = req.user.id;
     const companyId = req.user.company?._id || req.user.companyId;
 
     if (!companyId) {
@@ -321,6 +348,7 @@ const getJobById = async (req, res) => {
 
     const jobWithStats = {
       ...job,
+      id: job._id, // Transform _id to id for frontend compatibility
       applicants: applicationsCount,
       recentApplications
     };
@@ -394,10 +422,16 @@ const updateJob = async (req, res) => {
       });
     }
 
+    // Transform _id to id for frontend compatibility
+    const jobWithId = {
+      ...job,
+      id: job._id
+    };
+
     res.json({
       success: true,
       message: 'Job updated successfully',
-      data: job
+      data: jobWithId
     });
 
   } catch (error) {
@@ -455,7 +489,8 @@ const deleteJob = async (req, res) => {
 
     const companyId = user.company || user.companyId;
 
-    const job = await Job.findOneAndDelete({ 
+    // First find the job to check if it exists and belongs to the company
+    const job = await Job.findOne({ 
       _id: req.params.id,
       company: companyId 
     });
@@ -466,6 +501,19 @@ const deleteJob = async (req, res) => {
         message: 'Job not found'
       });
     }
+
+    // Check if there are any applications
+    const applicationCount = await Application.countDocuments({ job: req.params.id });
+    
+    if (applicationCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete job with existing applications. Consider closing it instead.'
+      });
+    }
+
+    // Now delete the job
+    await Job.findByIdAndDelete(req.params.id);
 
     res.json({
       success: true,

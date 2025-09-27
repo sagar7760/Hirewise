@@ -4,6 +4,7 @@ const { query, body, param, validationResult } = require('express-validator');
 const { auth, authorize, requireCompany } = require('../../middleware/auth');
 const Job = require('../../models/Job');
 const Application = require('../../models/Application');
+const User = require('../../models/User');
 const {
   getJobs,
   createJob,
@@ -100,65 +101,14 @@ router.post('/', auth, authorize('hr', 'admin'), requireCompany, [
 // @route   GET /api/hr/jobs/:id
 // @desc    Get a specific job by ID
 // @access  Private (HR, Admin)
-router.get('/:id', [
+router.get('/:id', auth, authorize('hr', 'admin'), requireCompany, [
   param('id').isMongoId().withMessage('Invalid job ID')
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
-    const job = await Job.findOne({
-      _id: req.params.id,
-      postedBy: req.user?.id || new mongoose.Types.ObjectId() // Ensure HR can only access their jobs
-    }).populate('postedBy', 'firstName lastName').lean();
-
-    if (!job) {
-      return res.status(404).json({
-        success: false,
-        message: 'Job not found'
-      });
-    }
-
-    // Add statistics
-    const applicantCount = await Application.countDocuments({ job: job._id });
-    const applicationsByStatus = await Application.aggregate([
-      { $match: { job: job._id } },
-      { $group: { _id: '$status', count: { $sum: 1 } } }
-    ]);
-    const recentApplications = await Application.countDocuments({ 
-      job: job._id,
-      createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
-    });
-
-    res.json({
-      success: true,
-      data: {
-        ...job,
-        applicants: applicantCount,
-        applicationsByStatus,
-        recentApplications
-      }
-    });
-
-  } catch (error) {
-    console.error('Get job by ID error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
-  }
-});
+], getJobById);
 
 // @route   PUT /api/hr/jobs/:id
 // @desc    Update a job posting
 // @access  Private (HR, Admin)
-router.put('/:id', [
+router.put('/:id', auth, authorize('hr', 'admin'), requireCompany, [
   param('id').isMongoId().withMessage('Invalid job ID'),
   body('title')
     .optional()
@@ -192,133 +142,14 @@ router.put('/:id', [
     .optional()
     .isISO8601()
     .withMessage('Application deadline must be a valid date')
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
-    // Check if job exists and belongs to HR
-    const existingJob = await Job.findOne({
-      _id: req.params.id,
-      postedBy: req.user?.id || new mongoose.Types.ObjectId()
-    });
-
-    if (!existingJob) {
-      return res.status(404).json({
-        success: false,
-        message: 'Job not found'
-      });
-    }
-
-    // Validate salary range if provided
-    if (req.body.salaryRange && req.body.salaryRange.min && req.body.salaryRange.max) {
-      if (req.body.salaryRange.min >= req.body.salaryRange.max) {
-        return res.status(400).json({
-          success: false,
-          message: 'Minimum salary must be less than maximum salary'
-        });
-      }
-    }
-
-    // Update job
-    const updatedJob = await Job.findByIdAndUpdate(
-      req.params.id,
-      { ...req.body, updatedAt: new Date() },
-      { new: true, runValidators: true }
-    ).populate('postedBy', 'firstName lastName').lean();
-
-    // Add statistics
-    const applicantCount = await Application.countDocuments({ job: updatedJob._id });
-    updatedJob.applicants = applicantCount;
-
-    res.json({
-      success: true,
-      message: 'Job updated successfully',
-      data: updatedJob
-    });
-
-  } catch (error) {
-    console.error('Update job error:', error);
-    
-    if (error.name === 'ValidationError') {
-      const errors = Object.values(error.errors).map(err => ({
-        field: err.path,
-        message: err.message
-      }));
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
-  }
-});
+], updateJob);
 
 // @route   DELETE /api/hr/jobs/:id
 // @desc    Delete a job posting
 // @access  Private (HR, Admin)
-router.delete('/:id', [
+router.delete('/:id', auth, authorize('hr', 'admin'), requireCompany, [
   param('id').isMongoId().withMessage('Invalid job ID')
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
-    // Check if job exists and belongs to HR
-    const job = await Job.findOne({
-      _id: req.params.id,
-      postedBy: req.user?.id || new mongoose.Types.ObjectId()
-    });
-
-    if (!job) {
-      return res.status(404).json({
-        success: false,
-        message: 'Job not found'
-      });
-    }
-
-    // Check if there are any applications
-    const applicationCount = await Application.countDocuments({ job: req.params.id });
-    
-    if (applicationCount > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Cannot delete job with existing applications. Consider closing it instead.'
-      });
-    }
-
-    await Job.findByIdAndDelete(req.params.id);
-
-    res.json({
-      success: true,
-      message: 'Job deleted successfully'
-    });
-
-  } catch (error) {
-    console.error('Delete job error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
-  }
-});
+], deleteJob);
 
 // @route   PATCH /api/hr/jobs/:id/status
 // @desc    Update job status (activate, deactivate, close)
@@ -382,7 +213,7 @@ router.patch('/:id/status', [
 // @route   GET /api/hr/jobs/:id/applications
 // @desc    Get all applications for a specific job
 // @access  Private (HR, Admin)
-router.get('/:id/applications', [
+router.get('/:id/applications', auth, authorize('hr', 'admin'), requireCompany, [
   param('id').isMongoId().withMessage('Invalid job ID'),
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit').optional().isInt({ min: 1, max: 50 }).withMessage('Limit must be between 1 and 50'),
@@ -400,10 +231,30 @@ router.get('/:id/applications', [
 
     const { page = 1, limit = 20, status } = req.query;
 
-    // Check if job exists and belongs to HR
+    // Check if user is authenticated
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    // Check if job exists and belongs to the same company
+    const userId = req.user.id;
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const companyId = user.company || user.companyId;
+
     const job = await Job.findOne({
       _id: req.params.id,
-      postedBy: req.user?.id || new mongoose.Types.ObjectId()
+      company: companyId
     });
 
     if (!job) {

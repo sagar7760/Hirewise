@@ -49,6 +49,8 @@ import HRApplicationManagement from './pages/hr/HRApplicationManagement.jsx'
 import HRInterviewManagement from './pages/hr/HRInterviewManagement.jsx'
 import HRProfile from './pages/hr/HRProfile.jsx'
 import HRCreateJob from './pages/hr/HRCreateJob.jsx'
+import HREditJob from './pages/hr/HREditJob.jsx'
+import HRJobApplications from './pages/hr/HRJobApplications.jsx'
 import HRNotifications from './pages/hr/HRNotifications.jsx'
 
 // Interviewer Pages
@@ -194,6 +196,16 @@ function App() {
           <Route path="/hr/jobs/create" element={
             <ProtectedRoute roles={['hr']} requireCompany={true}>
               <HRCreateJob />
+            </ProtectedRoute>
+          } />
+          <Route path="/hr/jobs/:jobId/edit" element={
+            <ProtectedRoute roles={['hr']} requireCompany={true}>
+              <HREditJob />
+            </ProtectedRoute>
+          } />
+          <Route path="/hr/jobs/:jobId/applications" element={
+            <ProtectedRoute roles={['hr']} requireCompany={true}>
+              <HRJobApplications />
             </ProtectedRoute>
           } />
           <Route path="/hr/applications" element={
