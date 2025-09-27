@@ -139,7 +139,7 @@ const LoginPage = () => {
 
           {/* Error Display */}
           {error && (
-            <div className="bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg text-sm font-['Roboto']">
+            <div className="text-red-600 dark:text-red-400 text-center  rounded-lg text-sm font-['Roboto']">
               {error}
             </div>
           )}
