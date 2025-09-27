@@ -218,7 +218,7 @@ const ProfilePage = () => {
         const now = Date.now();
         
         // Check if cache is still valid
-        if (now - timestamp < CACHE_DURATION) {
+        if (now - timestamp < CACACHE_DURATION) {
           return data;
         } else {
           // Cache expired, remove it
@@ -704,8 +704,8 @@ const ProfilePage = () => {
 
         {/* Error State */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-800 font-['Roboto'] text-sm">{error}</p>
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg transition-colors duration-300">
+            <p className="text-red-800 dark:text-red-300 font-['Roboto'] text-sm">{error}</p>
           </div>
         )}
 
@@ -716,10 +716,10 @@ const ProfilePage = () => {
             <div className="mb-8">
               <div className="flex justify-between items-start">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 font-['Open_Sans'] mb-2">
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white font-['Open_Sans'] mb-2 transition-colors duration-300">
                     Profile
                   </h1>
-                  <p className="text-gray-600 font-['Roboto']">
+                  <p className="text-gray-600 dark:text-gray-300 font-['Roboto'] transition-colors duration-300">
                     Review and update your profile information.
                   </p>
                 </div>
@@ -727,7 +727,7 @@ const ProfilePage = () => {
                 {!isEditing ? (
                   <button
                     onClick={() => setIsEditing(true)}
-                    className="bg-black text-white hover:bg-gray-800 px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
+                    className="bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
                   >
                     Edit Profile
                   </button>
@@ -736,18 +736,18 @@ const ProfilePage = () => {
                     <button
                       onClick={handleCancel}
                       disabled={isSaving}
-                      className="border border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors disabled:opacity-50"
+                      className="border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors disabled:opacity-50"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSave}
                       disabled={isSaving}
-                      className="bg-black text-white hover:bg-gray-800 px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors disabled:opacity-50 flex items-center"
+                      className="bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors disabled:opacity-50 flex items-center"
                     >
                       {isSaving ? (
                         <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white dark:border-black mr-2"></div>
                           Saving...
                         </>
                       ) : (
@@ -759,679 +759,679 @@ const ProfilePage = () => {
               </div>
             </div>
 
-        {/* Profile Content */}
-        <div className="bg-white rounded-lg border border-gray-200 p-8">
-          {/* Personal Information */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 font-['Open_Sans'] mb-6">
-              Personal Information
-            </h2>
-            
-            {/* Profile Picture Section */}
-            <div className="mb-8 pb-8 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900 font-['Open_Sans'] mb-4">
-                Profile Picture
-              </h3>
-              
-              <div className="flex items-start space-x-6">
-                {/* Current/Preview Image */}
-                <div className="flex-shrink-0">
-                  <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border-2 border-gray-300">
-                    {profilePicturePreview ? (
-                      <img 
-                        src={profilePicturePreview} 
-                        alt="Profile preview" 
-                        className="w-full h-full object-cover"
-                      />
-                    ) : formData.profilePicture ? (
-                      <img 
-                        src={formData.profilePicture.startsWith('data:') ? 
-                             formData.profilePicture : 
-                             formData.profilePicture.startsWith('/uploads') ? 
-                             `${window.location.origin}${formData.profilePicture}` :
-                             formData.profilePicture}
-                        alt="Profile" 
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          console.log('Profile image failed to load:', formData.profilePicture);
-                          if (e.target) {
-                            e.target.style.display = 'none';
-                            if (e.target.nextSibling) {
-                              e.target.nextSibling.style.display = 'flex';
-                            }
-                          }
-                        }}
-                      />
-                    ) : null}
-                    {!profilePicturePreview && !formData.profilePicture && (
-                      <div className="text-2xl font-bold text-gray-500 font-['Open_Sans']">
-                        {formData.fullName ? formData.fullName.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
-                      </div>
-                    )}
-                  </div>
-                </div>
+          {/* Profile Content Body */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 transition-colors duration-300">
+              {/* Personal Information */}
+              <div className="mb-8">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white font-['Open_Sans'] mb-6 transition-colors duration-300">
+                  Personal Information
+                </h2>
                 
-                {/* Upload Controls - Only show in edit mode */}
-                {isEditing && (
-                  <div className="flex-grow">
-                    {!profilePicture ? (
-                      <div className="space-y-3">
-                        <div className="flex space-x-2">
-                          <label className="cursor-pointer">
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleProfilePictureChange}
-                              className="hidden"
-                            />
-                            <span className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto']">
-                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                              </svg>
-                              {formData.profilePicture ? 'Change Photo' : 'Choose Photo'}
-                            </span>
-                          </label>
-                          
-                          {/* Delete button - only show if there's an existing profile picture */}
-                          {formData.profilePicture && (
-                            <button
-                              onClick={deleteProfilePicture}
-                              disabled={isDeletingPicture}
-                              className="px-4 py-2 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 disabled:opacity-50 font-['Roboto'] flex items-center"
-                            >
-                              {isDeletingPicture ? (
-                                <>
-                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-600 mr-2"></div>
-                                  Deleting...
-                                </>
-                              ) : (
-                                <>
-                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
-                                  Delete Photo
-                                </>
-                              )}
-                            </button>
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-500 font-['Roboto']">
-                          JPG, PNG or GIF. Max file size 5MB.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <p className="text-sm text-gray-700 font-['Roboto']">
-                          Ready to upload: {profilePicture.name}
-                        </p>
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={uploadProfilePicture}
-                            disabled={isUploadingPicture}
-                          className="px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50 font-['Roboto'] flex items-center"
-                        >
-                          {isUploadingPicture ? (
-                            <>
-                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
-                              Uploading...
-                            </>
-                          ) : (
-                            'Upload Photo'
-                          )}
-                        </button>
-                        <button
-                          onClick={cancelProfilePictureUpload}
-                          disabled={isUploadingPicture}
-                          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 font-['Roboto']"
-                        >
-                          Cancel
-                        </button>
-                        
-                        {/* Delete existing picture button - show if user has a saved profile picture */}
-                        {formData.profilePicture && (
-                          <button
-                            onClick={deleteProfilePicture}
-                            disabled={isDeletingPicture}
-                            className="px-4 py-2 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 disabled:opacity-50 font-['Roboto'] flex items-center"
-                          >
-                            {isDeletingPicture ? (
-                              <>
-                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-600 mr-2"></div>
-                                Deleting...
-                              </>
-                            ) : (
-                              <>
-                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                                Delete Current Photo
-                              </>
-                            )}
-                          </button>
-                        )}
-                        </div>
-                    </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Full Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
-                  Full Name
-                </label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    name="fullName"
-                    value={formData.fullName}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] text-gray-900"
-                  />
-                ) : (
-                  <p className="text-gray-900 font-['Roboto'] py-2">{formData.fullName}</p>
-                )}
-              </div>
-
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
-                  Email
-                </label>
-                <p className="text-gray-900 font-['Roboto'] py-2 bg-gray-50 px-3 rounded-lg border">
-                  {formData.email}
-                  <span className="text-xs text-gray-500 ml-2">(Cannot be changed)</span>
-                </p>
-              </div>
-
-              {/* Phone */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
-                  Phone
-                </label>
-                {isEditing ? (
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] text-gray-900"
-                  />
-                ) : (
-                  <p className="text-gray-900 font-['Roboto'] py-2">{formData.phone}</p>
-                )}
-              </div>
-
-              {/* Location */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
-                  Location
-                </label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] text-gray-900"
-                  />
-                ) : (
-                  <p className="text-gray-900 font-['Roboto'] py-2">{formData.location}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Summary/Objective */}
-            <div className="mt-6">
-              <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
-                Summary/Objective
-              </label>
-              {isEditing ? (
-                <textarea
-                  name="summary"
-                  value={formData.summary}
-                  onChange={handleInputChange}
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] resize-none text-gray-900"
-                />
-              ) : (
-                <div className="py-2">
-                  {formData.summary ? (
-                    <p className="text-gray-900 font-['Roboto'] leading-relaxed">{formData.summary}</p>
-                  ) : (
-                    <p className="text-gray-500 font-['Roboto'] italic">No summary/objective added yet</p>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Resume Section */}
-          <div className="mb-8 pb-8 border-b border-gray-100">
-            <h2 className="text-xl font-semibold text-gray-900 font-['Open_Sans'] mb-6">
-              Resume
-            </h2>
-            
-            {formData.resume ? (
-              <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="flex-shrink-0 w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-gray-900 font-['Open_Sans']">
-                        {formData.resume.fileName}
-                      </h3>
-                      <p className="text-sm text-gray-600 font-['Roboto']">
-                        Uploaded: {formData.resume.uploadDate} • {formData.resume.fileSize}
-                      </p>
-                    </div>
-                  </div>
+                {/* Profile Picture Section */}
+                <div className="mb-8 pb-8 border-b border-gray-200 dark:border-gray-700 transition-colors duration-300">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white font-['Open_Sans'] mb-4 transition-colors duration-300">
+                    Profile Picture
+                  </h3>
                   
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={handleResumeDownload}
-                      className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded-lg transition-colors"
-                      title="Download Resume"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </button>
+                  <div className="flex items-start space-x-6">
+                    {/* Current/Preview Image */}
+                    <div className="flex-shrink-0">
+                      <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden border-2 border-gray-300 dark:border-gray-600 transition-colors duration-300">
+                        {profilePicturePreview ? (
+                          <img 
+                            src={profilePicturePreview} 
+                            alt="Profile preview" 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : formData.profilePicture ? (
+                          <img 
+                            src={formData.profilePicture.startsWith('data:') ? 
+                                  formData.profilePicture : 
+                                  formData.profilePicture.startsWith('/uploads') ? 
+                                  `${window.location.origin}${formData.profilePicture}` :
+                                  formData.profilePicture}
+                            alt="Profile" 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              console.log('Profile image failed to load:', formData.profilePicture);
+                              if (e.target) {
+                                e.target.style.display = 'none';
+                                if (e.target.nextSibling) {
+                                  e.target.nextSibling.style.display = 'flex';
+                                }
+                              }
+                            }}
+                          />
+                        ) : null}
+                        {!profilePicturePreview && !formData.profilePicture && (
+                          <div className="text-2xl font-bold text-gray-500 dark:text-gray-400 font-['Open_Sans'] transition-colors duration-300">
+                            {formData.fullName ? formData.fullName.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                     
+                    {/* Upload Controls - Only show in edit mode */}
                     {isEditing && (
-                      <button
-                        onClick={handleResumeDelete}
-                        className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete Resume"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+                      <div className="flex-grow">
+                        {!profilePicture ? (
+                          <div className="space-y-3">
+                            <div className="flex space-x-2">
+                              <label className="cursor-pointer">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleProfilePictureChange}
+                                  className="hidden"
+                                />
+                                <span className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] transition-colors duration-300">
+                                  <svg className="w-4 h-4 mr-2 stroke-current" fill="none" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                  </svg>
+                                  {formData.profilePicture ? 'Change Photo' : 'Choose Photo'}
+                                </span>
+                              </label>
+                              
+                              {/* Delete button - only show if there's an existing profile picture */}
+                              {formData.profilePicture && (
+                                <button
+                                  onClick={deleteProfilePicture}
+                                  disabled={isDeletingPicture}
+                                  className="px-4 py-2 border border-red-300 dark:border-red-600 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 font-['Roboto'] flex items-center transition-colors duration-300"
+                                >
+                                  {isDeletingPicture ? (
+                                    <>
+                                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-600 dark:border-red-400 mr-2"></div>
+                                      Deleting...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <svg className="w-4 h-4 mr-2 stroke-current" fill="none" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                      Delete Photo
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 font-['Roboto'] transition-colors duration-300">
+                              JPG, PNG or GIF. Max file size 5MB.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            <p className="text-sm text-gray-700 dark:text-gray-300 font-['Roboto'] transition-colors duration-300">
+                              Ready to upload: {profilePicture.name}
+                            </p>
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={uploadProfilePicture}
+                                disabled={isUploadingPicture}
+                              className="px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 font-['Roboto'] flex items-center transition-colors duration-300"
+                              >
+                                {isUploadingPicture ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white dark:border-black mr-2"></div>
+                                    Uploading...
+                                  </>
+                                ) : (
+                                  'Upload Photo'
+                                )}
+                              </button>
+                              <button
+                                onClick={cancelProfilePictureUpload}
+                                disabled={isUploadingPicture}
+                                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 font-['Roboto'] transition-colors duration-300"
+                              >
+                                Cancel
+                              </button>
+                              
+                              {/* Delete existing picture button - show if user has a saved profile picture */}
+                              {formData.profilePicture && (
+                                <button
+                                  onClick={deleteProfilePicture}
+                                  disabled={isDeletingPicture}
+                                  className="px-4 py-2 border border-red-300 dark:border-red-600 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 font-['Roboto'] flex items-center transition-colors duration-300"
+                                >
+                                  {isDeletingPicture ? (
+                                    <>
+                                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-600 dark:border-red-400 mr-2"></div>
+                                      Deleting...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <svg className="w-4 h-4 mr-2 stroke-current" fill="none" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                      Delete Current Photo
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
                 
-                {isEditing && (
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
-                      Upload New Resume
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Full Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2 transition-colors duration-300">
+                      Full Name
                     </label>
-                    <input
-                      type="file"
-                      accept=".pdf,.doc,.docx"
-                      onChange={handleResumeUpload}
-                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-black file:text-white hover:file:bg-gray-800 file:transition-colors"
-                    />
-                    <p className="mt-1 text-xs text-gray-500 font-['Roboto']">
-                      Supported formats: PDF, DOC, DOCX (Max size: 5MB)
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        name="fullName"
+                        value={formData.fullName}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition-colors duration-300"
+                      />
+                    ) : (
+                      <p className="text-gray-900 dark:text-white font-['Roboto'] py-2 transition-colors duration-300">{formData.fullName}</p>
+                    )}
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2 transition-colors duration-300">
+                      Email
+                    </label>
+                    <p className="text-gray-900 dark:text-white font-['Roboto'] py-2 bg-gray-50 dark:bg-gray-700 px-3 rounded-lg border border-gray-300 dark:border-gray-600 transition-colors duration-300">
+                      {formData.email}
+                      <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">(Cannot be changed)</span>
                     </p>
                   </div>
-                )}
+
+                  {/* Phone */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2 transition-colors duration-300">
+                      Phone
+                    </label>
+                    {isEditing ? (
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition-colors duration-300"
+                      />
+                    ) : (
+                      <p className="text-gray-900 dark:text-white font-['Roboto'] py-2 transition-colors duration-300">{formData.phone}</p>
+                    )}
+                  </div>
+
+                  {/* Location */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2 transition-colors duration-300">
+                      Location
+                    </label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        name="location"
+                        value={formData.location}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition-colors duration-300"
+                      />
+                    ) : (
+                      <p className="text-gray-900 dark:text-white font-['Roboto'] py-2 transition-colors duration-300">{formData.location}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Summary/Objective */}
+                <div className="mt-6">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2 transition-colors duration-300">
+                    Summary/Objective
+                  </label>
+                  {isEditing ? (
+                    <textarea
+                      name="summary"
+                      value={formData.summary}
+                      onChange={handleInputChange}
+                      rows={4}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] resize-none text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition-colors duration-300"
+                    />
+                  ) : (
+                    <div className="py-2">
+                      {formData.summary ? (
+                        <p className="text-gray-900 dark:text-white font-['Roboto'] leading-relaxed transition-colors duration-300">{formData.summary}</p>
+                      ) : (
+                        <p className="text-gray-500 dark:text-gray-400 font-['Roboto'] italic transition-colors duration-300">No summary/objective added yet</p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-            ) : (
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                <div className="flex flex-col items-center">
-                  <svg className="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
-                  <h3 className="text-lg font-medium text-gray-900 font-['Open_Sans'] mb-2">
-                    No resume uploaded
-                  </h3>
-                  <p className="text-gray-600 font-['Roboto'] mb-4">
-                    Upload your resume to let employers know more about your experience
-                  </p>
-                  
-                  {isEditing && (
-                    <div>
-                      <label className="cursor-pointer bg-black text-white hover:bg-gray-800 px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors inline-block">
-                        Upload Resume
+
+              {/* Resume Section */}
+              <div className="mb-8 pb-8 border-b border-gray-100 dark:border-gray-700 transition-colors duration-300">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white font-['Open_Sans'] mb-6 transition-colors duration-300">
+                  Resume
+                </h2>
+                
+                {formData.resume ? (
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600 transition-colors duration-300">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className="flex-shrink-0 w-12 h-12 bg-gray-200 dark:bg-gray-900/30 rounded-lg flex items-center justify-center transition-colors duration-300">
+                          <svg className="w-6 h-6 text-gray-600 dark:text-gray-400 stroke-current" fill="none" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-gray-900 dark:text-white font-['Open_Sans'] transition-colors duration-300">
+                            {formData.resume.fileName}
+                          </h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 font-['Roboto'] transition-colors duration-300">
+                            Uploaded: {formData.resume.uploadDate} • {formData.resume.fileSize}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={handleResumeDownload}
+                          className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                          title="Download Resume"
+                        >
+                          <svg className="w-5 h-5 stroke-current" fill="none" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </button>
+                        
+                        {isEditing && (
+                          <button
+                            onClick={handleResumeDelete}
+                            className="p-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            title="Delete Resume"
+                          >
+                            <svg className="w-5 h-5 stroke-current" fill="none" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {isEditing && (
+                      <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600 transition-colors duration-300">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">
+                          Upload New Resume
+                        </label>
                         <input
                           type="file"
                           accept=".pdf,.doc,.docx"
                           onChange={handleResumeUpload}
-                          className="hidden"
+                          className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-black dark:file:bg-white file:text-white dark:file:text-black hover:file:bg-gray-800 dark:hover:file:bg-gray-200 file:transition-colors"
                         />
-                      </label>
-                      <p className="mt-2 text-xs text-gray-500 font-['Roboto']">
-                        Supported formats: PDF, DOC, DOCX (Max size: 5MB)
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Education */}
-          <div className="mb-8 pb-8 border-b border-gray-100">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 font-['Open_Sans']">
-                Education
-              </h2>
-              {isEditing && (
-                <button
-                  onClick={() => openAddModal('education')}
-                  className="bg-black text-white hover:bg-gray-800 px-4 py-2 rounded-lg text-sm font-medium font-['Roboto'] transition-colors flex items-center"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  Add Education
-                </button>
-              )}
-            </div>
-            
-            {(formData.education && formData.education.length === 0) ? (
-              <div className="text-center py-8 text-gray-500 font-['Roboto']">
-                No education information added yet
-              </div>
-            ) : (
-              (formData.education || []).map((edu) => (
-                <div key={edu.id} className="flex items-start space-x-4 mb-4 group">
-                  <div className="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mt-1">
-                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-medium text-gray-900 font-['Open_Sans']">{edu.institution}</h3>
-                    <p className="text-sm text-gray-600 font-['Roboto'] mb-1">{edu.degree}</p>
-                    <p className="text-sm text-gray-600 font-['Roboto'] mb-1">Graduated: {edu.graduationDate}</p>
-                    {edu.description && (
-                      <p className="text-sm text-gray-700 font-['Roboto']">{edu.description}</p>
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 font-['Roboto']">
+                          Supported formats: PDF, DOC, DOCX (Max size: 5MB)
+                        </p>
+                      </div>
                     )}
                   </div>
-                  {isEditing && (
-                    <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => openEditModal('education', edu)}
-                        className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                        title="Edit Education"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => handleArrayRemove('education', edu.id)}
-                        className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Remove Education"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+                ) : (
+                  <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center transition-colors duration-300">
+                    <div className="flex flex-col items-center">
+                      <svg className="w-12 h-12 text-gray-400 dark:text-gray-500 mb-4 stroke-current" fill="none" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white font-['Open_Sans'] mb-2">
+                        No resume uploaded
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-300 font-['Roboto'] mb-4">
+                        Upload your resume to let employers know more about your experience
+                      </p>
+                      
+                      {isEditing && (
+                        <div>
+                          <label className="cursor-pointer bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors inline-block">
+                            Upload Resume
+                            <input
+                              type="file"
+                              accept=".pdf,.doc,.docx"
+                              onChange={handleResumeUpload}
+                              className="hidden"
+                            />
+                          </label>
+                          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 font-['Roboto']">
+                            Supported formats: PDF, DOC, DOCX (Max size: 5MB)
+                          </p>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* Work Experience */}
-          <div className="mb-8 pb-8 border-b border-gray-100">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 font-['Open_Sans']">
-                Work Experience
-              </h2>
-              {isEditing && (
-                <button
-                  onClick={() => openAddModal('workExperience')}
-                  className="bg-black text-white hover:bg-gray-800 px-4 py-2 rounded-lg text-sm font-medium font-['Roboto'] transition-colors flex items-center"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  Add Experience
-                </button>
-              )}
-            </div>
-            
-            {(formData.workExperience && formData.workExperience.length === 0) ? (
-              <div className="text-center py-8 text-gray-500 font-['Roboto']">
-                No work experience added yet
-              </div>
-            ) : (
-              (formData.workExperience || []).map((work) => (
-                <div key={work.id} className="flex items-start space-x-4 mb-4 group">
-                  <div className="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mt-1">
-                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2V6" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-medium text-gray-900 font-['Open_Sans']">{work.company}</h3>
-                    <p className="text-sm text-gray-600 font-['Roboto'] mb-1">{work.position}</p>
-                    <p className="text-sm text-gray-600 font-['Roboto'] mb-1">{work.duration}</p>
-                    <p className="text-sm text-gray-700 font-['Roboto']">{work.description}</p>
-                  </div>
-                  {isEditing && (
-                    <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => openEditModal('workExperience', work)}
-                        className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                        title="Edit Experience"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => handleArrayRemove('workExperience', work.id)}
-                        className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Remove Experience"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* Skills */}
-          <div className="mb-8 pb-8 border-b border-gray-100">
-            <h2 className="text-xl font-semibold text-gray-900 font-['Open_Sans'] mb-6">
-              Skills
-            </h2>
-            
-            {isEditing ? (
-              <div className="space-y-4">
-                {/* Selected Skills Display */}
-                {formData.skills && formData.skills.length > 0 && (
-                  <div className="flex flex-wrap gap-2 p-3 border border-gray-200 rounded-lg bg-gray-50 min-h-[60px]">
-                    {formData.skills.map((skill, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center gap-1 px-3 py-1 bg-black text-white text-sm rounded-full font-['Roboto']"
-                      >
-                        {skill}
-                        <button
-                          type="button"
-                          onClick={() => removeSkill(skill)}
-                          className="ml-1 text-gray-300 hover:text-white transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </span>
-                    ))}
                   </div>
                 )}
-                
-                {/* Custom Skill Input */}
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Type a skill and press Enter"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] transition-colors"
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        const skill = e.target.value.trim();
-                        if (skill) {
-                          addSkill(skill);
-                          e.target.value = '';
-                        }
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      const input = e.target.parentElement.querySelector('input');
-                      const skill = input.value.trim();
-                      if (skill) {
-                        addSkill(skill);
-                        input.value = '';
-                      }
-                    }}
-                    className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-['Roboto'] text-sm"
-                  >
-                    Add
-                  </button>
-                </div>
-                
-                {/* Suggested Skills */}
-                <div>
-                  <p className="text-sm text-gray-600 font-['Roboto'] mb-2">Popular Skills (click to add):</p>
-                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                    {suggestedSkills
-                      .filter(skill => !formData.skills.includes(skill))
-                      .slice(0, 30)
-                      .map((skill) => (
-                      <button
-                        key={skill}
-                        type="button"
-                        onClick={() => addSkill(skill)}
-                        className="px-3 py-1 text-sm border border-gray-300 rounded-full hover:bg-gray-100 hover:border-gray-400 transition-colors font-['Roboto'] text-gray-700"
-                      >
-                        + {skill}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                
-                <p className="text-sm text-gray-500 font-['Roboto']">
-                  Add skills that best represent your expertise. You can type custom skills or select from popular ones.
-                </p>
               </div>
-            ) : (
-              <div>
-                {(formData.skills && formData.skills.length > 0) ? (
-                  <div className="flex flex-wrap gap-2">
-                    {formData.skills.map((skill, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-800 font-['Roboto']"
-                      >
-                        {skill}
-                      </span>
-                    ))}
+
+              {/* Education */}
+              <div className="mb-8 pb-8 border-b border-gray-100 dark:border-gray-700 transition-colors duration-300">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white font-['Open_Sans'] transition-colors duration-300">
+                    Education
+                  </h2>
+                  {isEditing && (
+                    <button
+                      onClick={() => openAddModal('education')}
+                      className="bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 px-4 py-2 rounded-lg text-sm font-medium font-['Roboto'] transition-colors flex items-center"
+                    >
+                      <svg className="w-4 h-4 mr-2 stroke-current" fill="none" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      Add Education
+                    </button>
+                  )}
+                </div>
+                
+                {(formData.education && formData.education.length === 0) ? (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400 font-['Roboto'] transition-colors duration-300">
+                    No education information added yet
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-gray-500 font-['Roboto']">
-                    No skills added yet
+                  (formData.education || []).map((edu) => (
+                    <div key={edu.id} className="flex items-start space-x-4 mb-4 group">
+                      <div className="flex-shrink-0 w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center mt-1 transition-colors duration-300">
+                        <svg className="w-4 h-4 text-gray-600 dark:text-gray-400 stroke-current" fill="none" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665-6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900 dark:text-white font-['Open_Sans'] transition-colors duration-300">{edu.institution}</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto'] mb-1 transition-colors duration-300">{edu.degree}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto'] mb-1 transition-colors duration-300">Graduated: {edu.graduationDate}</p>
+                        {edu.description && (
+                          <p className="text-sm text-gray-700 dark:text-gray-200 font-['Roboto'] transition-colors duration-300">{edu.description}</p>
+                        )}
+                      </div>
+                      {isEditing && (
+                        <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => openEditModal('education', edu)}
+                            className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                            title="Edit Education"
+                          >
+                            <svg className="w-4 h-4 stroke-current" fill="none" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleArrayRemove('education', edu.id)}
+                            className="p-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            title="Remove Education"
+                          >
+                            <svg className="w-4 h-4 stroke-current" fill="none" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Work Experience */}
+              <div className="mb-8 pb-8 border-b border-gray-100 dark:border-gray-700 transition-colors duration-300">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white font-['Open_Sans'] transition-colors duration-300">
+                    Work Experience
+                  </h2>
+                  {isEditing && (
+                    <button
+                      onClick={() => openAddModal('workExperience')}
+                      className="bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 px-4 py-2 rounded-lg text-sm font-medium font-['Roboto'] transition-colors flex items-center"
+                    >
+                      <svg className="w-4 h-4 mr-2 stroke-current" fill="none" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      Add Experience
+                    </button>
+                  )}
+                </div>
+                
+                {(formData.workExperience && formData.workExperience.length === 0) ? (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400 font-['Roboto'] transition-colors duration-300">
+                    No work experience added yet
+                  </div>
+                ) : (
+                  (formData.workExperience || []).map((work) => (
+                    <div key={work.id} className="flex items-start space-x-4 mb-4 group">
+                      <div className="flex-shrink-0 w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center mt-1 transition-colors duration-300">
+                        <svg className="w-4 h-4 text-gray-600 dark:text-gray-400 stroke-current" fill="none" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2V6" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900 dark:text-white font-['Open_Sans'] transition-colors duration-300">{work.company}</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto'] mb-1 transition-colors duration-300">{work.position}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto'] mb-1 transition-colors duration-300">{work.duration}</p>
+                        <p className="text-sm text-gray-700 dark:text-gray-200 font-['Roboto'] transition-colors duration-300">{work.description}</p>
+                      </div>
+                      {isEditing && (
+                        <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => openEditModal('workExperience', work)}
+                            className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                            title="Edit Experience"
+                          >
+                            <svg className="w-4 h-4 stroke-current" fill="none" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleArrayRemove('workExperience', work.id)}
+                            className="p-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            title="Remove Experience"
+                          >
+                            <svg className="w-4 h-4 stroke-current" fill="none" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Skills */}
+              <div className="mb-8 pb-8 border-b border-gray-100 dark:border-gray-700 transition-colors duration-300">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white font-['Open_Sans'] mb-6 transition-colors duration-300">
+                  Skills
+                </h2>
+                
+                {isEditing ? (
+                  <div className="space-y-4">
+                    {/* Selected Skills Display */}
+                    {formData.skills && formData.skills.length > 0 && (
+                      <div className="flex flex-wrap gap-2 p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 min-h-[60px] transition-colors duration-300">
+                        {formData.skills.map((skill, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center gap-1 px-3 py-1 bg-black dark:bg-white text-white dark:text-black text-sm rounded-full font-['Roboto']"
+                          >
+                            {skill}
+                            <button
+                              type="button"
+                              onClick={() => removeSkill(skill)}
+                              className="ml-1 text-gray-300 dark:text-gray-600 hover:text-white dark:hover:text-gray-800 transition-colors"
+                            >
+                              <svg className="w-4 h-4 stroke-current" fill="none" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Custom Skill Input */}
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Type a skill and press Enter"
+                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] transition-colors"
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const skill = e.target.value.trim();
+                            if (skill) {
+                              addSkill(skill);
+                              e.target.value = '';
+                            }
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          const input = e.target.parentElement.querySelector('input');
+                          const skill = input.value.trim();
+                          if (skill) {
+                            addSkill(skill);
+                            input.value = '';
+                          }
+                        }}
+                        className="px-4 py-2 bg-gray-600 dark:bg-gray-500 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-400 transition-colors font-['Roboto'] text-sm"
+                      >
+                        Add
+                      </button>
+                    </div>
+                    
+                    {/* Suggested Skills */}
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 font-['Roboto'] mb-2 transition-colors duration-300">Popular Skills (click to add):</p>
+                      <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                        {suggestedSkills
+                          .filter(skill => !formData.skills.includes(skill))
+                          .slice(0, 30)
+                          .map((skill) => (
+                          <button
+                            key={skill}
+                            type="button"
+                            onClick={() => addSkill(skill)}
+                            className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-colors font-['Roboto'] text-gray-700 dark:text-gray-300"
+                          >
+                            + {skill}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <p className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto'] transition-colors duration-300">
+                      Add skills that best represent your expertise. You can type custom skills or select from popular ones.
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    {(formData.skills && formData.skills.length > 0) ? (
+                      <div className="flex flex-wrap gap-2">
+                        {formData.skills.map((skill, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-['Roboto'] transition-colors duration-300"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500 dark:text-gray-400 font-['Roboto'] transition-colors duration-300">
+                        No skills added yet
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            )}
-          </div>
 
-          {/* Projects */}
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 font-['Open_Sans']">
-                Projects
-              </h2>
-              {isEditing && (
-                <button
-                  onClick={() => openAddModal('projects')}
-                  className="bg-black text-white hover:bg-gray-800 px-4 py-2 rounded-lg text-sm font-medium font-['Roboto'] transition-colors flex items-center"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  Add Project
-                </button>
-              )}
-            </div>
-            
-            {(formData.projects && formData.projects.length === 0) ? (
-              <div className="text-center py-8 text-gray-500 font-['Roboto']">
-                No projects added yet
-              </div>
-            ) : (
-              (formData.projects || []).map((project) => (
-                <div key={project.id} className="flex items-start space-x-4 mb-4 group">
-                  <div className="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mt-1">
-                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-medium text-gray-900 font-['Open_Sans']">{project.name}</h3>
-                    <p className="text-sm text-gray-600 font-['Roboto'] mb-1">{project.technologies}</p>
-                    <p className="text-sm text-gray-700 font-['Roboto']">{project.description}</p>
-                  </div>
+              {/* Projects */}
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white font-['Open_Sans'] transition-colors duration-300">
+                    Projects
+                  </h2>
                   {isEditing && (
-                    <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => openEditModal('projects', project)}
-                        className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                        title="Edit Project"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => handleArrayRemove('projects', project.id)}
-                        className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Remove Project"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => openAddModal('projects')}
+                      className="bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 px-4 py-2 rounded-lg text-sm font-medium font-['Roboto'] transition-colors flex items-center"
+                    >
+                      <svg className="w-4 h-4 mr-2 stroke-current" fill="none" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      Add Project
+                    </button>
                   )}
                 </div>
-              ))
-            )}
-          </div>
-        </div>
+                
+                {(formData.projects && formData.projects.length === 0) ? (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400 font-['Roboto'] transition-colors duration-300">
+                    No projects added yet
+                  </div>
+                ) : (
+                  (formData.projects || []).map((project) => (
+                    <div key={project.id} className="flex items-start space-x-4 mb-4 group">
+                      <div className="flex-shrink-0 w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center mt-1 transition-colors duration-300">
+                        <svg className="w-4 h-4 text-gray-600 dark:text-gray-400 stroke-current" fill="none" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900 dark:text-white font-['Open_Sans'] transition-colors duration-300">{project.name}</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto'] mb-1 transition-colors duration-300">{project.technologies}</p>
+                        <p className="text-sm text-gray-700 dark:text-gray-200 font-['Roboto'] transition-colors duration-300">{project.description}</p>
+                      </div>
+                      {isEditing && (
+                        <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => openEditModal('projects', project)}
+                            className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                            title="Edit Project"
+                          >
+                            <svg className="w-4 h-4 stroke-current" fill="none" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleArrayRemove('projects', project.id)}
+                            className="p-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            title="Remove Project"
+                          >
+                            <svg className="w-4 h-4 stroke-current" fill="none" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
 
-        {/* Bottom Action Buttons (Mobile) */}
-        {isEditing && (
-          <div className="mt-6 flex space-x-3 md:hidden">
-            <button
-              onClick={handleCancel}
-              className="flex-1 border border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              className="flex-1 bg-black text-white hover:bg-gray-800 px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors"
-            >
-              Save Changes
-            </button>
-          </div>
-        )}
+            {/* Bottom Action Buttons (Mobile) */}
+            {isEditing && (
+              <div className="mt-6 flex space-x-3 md:hidden">
+                <button
+                  onClick={handleCancel}
+                  className="flex-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="flex-1 bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors"
+                >
+                  Save Changes
+                </button>
+              </div>
+            )}
           </>
         )}
 
@@ -1486,7 +1486,7 @@ const EditModal = ({ section, item, onSave, onCancel }) => {
       return (
         <>
           <div>
-            <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2 transition-colors duration-300">
               Institution/School
             </label>
             <input
@@ -1494,12 +1494,12 @@ const EditModal = ({ section, item, onSave, onCancel }) => {
               name="institution"
               value={formData.institution}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] text-gray-900"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition-colors duration-300"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2 transition-colors duration-300">
               Degree
             </label>
             <input
@@ -1508,12 +1508,12 @@ const EditModal = ({ section, item, onSave, onCancel }) => {
               value={formData.degree}
               onChange={handleInputChange}
               placeholder="e.g., Bachelor of Science in Computer Science"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] text-gray-900"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition-colors duration-300"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2 transition-colors duration-300">
               Graduation Date
             </label>
             <input
@@ -1522,12 +1522,12 @@ const EditModal = ({ section, item, onSave, onCancel }) => {
               value={formData.graduationDate}
               onChange={handleInputChange}
               placeholder="e.g., June 2023"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] text-gray-900"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition-colors duration-300"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2 transition-colors duration-300">
               Description (Optional)
             </label>
             <textarea
@@ -1536,7 +1536,7 @@ const EditModal = ({ section, item, onSave, onCancel }) => {
               onChange={handleInputChange}
               rows={3}
               placeholder="Additional details about your education"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] resize-none text-gray-900"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] resize-none text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition-colors duration-300"
             />
           </div>
         </>
@@ -1545,7 +1545,7 @@ const EditModal = ({ section, item, onSave, onCancel }) => {
       return (
         <>
           <div>
-            <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2 transition-colors duration-300">
               Company
             </label>
             <input
@@ -1553,12 +1553,12 @@ const EditModal = ({ section, item, onSave, onCancel }) => {
               name="company"
               value={formData.company}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] text-gray-900"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition-colors duration-300"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2 transition-colors duration-300">
               Position/Job Title
             </label>
             <input
@@ -1567,12 +1567,12 @@ const EditModal = ({ section, item, onSave, onCancel }) => {
               value={formData.position}
               onChange={handleInputChange}
               placeholder="e.g., Software Engineer"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] text-gray-900"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition-colors duration-300"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2 transition-colors duration-300">
               Duration
             </label>
             <input
@@ -1581,12 +1581,12 @@ const EditModal = ({ section, item, onSave, onCancel }) => {
               value={formData.duration}
               onChange={handleInputChange}
               placeholder="e.g., Jan 2022 - Present"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] text-gray-900"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition-colors duration-300"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2 transition-colors duration-300">
               Job Description
             </label>
             <textarea
@@ -1595,7 +1595,7 @@ const EditModal = ({ section, item, onSave, onCancel }) => {
               onChange={handleInputChange}
               rows={3}
               placeholder="Describe your role and achievements"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] resize-none text-gray-900"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] resize-none text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition-colors duration-300"
               required
             />
           </div>
@@ -1605,7 +1605,7 @@ const EditModal = ({ section, item, onSave, onCancel }) => {
       return (
         <>
           <div>
-            <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2 transition-colors duration-300">
               Project Name
             </label>
             <input
@@ -1613,12 +1613,12 @@ const EditModal = ({ section, item, onSave, onCancel }) => {
               name="name"
               value={formData.name}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] text-gray-900"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition-colors duration-300"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2 transition-colors duration-300">
               Technologies Used
             </label>
             <input
@@ -1627,12 +1627,12 @@ const EditModal = ({ section, item, onSave, onCancel }) => {
               value={formData.technologies}
               onChange={handleInputChange}
               placeholder="e.g., React, Node.js, MongoDB"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] text-gray-900"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition-colors duration-300"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2 transition-colors duration-300">
               Project Description
             </label>
             <textarea
@@ -1641,7 +1641,7 @@ const EditModal = ({ section, item, onSave, onCancel }) => {
               onChange={handleInputChange}
               rows={3}
               placeholder="Describe what the project does and your role"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black font-['Roboto'] resize-none text-gray-900"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white focus:border-black dark:focus:border-white font-['Roboto'] resize-none text-gray-900 dark:text-white bg-white dark:bg-gray-700 transition-colors duration-300"
               required
             />
           </div>
@@ -1652,17 +1652,17 @@ const EditModal = ({ section, item, onSave, onCancel }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto transition-colors duration-300">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 font-['Open_Sans']">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white font-['Open_Sans'] transition-colors duration-300">
               {getSectionTitle()}
             </h3>
             <button
               onClick={onCancel}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 stroke-current" fill="none" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -1675,13 +1675,13 @@ const EditModal = ({ section, item, onSave, onCancel }) => {
               <button
                 type="button"
                 onClick={onCancel}
-                className="flex-1 border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
+                className="flex-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="flex-1 bg-black text-white hover:bg-gray-800 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
+                className="flex-1 bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
               >
                 {item ? 'Update' : 'Add'}
               </button>
