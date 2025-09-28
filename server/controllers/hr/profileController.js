@@ -283,6 +283,7 @@ exports.updateAvatar = async (req, res) => {
 // PUT change password
 exports.changePassword = async (req, res) => {
   try {
+    console.log('Change password request received for user:', req.user._id);
     const { currentPassword, newPassword } = req.body;
 
     if (!currentPassword || !newPassword) {
@@ -300,6 +301,7 @@ exports.changePassword = async (req, res) => {
     }
 
     const user = await User.findById(req.user._id).select('+password');
+    console.log('User found for password change:', !!user, 'User version:', user?.__v);
     
     if (!user) {
       return res.status(404).json({
@@ -309,8 +311,22 @@ exports.changePassword = async (req, res) => {
     }
 
     // Verify current password
+    console.log('Comparing passwords - Current password provided:', !!currentPassword);
+    console.log('Current password length:', currentPassword?.length);
+    console.log('User has stored password:', !!user.password);
+    console.log('Stored password length:', user.password?.length);
+    console.log('Stored password starts with $2a or $2b (bcrypt hash):', /^\$2[ab]\$/.test(user.password));
+    console.log('First 10 chars of stored password:', user.password?.substring(0, 10));
+    
     const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    console.log('Password comparison result:', isCurrentPasswordValid);
+    
     if (!isCurrentPasswordValid) {
+      // Additional debugging - let's try to hash the current password and see what we get
+      const testSalt = await bcrypt.genSalt(10);
+      const testHash = await bcrypt.hash(currentPassword, testSalt);
+      console.log('Test hash of current password:', testHash.substring(0, 20));
+      
       return res.status(400).json({
         success: false,
         error: 'Current password is incorrect'
@@ -318,21 +334,24 @@ exports.changePassword = async (req, res) => {
     }
 
     // Hash new password
-    const salt = await bcrypt.genSalt(12);
+    const salt = await bcrypt.genSalt(10);
     const hashedNewPassword = await bcrypt.hash(newPassword, salt);
 
-    // Ensure company fields are set before saving
-    const companyIdToUse = req.user.companyId || user.companyId;
-    if (!user.company && companyIdToUse) {
-      user.company = companyIdToUse;
-    }
-    if (!user.companyId && companyIdToUse) {
-      user.companyId = companyIdToUse;
-    }
+    // Update password using findByIdAndUpdate to avoid version conflicts
+    console.log('Attempting to update password for user:', req.user._id);
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user._id,
+      { 
+        password: hashedNewPassword,
+        updatedAt: new Date()
+      },
+      { 
+        new: true,
+        runValidators: true
+      }
+    );
 
-    // Update password
-    user.password = hashedNewPassword;
-    await user.save();
+    console.log('Password updated successfully for user:', req.user._id, 'Updated user version:', updatedUser?.__v);
 
     res.json({
       success: true,
@@ -356,10 +375,24 @@ exports.test = (req, res) => {
 };
 
 // Debug route to check current user
-exports.debug = (req, res) => {
-  console.log('Debug route - User data:', req.user);
-  res.json({
-    message: 'Debug route',
-    user: req.user
-  });
+exports.debug = async (req, res) => {
+  try {
+    console.log('Debug route - User data:', req.user);
+    
+    // Get user with password to check hash format
+    const userWithPassword = await User.findById(req.user._id).select('+password');
+    
+    res.json({
+      message: 'Debug route',
+      user: req.user,
+      passwordExists: !!userWithPassword?.password,
+      passwordStartsWithBcrypt: userWithPassword?.password ? /^\$2[ab]\$/.test(userWithPassword.password) : false,
+      passwordLength: userWithPassword?.password?.length || 0
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Debug error',
+      error: error.message
+    });
+  }
 };

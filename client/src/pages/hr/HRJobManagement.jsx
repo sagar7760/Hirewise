@@ -22,6 +22,9 @@ const HRJobManagement = () => {
   const [expandedJobId, setExpandedJobId] = useState(null);
   const [jobApplications, setJobApplications] = useState({});
   const [loadingApplications, setLoadingApplications] = useState({});
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchInputRef, setSearchInputRef] = useState(null);
+  const [initialLoad, setInitialLoad] = useState(true);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -76,23 +79,80 @@ const HRJobManagement = () => {
     }
   };
 
-  // Debounced search effect - updates searchTerm after user stops typing
+  // Debounced search effect with improved UX
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      setSearchTerm(searchInput);
-    }, 500); // 500ms delay
+      if (searchInput !== searchTerm) {
+        setIsSearching(true);
+        setSearchTerm(searchInput);
+      }
+    }, 300); // Reduced to 300ms for better responsiveness
 
     return () => clearTimeout(timeoutId);
-  }, [searchInput]);
+  }, [searchInput, searchTerm]);
 
-  // Combined effect for initial load and filter/search changes
+  // Reset searching state when search term changes and request completes
+  useEffect(() => {
+    if (!loading && isSearching) {
+      setIsSearching(false);
+      // Maintain focus on search input after search completes
+      if (searchInputRef && document.activeElement !== searchInputRef) {
+        setTimeout(() => {
+          searchInputRef.focus();
+          // Restore cursor position to end
+          const length = searchInputRef.value.length;
+          searchInputRef.setSelectionRange(length, length);
+        }, 100);
+      }
+    }
+  }, [loading, isSearching, searchInputRef]);
+
+  // Keyboard shortcut to focus search (Ctrl/Cmd + F)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f' && !showJobModal && !deleteConfirmModal.show) {
+        e.preventDefault();
+        if (searchInputRef) {
+          searchInputRef.focus();
+          searchInputRef.select(); // Select all text for easy replacement
+        }
+      }
+      // Escape key to clear search
+      if (e.key === 'Escape' && document.activeElement === searchInputRef) {
+        setSearchInput('');
+        searchInputRef.blur();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [searchInputRef, showJobModal, deleteConfirmModal.show]);
+
+  // Initial load
   useEffect(() => {
     const statusFilter = filter === 'active' ? 'active' : filter === 'draft' ? 'draft' : '';
     const filterType = filter === 'my-jobs' ? 'my-jobs' : '';
     
     fetchJobs(1, searchTerm, statusFilter, filterType);
     setCurrentPage(1);
-  }, [filter, searchTerm]); // This will run on mount (when filter/searchTerm are initialized) and when they change
+    setInitialLoad(false);
+  }, []);
+
+  // Combined effect for filter/search changes (but not on initial load)
+  useEffect(() => {
+    if (!initialLoad) {
+      const statusFilter = filter === 'active' ? 'active' : filter === 'draft' ? 'draft' : '';
+      const filterType = filter === 'my-jobs' ? 'my-jobs' : '';
+      
+      // Only trigger search state if search term changed
+      if (searchTerm !== searchInput && searchTerm) {
+        setIsSearching(true);
+      }
+      
+      fetchJobs(1, searchTerm, statusFilter, filterType);
+      setCurrentPage(1);
+    }
+  }, [filter, searchTerm, initialLoad]);
 
   // Handle escape key to close modal
   useEffect(() => {
@@ -128,9 +188,9 @@ const HRJobManagement = () => {
     const statusLower = status.toLowerCase();
     switch (statusLower) {
       case 'active':
-        return 'bg-green-100 text-green-800';
+        return 'bg-black text-white';
       case 'draft':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-gray-700 text-white';
       case 'inactive':
       case 'archived':
       case 'closed':
@@ -442,22 +502,37 @@ const HRJobManagement = () => {
                   </svg>
                 </div>
                 <input
+                  ref={setSearchInputRef}
                   type="text"
                   value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 transition-colors"
-                  placeholder="Search jobs by title, department..."
-                  disabled={loading}
+                  onChange={(e) => {
+                    setSearchInput(e.target.value);
+                    setIsSearching(false); // Reset searching state on new input
+                  }}
+                  onFocus={(e) => {
+                    // Ensure cursor is at the end when focused
+                    const length = e.target.value.length;
+                    e.target.setSelectionRange(length, length);
+                  }}
+                  className="block w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 transition-colors disabled:opacity-50"
+                  placeholder="Search jobs by title, department... (Ctrl+F to focus)"
+                  disabled={false} // Never disable the search input to maintain interactivity
+                  autoComplete="off"
                 />
-                {/* Search debounce indicator */}
-                {searchInput !== searchTerm && searchInput.length > 0 && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <div className="flex items-center text-xs text-gray-500">
+                {/* Enhanced search status indicator */}
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  {searchInput !== searchTerm && searchInput.length > 0 ? (
+                    <div className="flex items-center text-xs text-gray-600">
                       <div className="animate-spin rounded-full h-3 w-3 border-b border-gray-400 mr-1"></div>
-                      Typing...
+                      <span className="font-medium">Typing...</span>
                     </div>
-                  </div>
-                )}
+                  ) : isSearching ? (
+                    <div className="flex items-center text-xs text-gray-600">
+                      <div className="animate-spin rounded-full h-3 w-3 border-b border-gray-400 mr-1"></div>
+                      <span className="font-medium">Searching...</span>
+                    </div>
+                  ): null}
+                </div>
               </div>
             </div>
 
@@ -581,7 +656,7 @@ const HRJobManagement = () => {
                             <div>
                               <div className="text-sm text-gray-900 font-['Roboto']">{job.applicants}</div>
                               {job.recentApplications > 0 && (
-                                <div className="text-xs text-green-600 font-['Roboto']">
+                                <div className="text-xs text-gray-700 font-['Roboto']">
                                   +{job.recentApplications} this week
                                 </div>
                               )}
@@ -589,7 +664,7 @@ const HRJobManagement = () => {
                             {job.applicants > 0 && (
                               <button
                                 onClick={() => toggleJobApplications(job.id)}
-                                className="text-blue-600 hover:text-blue-800 transition-colors"
+                                className="text-black hover:text-gray-400 transition-colors"
                                 title={expandedJobId === job.id ? "Hide Applications" : "Show Applications"}
                               >
                                 <svg 
@@ -730,7 +805,7 @@ const HRJobManagement = () => {
                                 </h4>
                                 <Link
                                   to={`/hr/jobs/${job.id}/applications`}
-                                  className="text-sm text-blue-600 hover:text-blue-800 font-['Roboto']"
+                                  className="text-sm text-black hover:text-gray-600 font-['Roboto']"
                                 >
                                   View Full Page →
                                 </Link>
@@ -762,21 +837,31 @@ const HRJobManagement = () => {
                                         </tr>
                                       </thead>
                                       <tbody className="bg-white divide-y divide-gray-200">
-                                        {Array.isArray(jobApplications[job.id]) && jobApplications[job.id].slice(0, 5).map((application, index) => (
-                                          <tr key={application.id || index} className="hover:bg-gray-50">
+                                        {Array.isArray(jobApplications[job.id]) && jobApplications[job.id].slice(0, 5).map((application, index) => {
+                                          // Get candidate name properly
+                                          const candidateName = application.applicant 
+                                            ? `${application.applicant.firstName || ''} ${application.applicant.lastName || ''}`.trim()
+                                            : (application.personalInfo 
+                                              ? `${application.personalInfo.firstName || ''} ${application.personalInfo.lastName || ''}`.trim()
+                                              : 'Anonymous');
+                                          
+                                          const candidateEmail = application.applicant?.email || application.personalInfo?.email || 'No email';
+                                          
+                                          return (
+                                          <tr key={application.id || application._id || index} className="hover:bg-gray-50">
                                             <td className="px-4 py-3 whitespace-nowrap">
                                               <div className="flex items-center">
                                                 <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
                                                   <span className="text-xs font-medium text-gray-600">
-                                                    {(application.candidateName || application.applicant?.name || 'N/A').split(' ').map(n => n[0]).join('')}
+                                                    {candidateName !== 'Anonymous' ? candidateName.split(' ').map(n => n[0]).join('').substring(0, 2) : 'AN'}
                                                   </span>
                                                 </div>
                                                 <div className="ml-3">
                                                   <div className="text-sm font-medium text-gray-900 font-['Open_Sans']">
-                                                    {application.candidateName || application.applicant?.name || 'Anonymous'}
+                                                    {candidateName}
                                                   </div>
                                                   <div className="text-xs text-gray-500 font-['Roboto']">
-                                                    {application.applicant?.email || 'No email'}
+                                                    {candidateEmail}
                                                   </div>
                                                 </div>
                                               </div>
@@ -788,10 +873,10 @@ const HRJobManagement = () => {
                                             </td>
                                             <td className="px-4 py-3 whitespace-nowrap">
                                               <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                                                application.status === 'shortlisted' ? 'bg-blue-100 text-blue-800' :
-                                                application.status === 'under_review' ? 'bg-yellow-100 text-yellow-800' :
-                                                application.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                                application.status === 'interview_scheduled' ? 'bg-green-100 text-green-800' :
+                                                application.status === 'shortlisted' ? 'bg-gray-800 text-white' :
+                                                application.status === 'under_review' ? 'bg-gray-700 text-white' :
+                                                application.status === 'rejected' ? 'bg-gray-500 text-white' :
+                                                application.status === 'interview_scheduled' ? 'bg-gray-900 text-white' :
                                                 'bg-gray-100 text-gray-600'
                                               }`}>
                                                 {application.status?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Submitted'}
@@ -800,7 +885,7 @@ const HRJobManagement = () => {
                                             <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                                               <div className="flex items-center justify-end space-x-2">
                                                 <button
-                                                  className="text-blue-600 hover:text-blue-900 transition-colors"
+                                                  className="text-gray-600 hover:text-gray-900 transition-colors"
                                                   title="View Details"
                                                 >
                                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -811,7 +896,8 @@ const HRJobManagement = () => {
                                               </div>
                                             </td>
                                           </tr>
-                                        ))}
+                                          );
+                                        })}
                                       </tbody>
                                     </table>
                                   </div>

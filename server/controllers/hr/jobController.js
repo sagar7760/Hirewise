@@ -93,10 +93,10 @@ const getJobs = async (req, res) => {
     // Get application counts for each job and enhance data
     const jobsWithStats = await Promise.all(
       jobs.map(async (job) => {
-        const applicationsCount = await Application.countDocuments({ jobId: job._id });
+        const applicationsCount = await Application.countDocuments({ job: job._id });
         const recentApplications = await Application.countDocuments({
-          jobId: job._id,
-          appliedAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+          job: job._id,
+          createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
         });
 
         // Check if this job was created by the current user
@@ -340,10 +340,10 @@ const getJobById = async (req, res) => {
     }
 
     // Get application statistics
-    const applicationsCount = await Application.countDocuments({ jobId: job._id });
+    const applicationsCount = await Application.countDocuments({ job: job._id });
     const recentApplications = await Application.countDocuments({
-      jobId: job._id,
-      appliedAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+      job: job._id,
+      createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
     });
 
     const jobWithStats = {

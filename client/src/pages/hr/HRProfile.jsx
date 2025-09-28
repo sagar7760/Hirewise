@@ -189,14 +189,16 @@ const HRProfile = () => {
         })
       });
 
-      if (response) {
+      if (response && response.success) {
         alert('Password changed successfully!');
         setShowPasswordModal(false);
         setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      } else {
+        throw new Error(response?.error || 'Failed to change password');
       }
     } catch (error) {
       console.error('Error changing password:', error);
-      alert(error.message || 'Failed to change password. Please try again.');
+      setError(error.message || 'Failed to change password. Please try again.');
     }
   };
 
@@ -410,15 +412,30 @@ const HRProfile = () => {
                   <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center mr-3">
                     {profileData.company?.logo ? (
                       <img 
-                        src={`/uploads/company-logos/${profileData.company.logo}`} 
+                        src={profileData.company.logo.startsWith('data:') 
+                          ? profileData.company.logo 
+                          : profileData.company.logo.startsWith('/') 
+                            ? profileData.company.logo 
+                            : `/uploads/company-logos/${profileData.company.logo}`
+                        }
                         alt="Company Logo" 
                         className="w-8 h-8 rounded object-cover"
+                        onError={(e) => {
+                          console.log('Company logo failed to load:', profileData.company.logo);
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'block';
+                        }}
                       />
-                    ) : (
-                      <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H7m5 0v-9a1 1 0 011-1h2a1 1 0 011 1v9m-4 0h4m-4 0v-2m0 0h.01M12 7h.01" />
-                      </svg>
-                    )}
+                    ) : null}
+                    <svg 
+                      className={`w-6 h-6 text-gray-600 ${profileData.company?.logo ? 'hidden' : 'block'}`} 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                      style={{display: profileData.company?.logo ? 'none' : 'block'}}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H7m5 0v-9a1 1 0 011-1h2a1 1 0 011 1v9m-4 0h4m-4 0v-2m0 0h.01M12 7h.01" />
+                    </svg>
                   </div>
                   <div>
                     <p className="font-medium text-gray-900 font-['Open_Sans']">
@@ -549,8 +566,8 @@ const HRProfile = () => {
                   <div className="flex items-center">
                     <span className={`px-3 py-1 rounded-full text-sm font-medium font-['Roboto'] ${
                       profileData.status === 'Active' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
+                        ? 'bg-gray-200 text-green-400' 
+                        : 'bg-gray-200 text-red-400'
                     }`}>
                       {profileData.status}
                     </span>
