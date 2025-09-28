@@ -12,17 +12,14 @@ const router = express.Router();
 // @route   GET /api/hr/applications
 // @desc    Get all applications for HR's jobs with filtering and pagination
 // @access  Private (HR, Admin)
-router.get('/', [
+router.get('/', auth, authorize('hr', 'admin'), [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
-  query('limit').optional().isInt({ min: 1, max: 50 }).withMessage('Limit must be between 1 and 50'),
-  query('status').optional().isIn(['submitted', 'under_review', 'shortlisted', 'rejected', 'interviewed', 'offer_extended', 'offer_accepted', 'offer_declined']).withMessage('Invalid status'),
-  query('jobId').optional().isMongoId().withMessage('Invalid job ID'),
+  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
+  query('status').optional().isIn(['submitted', 'under_review', 'shortlisted', 'rejected', 'interviewed', 'offer_extended', 'offer_accepted', 'offer_declined', 'interview_scheduled']).withMessage('Invalid status'),
+  query('job').optional().isMongoId().withMessage('Invalid job ID'),
   query('search').optional().isLength({ min: 1, max: 200 }).withMessage('Search term must be between 1 and 200 characters'),
-  query('sortBy').optional().isIn(['createdAt', 'aiScore', 'status', 'applicantName']).withMessage('Invalid sort field'),
-  query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
-  query('experienceLevel').optional().isIn(['entry', 'mid', 'senior', 'executive']).withMessage('Invalid experience level'),
-  query('minScore').optional().isFloat({ min: 0, max: 100 }).withMessage('Minimum score must be between 0 and 100'),
-  query('maxScore').optional().isFloat({ min: 0, max: 100 }).withMessage('Maximum score must be between 0 and 100')
+  query('sortBy').optional().isIn(['appliedDate', 'resumeScore', 'name', 'createdAt', 'aiScore', 'status', 'applicantName']).withMessage('Invalid sort field'),
+  query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -38,36 +35,51 @@ router.get('/', [
       page = 1,
       limit = 20,
       status,
-      jobId,
+      job: jobFilter,
       search,
       sortBy = 'createdAt',
-      sortOrder = 'desc',
-      experienceLevel,
-      minScore,
-      maxScore
+      sortOrder = 'desc'
     } = req.query;
 
-    // Get HR's jobs
-    const hrJobs = await Job.find({ 
-      postedBy: req.user?.id || new mongoose.Types.ObjectId() 
-    }).select('_id');
-    const hrJobIds = hrJobs.map(job => job._id);
+    // Get user's company
+    const userId = req.user.id;
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const companyId = user.company || user.companyId;
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Company association required'
+      });
+    }
+
+    // Get company's jobs
+    const companyJobs = await Job.find({ company: companyId }).select('_id title department requiredSkills preferredSkills experienceLevel qualification');
+    const jobIds = companyJobs.map(job => job._id);
 
     // Build filter query
-    let filter = { job: { $in: hrJobIds } };
+    let filter = { job: { $in: jobIds } };
 
-    if (status) filter.status = status;
-    if (jobId) filter.job = jobId;
-    if (experienceLevel) filter.experienceLevel = experienceLevel;
-
-    // Score filtering
-    if (minScore !== undefined || maxScore !== undefined) {
-      filter['aiAnalysis.overallScore'] = {};
-      if (minScore !== undefined) filter['aiAnalysis.overallScore'].$gte = parseFloat(minScore);
-      if (maxScore !== undefined) filter['aiAnalysis.overallScore'].$lte = parseFloat(maxScore);
+    if (status && status !== 'all') filter.status = status;
+    if (jobFilter && jobFilter !== 'all') {
+      // Ensure the job filter is within company's jobs
+      if (jobIds.some(id => id.toString() === jobFilter)) {
+        // Convert string to ObjectId for proper MongoDB querying
+        filter.job = new mongoose.Types.ObjectId(jobFilter);
+      }
     }
 
     const skip = (page - 1) * limit;
+
+    // Debug the final filter
+    console.log('Final filter query:', JSON.stringify(filter, null, 2));
 
     // Build aggregation pipeline for search and sorting
     let pipeline = [
@@ -97,6 +109,15 @@ router.get('/', [
       },
       {
         $unwind: '$jobDetails'
+      },
+      // Lookup resume data for profile resumes
+      {
+        $lookup: {
+          from: 'resumes',
+          localField: 'profileResumeId',
+          foreignField: '_id',
+          as: 'profileResumeData'
+        }
       }
     );
 
@@ -119,17 +140,22 @@ router.get('/', [
     // Add sorting
     let sortStage = {};
     switch (sortBy) {
+      case 'resumeScore':
       case 'aiScore':
         sortStage = { 'aiAnalysis.overallScore': sortOrder === 'asc' ? 1 : -1 };
         break;
+      case 'name':
       case 'applicantName':
         sortStage = { 'applicantDetails.firstName': sortOrder === 'asc' ? 1 : -1 };
+        break;
+      case 'appliedDate':
+        sortStage = { createdAt: sortOrder === 'asc' ? 1 : -1 };
         break;
       case 'status':
         sortStage = { status: sortOrder === 'asc' ? 1 : -1 };
         break;
       default:
-        sortStage = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
+        sortStage = { createdAt: sortOrder === 'asc' ? 1 : -1 };
     }
     pipeline.push({ $sort: sortStage });
 
@@ -149,11 +175,20 @@ router.get('/', [
         parsedResume: 1,
         timeline: 1,
         notes: 1,
+        // Application specific fields
+        personalInfo: 1,
+        skills: 1,
+        experience: 1,
+        // Resume fields (minimal for URL generation only)
+        useProfileResume: 1,
+        profileResumeId: 1,
+        'customResume.fileName': 1,
+        'customResume.fileUrl': 1,
+        'customResume.uploadDate': 1,
         'applicantDetails._id': 1,
         'applicantDetails.firstName': 1,
         'applicantDetails.lastName': 1,
         'applicantDetails.email': 1,
-        'applicantDetails.profilePicture': 1,
         'applicantDetails.profile.experience': 1,
         'applicantDetails.profile.skills': 1,
         'jobDetails._id': 1,
@@ -169,24 +204,125 @@ router.get('/', [
     const totalApplications = await Application.countDocuments(filter);
     const totalPages = Math.ceil(totalApplications / limit);
 
+    // Calculate basic job matching score for applications without AI analysis
+    const calculateJobMatchingScore = (app, jobsData) => {
+      const job = jobsData.find(j => j._id.toString() === app.jobDetails._id.toString());
+      if (!job) return 5.0;
+
+      let totalScore = 0;
+      let maxScore = 0;
+
+      // Skills matching (40% weight)
+      const skillsWeight = 4;
+      const candidateSkills = app.aiAnalysis?.extractedInfo?.skills || app.parsedResume?.skills || [];
+      const requiredSkills = job.requiredSkills || [];
+      const preferredSkills = job.preferredSkills || [];
+      
+      if (requiredSkills.length > 0 || preferredSkills.length > 0) {
+        const allJobSkills = [...requiredSkills, ...preferredSkills];
+        const matchingSkills = candidateSkills.filter(skill => 
+          allJobSkills.some(jobSkill => 
+            jobSkill.toLowerCase().includes(skill.toLowerCase()) || 
+            skill.toLowerCase().includes(jobSkill.toLowerCase())
+          )
+        );
+        const skillsScore = allJobSkills.length > 0 ? (matchingSkills.length / allJobSkills.length) * 10 : 5;
+        totalScore += skillsScore * skillsWeight;
+        maxScore += 10 * skillsWeight;
+      }
+
+      // Experience matching (35% weight)
+      const expWeight = 3.5;
+      const candidateExp = app.applicantDetails?.profile?.experience?.length || 0;
+      const requiredExpLevel = job.experienceLevel || 'entry';
+      
+      let expScore = 5; // Default score
+      if (requiredExpLevel === 'entry' && candidateExp >= 0) expScore = 8;
+      else if (requiredExpLevel === 'mid' && candidateExp >= 2) expScore = 8;
+      else if (requiredExpLevel === 'senior' && candidateExp >= 4) expScore = 9;
+      else if (requiredExpLevel === 'lead' && candidateExp >= 6) expScore = 9;
+      
+      totalScore += expScore * expWeight;
+      maxScore += 10 * expWeight;
+
+      // Education matching (25% weight)
+      const eduWeight = 2.5;
+      const candidateEducation = app.aiAnalysis?.extractedInfo?.education || app.parsedResume?.education || [];
+      const requiredQualification = job.qualification || '';
+      
+      let eduScore = 5; // Default score
+      if (candidateEducation.length > 0) {
+        const hasRelevantEducation = candidateEducation.some(edu => 
+          requiredQualification.toLowerCase().includes(edu.degree?.toLowerCase() || '') ||
+          edu.degree?.toLowerCase().includes(requiredQualification.toLowerCase()) ||
+          (requiredQualification.toLowerCase().includes('bachelor') && edu.degree?.toLowerCase().includes('bachelor')) ||
+          (requiredQualification.toLowerCase().includes('master') && edu.degree?.toLowerCase().includes('master'))
+        );
+        eduScore = hasRelevantEducation ? 8 : 6;
+      }
+      
+      totalScore += eduScore * eduWeight;
+      maxScore += 10 * eduWeight;
+
+      // Calculate final score out of 10
+      const finalScore = maxScore > 0 ? (totalScore / maxScore) * 10 : 5;
+      return Math.round(finalScore * 10) / 10; // Round to 1 decimal place
+    };
+
+    // Format applications for frontend
+    const formattedApplications = applications.map(app => {
+      const resumeScore = app.aiAnalysis?.overallScore || calculateJobMatchingScore(app, companyJobs);
+      
+
+      return {
+        id: app._id,
+        candidate: {
+          name: `${app.applicantDetails.firstName} ${app.applicantDetails.lastName}`,
+          email: app.applicantDetails.email,
+          phone: app.personalInfo?.phone || 'Not provided'
+        },
+        job: {
+          id: app.jobDetails._id,
+          title: app.jobDetails.title,
+          department: app.jobDetails.department
+        },
+        appliedDate: app.createdAt,
+        resumeScore: resumeScore,
+        status: app.status,
+        experience: app.experience === 'fresher' ? 'Fresher' : app.experience || 'Not specified',
+        skills: app.skills || [],
+        resumeUrl: app.resumeUrl || `/api/hr/applications/${app._id}/resume`,
+        // Resume-related fields (minimal for functionality)
+        useProfileResume: app.useProfileResume,
+        profileResumeId: app.profileResumeId,
+        aiAnalysis: {
+          skillsMatch: app.aiAnalysis?.skillsMatch || Math.round(resumeScore * 7.5),
+          experienceMatch: app.aiAnalysis?.experienceMatch || Math.round(resumeScore * 7),
+          overallFit: Math.round(resumeScore * 10),
+          strengths: app.aiAnalysis?.keyStrengths || ['Skills assessment pending'],
+          concerns: app.aiAnalysis?.potentialConcerns || ['Detailed analysis pending']
+        }
+      };
+    });
+
     res.json({
       success: true,
-      data: {
-        applications,
-        pagination: {
-          currentPage: parseInt(page),
-          totalPages,
-          totalApplications,
-          hasNextPage: page < totalPages,
-          hasPrevPage: page > 1
-        },
-        filters: {
+      data: formattedApplications,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages,
+        totalApplications,
+        hasNextPage: parseInt(page) < totalPages,
+        hasPrevPage: parseInt(page) > 1,
+        limit: parseInt(limit)
+      },
+      filters: {
+        applied: {
+          job: jobFilter,
           status,
-          jobId,
           search,
-          experienceLevel,
-          minScore,
-          maxScore
+          sortBy,
+          sortOrder
         }
       }
     });
@@ -260,22 +396,18 @@ router.get('/:id', [
   }
 });
 
-// @route   PATCH /api/hr/applications/:id/status
+// @route   PUT /api/hr/applications/:id/status
 // @desc    Update application status
 // @access  Private (HR, Admin)
-router.patch('/:id/status', [
+router.put('/:id/status', auth, authorize('hr', 'admin'), [
   param('id').isMongoId().withMessage('Invalid application ID'),
   body('status')
-    .isIn(['submitted', 'under_review', 'shortlisted', 'rejected', 'interviewed', 'offer_extended', 'offer_accepted', 'offer_declined'])
+    .isIn(['submitted', 'under_review', 'shortlisted', 'rejected', 'interviewed', 'offer_extended', 'offer_accepted', 'offer_declined', 'interview_scheduled'])
     .withMessage('Invalid status'),
   body('notes')
     .optional()
     .isLength({ max: 1000 })
-    .withMessage('Notes must be less than 1000 characters'),
-  body('feedback')
-    .optional()
-    .isLength({ max: 2000 })
-    .withMessage('Feedback must be less than 2000 characters')
+    .withMessage('Notes must be less than 1000 characters')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -287,17 +419,19 @@ router.patch('/:id/status', [
       });
     }
 
-    const { status, notes, feedback } = req.body;
+    const { status, notes } = req.body;
 
-    // Get HR's jobs to verify access
-    const hrJobs = await Job.find({ 
-      postedBy: req.user?.id || new mongoose.Types.ObjectId() 
-    }).select('_id');
-    const hrJobIds = hrJobs.map(job => job._id);
+    // Get user's company jobs to verify access
+    const userId = req.user.id;
+    const user = await User.findById(userId);
+    const companyId = user.company || user.companyId;
+    
+    const companyJobs = await Job.find({ company: companyId }).select('_id');
+    const jobIds = companyJobs.map(job => job._id);
 
     const application = await Application.findOne({
       _id: req.params.id,
-      job: { $in: hrJobIds }
+      job: { $in: jobIds }
     });
 
     if (!application) {
@@ -330,27 +464,15 @@ router.patch('/:id/status', [
       });
     }
 
-    // Add feedback if provided
-    if (feedback) {
-      application.feedback = {
-        content: feedback,
-        providedBy: req.user?.id || new mongoose.Types.ObjectId(),
-        providedAt: new Date()
-      };
-    }
-
     await application.save();
-
-    // Populate for response
-    const updatedApplication = await Application.findById(application._id)
-      .populate('applicant', 'firstName lastName email')
-      .populate('job', 'title department')
-      .lean();
 
     res.json({
       success: true,
       message: `Application status updated from ${oldStatus} to ${status}`,
-      data: updatedApplication
+      data: {
+        id: application._id,
+        status: application.status
+      }
     });
 
   } catch (error) {
@@ -619,6 +741,147 @@ router.patch('/bulk/status', [
     res.status(500).json({
       success: false,
       message: 'Server error'
+    });
+  }
+});
+
+// @route   GET /api/hr/applications/:id/resume
+// @desc    Get application resume for viewing
+// @access  Private (HR, Admin)
+router.get('/:id/resume', auth, authorize('hr', 'admin'), [
+  param('id').isMongoId().withMessage('Invalid application ID')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    // Get user's company
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Find the application and populate related data
+    const application = await Application.findById(id)
+      .populate({
+        path: 'job',
+        select: 'title company postedBy',
+        match: { company: user.company }
+      })
+      .populate({
+        path: 'applicant',
+        select: 'firstName lastName email profile'
+      })
+      .populate({
+        path: 'profileResumeId',
+        model: 'Resume',
+        select: 'fileName originalName fileSize mimeType uploadDate'
+      });
+
+    if (!application) {
+      return res.status(404).json({
+        success: false,
+        message: 'Application not found'
+      });
+    }
+
+    // Check if this application belongs to a job from the HR's company
+    if (!application.job) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. This application does not belong to your company.'
+      });
+    }
+
+    // Serve resume data based on useProfileResume flag
+    if (application.useProfileResume) {
+      // Using profile resume - get from Resume collection
+      if (application.profileResumeId) {
+        const Resume = require('../../models/Resume');
+        const resume = await Resume.findById(application.profileResumeId);
+        
+        if (!resume) {
+          return res.status(404).json({
+            success: false,
+            message: 'Profile resume not found'
+          });
+        }
+
+        // Convert Base64 back to buffer and serve
+        const fileBuffer = Buffer.from(resume.fileData, 'base64');
+        
+        // Ensure proper content type for browser viewing
+        const contentType = resume.mimeType || 'application/pdf';
+        const isViewableInBrowser = contentType.includes('pdf') || contentType.includes('image/');
+        
+        res.set({
+          'Content-Type': contentType,
+          'Content-Length': fileBuffer.length,
+          'Content-Disposition': isViewableInBrowser ? 'inline' : 'attachment',
+          'Cache-Control': 'no-cache',
+          'X-Content-Type-Options': 'nosniff'
+        });
+        return res.send(fileBuffer);
+      } else {
+        return res.status(404).json({
+          success: false,
+          message: 'Profile resume not found for this application'
+        });
+      }
+    } else {
+      // Using custom resume - get from Application collection
+      if (application.customResume) {
+        if (application.customResume.fileData) {
+          // If it's binary data, serve it directly
+          const fileBuffer = Buffer.isBuffer(application.customResume.fileData) 
+            ? application.customResume.fileData 
+            : Buffer.from(application.customResume.fileData, 'base64');
+            
+          // Ensure proper content type for browser viewing
+          const contentType = application.customResume.fileMimeType || 'application/pdf';
+          const isViewableInBrowser = contentType.includes('pdf') || contentType.includes('image/');
+          
+          res.set({
+            'Content-Type': contentType,
+            'Content-Length': fileBuffer.length,
+            'Content-Disposition': isViewableInBrowser ? 'inline' : 'attachment',
+            'Cache-Control': 'no-cache',
+            'X-Content-Type-Options': 'nosniff'
+          });
+          return res.send(fileBuffer);
+        } else if (application.customResume.fileUrl) {
+          // If it's a stored URL, we need to fetch and serve the file
+          // For now, return an error as this case needs more implementation
+          return res.status(501).json({
+            success: false,
+            message: 'Resume stored as URL not yet supported for viewing'
+          });
+        }
+      }
+      
+      return res.status(404).json({
+        success: false,
+        message: 'Custom resume not found for this application'
+      });
+    }
+
+  } catch (error) {
+    console.error('Get application resume error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error occurred while fetching resume'
     });
   }
 });

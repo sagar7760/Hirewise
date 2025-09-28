@@ -1,202 +1,189 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import HRLayout from '../../components/layout/HRLayout';
+import { useHRApplications } from '../../hooks/useHRApplications';
+import { SkeletonTable } from '../../components/common/Skeleton';
+import { useApiRequest } from '../../hooks/useApiRequest';
 
 const HRApplicationManagement = () => {
-  const [applications, setApplications] = useState([
-    {
-      id: 1,
-      candidate: {
-        name: 'Maria Garcia',
-        email: 'maria.garcia@email.com',
-        phone: '+1 (555) 123-4567',
-        avatar: null
-      },
-      job: {
-        id: 1,
-        title: 'Senior Frontend Developer',
-        department: 'Engineering'
-      },
-      appliedDate: '2025-09-08',
-      resumeScore: 8.5,
-      status: 'Under Review',
-      experience: '5 years',
-      skills: ['React', 'TypeScript', 'CSS', 'Node.js'],
-      resumeUrl: '/resumes/maria-garcia.pdf',
-      aiAnalysis: {
-        skillsMatch: 92,
-        experienceMatch: 88,
-        overallFit: 90,
-        strengths: ['Strong React experience', 'TypeScript expertise', 'Full-stack capabilities'],
-        concerns: ['Limited leadership experience', 'No AWS experience mentioned']
-      }
-    },
-    {
-      id: 2,
-      candidate: {
-        name: 'David Kim',
-        email: 'david.kim@email.com',
-        phone: '+1 (555) 987-6543',
-        avatar: null
-      },
-      job: {
-        id: 2,
-        title: 'Product Manager',
-        department: 'Product'
-      },
-      appliedDate: '2025-09-08',
-      resumeScore: 9.2,
-      status: 'Shortlisted',
-      experience: '7 years',
-      skills: ['Product Strategy', 'Analytics', 'Leadership', 'Agile'],
-      resumeUrl: '/resumes/david-kim.pdf',
-      aiAnalysis: {
-        skillsMatch: 95,
-        experienceMatch: 92,
-        overallFit: 94,
-        strengths: ['Excellent leadership track record', 'Strong analytical skills', 'Product vision'],
-        concerns: ['No B2B experience', 'Limited technical background']
-      }
-    },
-    {
-      id: 3,
-      candidate: {
-        name: 'Jennifer Lee',
-        email: 'jennifer.lee@email.com',
-        phone: '+1 (555) 456-7890',
-        avatar: null
-      },
-      job: {
-        id: 4,
-        title: 'Data Scientist',
-        department: 'Analytics'
-      },
-      appliedDate: '2025-09-07',
-      resumeScore: 7.8,
-      status: 'Under Review',
-      experience: '4 years',
-      skills: ['Python', 'Machine Learning', 'SQL', 'Statistics'],
-      resumeUrl: '/resumes/jennifer-lee.pdf',
-      aiAnalysis: {
-        skillsMatch: 85,
-        experienceMatch: 78,
-        overallFit: 82,
-        strengths: ['Strong technical skills', 'ML expertise', 'Academic background'],
-        concerns: ['Limited business experience', 'No big data tools experience']
-      }
-    },
-    {
-      id: 4,
-      candidate: {
-        name: 'Alex Rodriguez',
-        email: 'alex.rodriguez@email.com',
-        phone: '+1 (555) 234-5678',
-        avatar: null
-      },
-      job: {
-        id: 1,
-        title: 'Senior Frontend Developer',
-        department: 'Engineering'
-      },
-      appliedDate: '2025-09-06',
-      resumeScore: 6.9,
-      status: 'Rejected',
-      experience: '3 years',
-      skills: ['JavaScript', 'React', 'CSS'],
-      resumeUrl: '/resumes/alex-rodriguez.pdf',
-      aiAnalysis: {
-        skillsMatch: 75,
-        experienceMatch: 65,
-        overallFit: 70,
-        strengths: ['Good JavaScript fundamentals', 'React experience'],
-        concerns: ['Limited experience', 'No TypeScript knowledge', 'Weak backend skills']
-      }
-    }
-  ]);
+  const { makeJsonRequest, makeRequest } = useApiRequest();
+  
+  // Use custom hook for applications management
+  const {
+    applications,
+    pagination,
+    loading,
+    error,
+    fetchApplications,
+    updateApplicationStatus,
+    clearCache
+  } = useHRApplications();
 
-  const [filteredApplications, setFilteredApplications] = useState(applications);
+  // Local state for UI
   const [selectedJob, setSelectedJob] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState(''); // Immediate input value
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [sortBy, setSortBy] = useState('appliedDate');
   const [sortOrder, setSortOrder] = useState('desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showExportConfirm, setShowExportConfirm] = useState(false);
+  const [jobs, setJobs] = useState([]);
+  const [loadingJobs, setLoadingJobs] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchInputRef, setSearchInputRef] = useState(null);
 
-  const jobs = [
-    { id: 1, title: 'Senior Frontend Developer' },
-    { id: 2, title: 'Product Manager' },
-    { id: 3, title: 'UX Designer' },
-    { id: 4, title: 'Data Scientist' }
-  ];
-
+  // Debounced search effect with improved UX
   useEffect(() => {
-    let filtered = applications;
+    const timeoutId = setTimeout(() => {
+      if (searchInput !== searchTerm) {
+        setIsSearching(true);
+        setSearchTerm(searchInput);
+      }
+    }, 300); // Reduced to 300ms for better responsiveness
 
-    // Filter by job
-    if (selectedJob !== 'all') {
-      filtered = filtered.filter(app => app.job.id === parseInt(selectedJob));
+    return () => clearTimeout(timeoutId);
+  }, [searchInput, searchTerm]);
+
+  // Reset searching state when search term changes and request completes
+  useEffect(() => {
+    if (!loading && isSearching) {
+      setIsSearching(false);
+      // Maintain focus on search input after search completes
+      if (searchInputRef && document.activeElement !== searchInputRef) {
+        setTimeout(() => {
+          searchInputRef.focus();
+          // Restore cursor position to end
+          const length = searchInputRef.value.length;
+          searchInputRef.setSelectionRange(length, length);
+        }, 100);
+      }
     }
+  }, [loading, isSearching, searchInputRef]);
 
-    // Filter by status
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(app => app.status === statusFilter);
-    }
+  // Keyboard shortcut to focus search (Ctrl/Cmd + F)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f' && !showApplicationModal) {
+        e.preventDefault();
+        if (searchInputRef) {
+          searchInputRef.focus();
+          searchInputRef.select(); // Select all text for easy replacement
+        }
+      }
+      // Escape key to clear search
+      if (e.key === 'Escape' && document.activeElement === searchInputRef) {
+        setSearchInput('');
+        searchInputRef.blur();
+      }
+    };
 
-    // Search
-    if (searchTerm) {
-      filtered = filtered.filter(app =>
-        app.candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [searchInputRef, showApplicationModal]);
 
-    // Sort
-    filtered.sort((a, b) => {
-      let aValue, bValue;
-      
-      switch (sortBy) {
-        case 'resumeScore':
-          aValue = a.resumeScore;
-          bValue = b.resumeScore;
-          break;
-        case 'appliedDate':
-          aValue = new Date(a.appliedDate);
-          bValue = new Date(b.appliedDate);
-          break;
-        case 'name':
-          aValue = a.candidate.name;
-          bValue = b.candidate.name;
-          break;
-        default:
-          aValue = a.appliedDate;
-          bValue = b.appliedDate;
+  // Fetch jobs for filter dropdown
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        setLoadingJobs(true);
+        const response = await makeJsonRequest('/api/hr/jobs?limit=100');
+        if (response.success) {
+          setJobs(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching jobs:', error);
+      } finally {
+        setLoadingJobs(false);
+      }
+    };
+
+    fetchJobs();
+  }, [makeJsonRequest]);
+
+  // Initial load
+  useEffect(() => {
+    const fetchParams = {
+      page: 1,
+      limit: 20,
+      job: selectedJob !== 'all' ? selectedJob : undefined,
+      status: statusFilter !== 'all' ? statusFilter : undefined,
+      search: searchTerm || undefined,
+      sortBy,
+      sortOrder
+    };
+
+    fetchApplications(fetchParams);
+    setInitialLoad(false);
+  }, []);
+
+  // Fetch applications when filters change (but not on initial load)
+  useEffect(() => {
+    if (!initialLoad) {
+      const fetchParams = {
+        page: 1, // Always start from page 1 when filters change
+        limit: 20,
+        job: selectedJob !== 'all' ? selectedJob : undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        search: searchTerm || undefined,
+        sortBy,
+        sortOrder
+      };
+
+      // Only trigger search state if search term changed
+      if (searchTerm !== searchInput && searchTerm) {
+        setIsSearching(true);
       }
 
-      if (sortOrder === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
+      fetchApplications(fetchParams);
+      // Reset to first page when filters change
+      if (currentPage !== 1) {
+        setCurrentPage(1);
       }
-    });
+    }
+  }, [selectedJob, statusFilter, searchTerm, sortBy, sortOrder, initialLoad]);
 
-    setFilteredApplications(filtered);
-  }, [applications, selectedJob, statusFilter, searchTerm, sortBy, sortOrder]);
+  // Fetch applications when page changes (but not when filters change)
+  useEffect(() => {
+    if (currentPage > 1 && !initialLoad) {
+      const fetchParams = {
+        page: currentPage,
+        limit: 20,
+        job: selectedJob !== 'all' ? selectedJob : undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        search: searchTerm || undefined,
+        sortBy,
+        sortOrder
+      };
+
+      fetchApplications(fetchParams);
+    }
+  }, [currentPage, initialLoad]);
+
+
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'Under Review':
+    switch (status.toLowerCase()) {
+      case 'under_review':
         return 'bg-gray-200 text-gray-800';
-      case 'Shortlisted':
+      case 'shortlisted':
         return 'bg-gray-800 text-white';
-      case 'Rejected':
+      case 'rejected':
         return 'bg-gray-400 text-white';
-      case 'Interview Scheduled':
+      case 'interview_scheduled':
         return 'bg-gray-600 text-white';
+      case 'submitted':
+        return 'bg-gray-700 text-white';
       default:
         return 'bg-gray-100 text-gray-600';
     }
+  };
+
+  const formatStatus = (status) => {
+    return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
   const getScoreColor = (score) => {
@@ -205,55 +192,90 @@ const HRApplicationManagement = () => {
     return 'text-gray-500';
   };
 
-  const handleApplicationAction = (action, applicationId) => {
+  const handleApplicationAction = async (action, applicationId) => {
     switch (action) {
       case 'view':
         const application = applications.find(app => app.id === applicationId);
+        console.log('Full application data:', JSON.stringify(application, null, 2));
         setSelectedApplication(application);
         setShowApplicationModal(true);
         break;
       case 'shortlist':
-        setApplications(applications.map(app =>
-          app.id === applicationId ? { ...app, status: 'Shortlisted' } : app
-        ));
+        await handleStatusChange(applicationId, 'shortlisted');
         break;
       case 'reject':
-        setApplications(applications.map(app =>
-          app.id === applicationId ? { ...app, status: 'Rejected' } : app
-        ));
+        await handleStatusChange(applicationId, 'rejected');
         break;
       case 'schedule':
-        setApplications(applications.map(app =>
-          app.id === applicationId ? { ...app, status: 'Interview Scheduled' } : app
-        ));
+        await handleStatusChange(applicationId, 'interview_scheduled');
         break;
     }
   };
 
+  const handleStatusChange = async (applicationId, newStatus) => {
+    try {
+      const result = await updateApplicationStatus(applicationId, newStatus);
+      if (result.success) {
+        // Status updated successfully - the hook already updates local state
+        console.log('Application status updated successfully');
+      } else {
+        console.error('Failed to update status:', result.error);
+        // Could show toast notification here
+      }
+    } catch (error) {
+      console.error('Error updating application status:', error);
+      // Could show toast notification here
+    }
+  };
+
+  const handleExportRequest = () => {
+    const hasFilters = selectedJob !== 'all' || statusFilter !== 'all' || searchTerm;
+    
+    if (!hasFilters) {
+      // Show confirmation dialog for full export
+      setShowExportConfirm(true);
+    } else {
+      // Direct export for filtered results
+      exportApplications('csv');
+    }
+  };
+
   const exportApplications = (format) => {
-    const shortlistedApps = applications.filter(app => app.status === 'Shortlisted');
+    const dataToExport = applications; // This will be the filtered/paginated results from backend
     
     if (format === 'csv') {
       const csvContent = [
-        ['Name', 'Email', 'Phone', 'Job Title', 'Resume Score', 'Experience', 'Skills'],
-        ...shortlistedApps.map(app => [
+        ['Name', 'Email', 'Phone', 'Job Title', 'Department', 'Resume Score', 'Status', 'Experience', 'Skills', 'Applied Date'],
+        ...dataToExport.map(app => [
           app.candidate.name,
           app.candidate.email,
           app.candidate.phone,
           app.job.title,
+          app.job.department,
           app.resumeScore,
+          formatStatus(app.status),
           app.experience,
-          app.skills.join('; ')
+          Array.isArray(app.skills) ? app.skills.join('; ') : '',
+          new Date(app.appliedDate).toLocaleDateString()
         ])
-      ].map(row => row.join(',')).join('\n');
+      ].map(row => row.map(cell => {
+        // Escape commas and quotes in CSV
+        const cellStr = String(cell || '');
+        return cellStr.includes(',') || cellStr.includes('"') ? `"${cellStr.replace(/"/g, '""')}"` : cellStr;
+      }).join(',')).join('\n');
 
       const blob = new Blob([csvContent], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'shortlisted-candidates.csv';
+      a.download = `applications-export-${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
+      URL.revokeObjectURL(url);
     }
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
   };
 
   return (
@@ -272,8 +294,9 @@ const HRApplicationManagement = () => {
             </div>
             <div className="flex space-x-3">
               <button
-                onClick={() => exportApplications('csv')}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors flex items-center"
+                onClick={handleExportRequest}
+                disabled={loading || applications.length === 0}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -295,12 +318,37 @@ const HRApplicationManagement = () => {
                   </svg>
                 </div>
                 <input
+                  ref={setSearchInputRef}
                   type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
-                  placeholder="Search candidates, jobs, or skills..."
+                  value={searchInput}
+                  onChange={(e) => {
+                    setSearchInput(e.target.value);
+                    setIsSearching(false); // Reset searching state on new input
+                  }}
+                  onFocus={(e) => {
+                    // Ensure cursor is at the end when focused
+                    const length = e.target.value.length;
+                    e.target.setSelectionRange(length, length);
+                  }}
+                  className="block w-full pl-10 pr-12 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 disabled:opacity-50"
+                  placeholder="Search candidates, jobs, or skills... (Ctrl+F to focus)"
+                  disabled={false} // Never disable the search input to maintain interactivity
+                  autoComplete="off"
                 />
+                {/* Enhanced search status indicator */}
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  {searchInput !== searchTerm && searchInput.length > 0 ? (
+                    <div className="flex items-center text-xs text-gray-600">
+                      <div className="animate-spin rounded-full h-3 w-3 border-b border-gray-400 mr-1"></div>
+                      <span className="font-medium">Typing...</span>
+                    </div>
+                  ) : isSearching ? (
+                    <div className="flex items-center text-xs text-gray-600">
+                      <div className="animate-spin rounded-full h-3 w-3 border-b border-gray-600 mr-1"></div>
+                      <span className="font-medium">Searching...</span>
+                    </div>
+                  ): null}
+                </div>
               </div>
             </div>
 
@@ -309,7 +357,8 @@ const HRApplicationManagement = () => {
               <select
                 value={selectedJob}
                 onChange={(e) => setSelectedJob(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                disabled={loading || loadingJobs}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="all">All Jobs</option>
                 {jobs.map(job => (
@@ -323,13 +372,15 @@ const HRApplicationManagement = () => {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                disabled={loading}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="all">All Status</option>
-                <option value="Under Review">Under Review</option>
-                <option value="Shortlisted">Shortlisted</option>
-                <option value="Interview Scheduled">Interview Scheduled</option>
-                <option value="Rejected">Rejected</option>
+                <option value="submitted">Submitted</option>
+                <option value="under_review">Under Review</option>
+                <option value="shortlisted">Shortlisted</option>
+                <option value="interview_scheduled">Interview Scheduled</option>
+                <option value="rejected">Rejected</option>
               </select>
             </div>
           </div>
@@ -340,7 +391,8 @@ const HRApplicationManagement = () => {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 text-sm"
+              disabled={loading}
+              className="px-3 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="appliedDate">Applied Date</option>
               <option value="resumeScore">Resume Score</option>
@@ -348,7 +400,8 @@ const HRApplicationManagement = () => {
             </select>
             <button
               onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-              className="text-gray-600 hover:text-gray-900 transition-colors"
+              disabled={loading}
+              className="text-gray-600 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className={`w-4 h-4 transform ${sortOrder === 'asc' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -357,8 +410,57 @@ const HRApplicationManagement = () => {
           </div>
         </div>
 
+        {/* Error Display */}
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800 font-['Roboto']">Error</h3>
+                <div className="mt-2 text-sm text-red-700 font-['Roboto']">{error}</div>
+                <div className="mt-4">
+                  <button
+                    onClick={() => {
+                      clearCache();
+                      const fetchParams = {
+                        page: currentPage,
+                        limit: 20,
+                        job: selectedJob !== 'all' ? selectedJob : undefined,
+                        status: statusFilter !== 'all' ? statusFilter : undefined,
+                        search: searchTerm || undefined,
+                        sortBy,
+                        sortOrder
+                      };
+                      fetchApplications(fetchParams);
+                    }}
+                    className="text-sm bg-red-100 text-red-800 px-3 py-1 rounded-md hover:bg-red-200 transition-colors"
+                  >
+                    Retry
+                  </button>
+                  <button
+                    onClick={() => {
+                      clearCache();
+                      window.location.reload();
+                    }}
+                    className="text-sm bg-gray-200 text-blue-800 px-3 py-1 rounded-md hover:bg-blue-200 transition-colors ml-2"
+                  >
+                    Force Refresh
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Applications Table */}
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        {loading ? (
+          <SkeletonTable rows={10} columns={7} />
+        ) : (
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -387,7 +489,7 @@ const HRApplicationManagement = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredApplications.map((application) => (
+                {applications.map((application) => (
                   <tr key={application.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -401,7 +503,7 @@ const HRApplicationManagement = () => {
                             {application.candidate.name}
                           </div>
                           <div className="text-sm text-gray-500 font-['Roboto']">
-                            {application.experience} experience
+                            {application.experience}
                           </div>
                         </div>
                       </div>
@@ -436,7 +538,7 @@ const HRApplicationManagement = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(application.status)}`}>
-                        {application.status}
+                        {formatStatus(application.status)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -451,7 +553,7 @@ const HRApplicationManagement = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
                         </button>
-                        {application.status === 'Under Review' && (
+                        {(application.status === 'under_review' || application.status === 'submitted') && (
                           <>
                             <button
                               onClick={() => handleApplicationAction('shortlist', application.id)}
@@ -473,7 +575,7 @@ const HRApplicationManagement = () => {
                             </button>
                           </>
                         )}
-                        {application.status === 'Shortlisted' && (
+                        {application.status === 'shortlisted' && (
                           <button
                             onClick={() => handleApplicationAction('schedule', application.id)}
                             className="text-gray-600 hover:text-gray-900 transition-colors"
@@ -491,9 +593,98 @@ const HRApplicationManagement = () => {
               </tbody>
             </table>
           </div>
-        </div>
 
-        {filteredApplications.length === 0 && (
+          {/* Pagination */}
+          {pagination.totalPages > 1 && (
+            <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+              <div className="flex-1 flex justify-between sm:hidden">
+                <button
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={!pagination.hasPrevPage || loading}
+                  className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={!pagination.hasNextPage || loading}
+                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-gray-700 font-['Roboto']">
+                    Showing <span className="font-medium">{((currentPage - 1) * 20) + 1}</span> to{' '}
+                    <span className="font-medium">
+                      {Math.min(currentPage * 20, pagination.totalApplications)}
+                    </span> of{' '}
+                    <span className="font-medium">{pagination.totalApplications}</span> results
+                  </p>
+                </div>
+                <div>
+                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    <button
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                      disabled={!pagination.hasPrevPage || loading}
+                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span className="sr-only">Previous</span>
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+
+                    {/* Page Numbers */}
+                    {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                      let page;
+                      if (pagination.totalPages <= 5) {
+                        page = i + 1;
+                      } else if (currentPage <= 3) {
+                        page = i + 1;
+                      } else if (currentPage >= pagination.totalPages - 2) {
+                        page = pagination.totalPages - 4 + i;
+                      } else {
+                        page = currentPage - 2 + i;
+                      }
+
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          disabled={loading}
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                            page === currentPage
+                              ? 'z-10 bg-black border-black text-white'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                          } ${loading ? 'disabled:opacity-50 disabled:cursor-not-allowed' : ''}`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    })}
+
+                    <button
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                      disabled={!pagination.hasNextPage || loading}
+                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span className="sr-only">Next</span>
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </nav>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && applications.length === 0 && (
           <div className="text-center py-12">
             <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -508,13 +699,23 @@ const HRApplicationManagement = () => {
 
       {/* Application Details Modal */}
       {showApplicationModal && selectedApplication && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-3/4 max-w-4xl shadow-lg rounded-lg bg-white">
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-20 mx-auto p-5 border w-3/4 max-w-4xl shadow-lg rounded-lg bg-white">
             <div className="mt-3">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-semibold text-gray-900 font-['Open_Sans']">
-                  {selectedApplication.candidate.name}
-                </h3>
+                <div>
+                  <h3 className="text-2xl font-semibold text-gray-900 font-['Open_Sans']">
+                    {selectedApplication.candidate.name}
+                  </h3>
+                  <div className="flex items-center mt-2">
+                    <span className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${getStatusColor(selectedApplication.status)}`}>
+                      {formatStatus(selectedApplication.status)}
+                    </span>
+                    <span className="ml-3 text-sm text-gray-500 font-['Roboto']">
+                      Applied on {new Date(selectedApplication.appliedDate || selectedApplication.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
                 <button
                   onClick={() => setShowApplicationModal(false)}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -529,7 +730,9 @@ const HRApplicationManagement = () => {
                 <div>
                   <h4 className="text-sm font-medium text-gray-500 font-['Roboto'] mb-2">Contact Information</h4>
                   <p className="text-gray-900 font-['Roboto']">{selectedApplication.candidate.email}</p>
-                  <p className="text-gray-900 font-['Roboto']">{selectedApplication.candidate.phone}</p>
+                  <p className="text-gray-900 font-['Roboto']">
+                    {selectedApplication.candidate.phone || 'Phone not provided'}
+                  </p>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-gray-500 font-['Roboto'] mb-2">Job Applied For</h4>
@@ -551,11 +754,15 @@ const HRApplicationManagement = () => {
               <div className="mb-6">
                 <h4 className="text-sm font-medium text-gray-500 font-['Roboto'] mb-2">Skills</h4>
                 <div className="flex flex-wrap gap-2">
-                  {selectedApplication.skills.map((skill, index) => (
-                    <span key={index} className="inline-flex px-3 py-1 text-sm bg-gray-100 text-gray-800 rounded-full">
-                      {skill}
-                    </span>
-                  ))}
+                  {selectedApplication.skills && selectedApplication.skills.length > 0 ? (
+                    selectedApplication.skills.map((skill, index) => (
+                      <span key={index} className="inline-flex px-3 py-1 text-sm bg-gray-100 text-gray-800 rounded-full">
+                        {skill}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-gray-500 font-['Roboto'] text-sm">No skills information available</span>
+                  )}
                 </div>
               </div>
 
@@ -608,19 +815,39 @@ const HRApplicationManagement = () => {
                 </div>
               </div>
 
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <div>
-                  <a
-                    href={selectedApplication.resumeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium font-['Roboto'] hover:bg-gray-50 transition-colors"
+                  <button
+                    onClick={async () => {
+                      try {
+                        // Make authenticated request to get resume
+                        const response = await makeRequest(`/api/hr/applications/${selectedApplication.id}/resume`);
+                        
+                        if (response.ok) {
+                          const blob = await response.blob();
+                          const blobUrl = URL.createObjectURL(blob);
+                          window.open(blobUrl, '_blank', 'noopener,noreferrer');
+                          
+                          // Clean up the blob URL after a delay to free memory
+                          setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+                        } else {
+                          const errorData = await response.json();
+                          alert(errorData.message || 'Error loading resume. Please try again.');
+                        }
+                      } catch (error) {
+                        console.error('Error opening resume:', error);
+                        alert('Error opening resume. Please try again.');
+                      }
+                    }}
+                    disabled={!selectedApplication.resumeUrl}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium font-['Roboto'] hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={!selectedApplication.resumeUrl ? "Resume not available" : "View candidate resume"}
                   >
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     View Resume
-                  </a>
+                  </button>
                 </div>
                 <div className="flex space-x-3">
                   <button
@@ -629,15 +856,20 @@ const HRApplicationManagement = () => {
                   >
                     Close
                   </button>
-                  {selectedApplication.status === 'Under Review' && (
+                  
+                  {/* Show action buttons based on current status */}
+                  {(selectedApplication.status === 'under_review' || selectedApplication.status === 'submitted') && (
                     <>
                       <button
                         onClick={() => {
                           handleApplicationAction('reject', selectedApplication.id);
                           setShowApplicationModal(false);
                         }}
-                        className="px-6 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded-lg font-medium font-['Roboto'] transition-colors"
+                        className="px-6 py-2 bg-black hover:text-red-500 text-white rounded-lg font-medium font-['Roboto'] transition-colors flex items-center"
                       >
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                         Reject
                       </button>
                       <button
@@ -645,29 +877,68 @@ const HRApplicationManagement = () => {
                           handleApplicationAction('shortlist', selectedApplication.id);
                           setShowApplicationModal(false);
                         }}
-                        className="bg-black hover:bg-gray-800 text-white px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
+                        className="bg-black hover:text-green-500 text-white px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors flex items-center"
                       >
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
                         Shortlist
                       </button>
                     </>
                   )}
-                  {selectedApplication.status === 'Shortlisted' && (
-                    <button
-                      onClick={() => {
-                        handleApplicationAction('schedule', selectedApplication.id);
-                        setShowApplicationModal(false);
-                      }}
-                      className="bg-black hover:bg-gray-800 text-white px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
-                    >
-                      Schedule Interview
-                    </button>
+                  
+                  {selectedApplication.status === 'shortlisted' && (
+                    <>
+                      <button
+                        onClick={() => {
+                          handleApplicationAction('reject', selectedApplication.id);
+                          setShowApplicationModal(false);
+                        }}
+                        className="px-6 py-2 bg-black hover:text-red-500 text-white rounded-lg font-medium font-['Roboto'] transition-colors flex items-center"
+                      >
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Reject
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleApplicationAction('schedule', selectedApplication.id);
+                          setShowApplicationModal(false);
+                        }}
+                        className="bg-black hover:text-blue-500 text-white px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors flex items-center"
+                      >
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4h3a2 2 0 012 2v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 012-2h3z" />
+                        </svg>
+                        Schedule Interview
+                      </button>
+                    </>
+                  )}
+                  
+                  {selectedApplication.status === 'interview_scheduled' && (
+                    <div className="flex items-center px-4 py-2 bg-gray-100 text-blue-700 rounded-lg">
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Interview Scheduled
+                    </div>
+                  )}
+                  
+                  {selectedApplication.status === 'rejected' && (
+                    <div className="flex items-center px-4 py-2 bg-gray-100 text-red-500 rounded-lg">
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      Application Rejected
+                    </div>
                   )}
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+          </div>
+        )}
     </HRLayout>
   );
 };
