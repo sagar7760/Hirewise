@@ -2,29 +2,17 @@ const bcrypt = require('bcryptjs');
 const User = require('../../models/User');
 const Company = require('../../models/Company');
 
-console.log('HR Profile controller module loaded'); // Debug log
-
 // GET HR profile
 exports.getProfile = async (req, res) => {
   try {
-    console.log('HR Profile GET request received'); // Debug log
-    console.log('User from request:', req.user._id); // Debug log
-    
-    // Debug: Check if we have the Company model available
-    const allCompanies = await Company.find({}).select('name').lean();
-    console.log('Available companies in DB:', allCompanies);
-    
     // Check the raw user data to see what field exists
     const rawUser = await User.findById(req.user._id).select('-password').lean();
-    console.log('Raw user company field:', rawUser.company);
-    console.log('Raw user companyId field:', rawUser.companyId);
     
     // The issue is that user has companyId but model expects company
     // Let's manually fetch the company using companyId
     let company = null;
     if (rawUser.companyId) {
       company = await Company.findById(rawUser.companyId).select('name logo website').lean();
-      console.log('Manually fetched company:', company);
     }
     
     // Fetch user with company population for complete data
@@ -39,9 +27,6 @@ exports.getProfile = async (req, res) => {
         error: 'User not found'
       });
     }
-
-    console.log('User with company data:', user); // Debug log
-    console.log('Company field specifically:', user.company); // Debug company field
     
     const profile = {
       _id: user._id,
@@ -72,10 +57,6 @@ exports.getProfile = async (req, res) => {
       }
     };
 
-    console.log('Company variable before response:', company); // Debug company variable
-    console.log('Profile company field:', profile.company); // Debug profile company field
-    console.log('Sending profile response:', profile); // Debug log
-
     res.json({
       success: true,
       ...profile
@@ -94,10 +75,6 @@ exports.getProfile = async (req, res) => {
 // PUT update HR profile
 exports.updateProfile = async (req, res) => {
   try {
-    console.log('HR Profile PUT request received'); // Debug log
-    console.log('Request body:', req.body); // Debug log
-    console.log('User from request:', req.user._id); // Debug log
-    
     const {
       firstName,
       lastName,
@@ -118,8 +95,6 @@ exports.updateProfile = async (req, res) => {
       });
     }
 
-    console.log('Current user before update:', user); // Debug log
-
     // Ensure company fields are set (required for HR users)
     // The User model has both 'company' and 'companyId' fields, both are required
     // Use the existing companyId from the database record if req.user.companyId is not available
@@ -127,19 +102,10 @@ exports.updateProfile = async (req, res) => {
     
     if (!user.company && companyIdToUse) {
       user.company = companyIdToUse;
-      console.log('Setting company field to:', companyIdToUse);
     }
     if (!user.companyId && companyIdToUse) {
       user.companyId = companyIdToUse;
-      console.log('Setting companyId field to:', companyIdToUse);
     }
-
-    console.log('User company fields after fix:', {
-      company: user.company,
-      companyId: user.companyId,
-      reqUserCompanyId: req.user.companyId,
-      companyIdToUse: companyIdToUse
-    });
 
     // Update allowed fields
     if (firstName !== undefined) user.firstName = firstName.trim();
@@ -151,19 +117,7 @@ exports.updateProfile = async (req, res) => {
     if (workLocation !== undefined) user.workLocation = workLocation.trim();
     if (notifications !== undefined) user.notifications = notifications;
 
-    console.log('User after field updates:', user); // Debug log
-
     const updatedUser = await user.save();
-
-    console.log('Profile updated successfully for user:', updatedUser._id); // Debug log
-    console.log('Updated data:', {
-      firstName: updatedUser.firstName,
-      lastName: updatedUser.lastName,
-      phone: updatedUser.phone,
-      department: updatedUser.department,
-      jobTitle: updatedUser.jobTitle,
-      notifications: updatedUser.notifications
-    }); // Debug log
 
     res.json({
       success: true,
@@ -262,8 +216,6 @@ exports.updateAvatar = async (req, res) => {
     user.avatar = imageData;
     await user.save();
 
-    console.log('Profile picture updated and saved to database for user:', user._id);
-
     res.json({
       success: true,
       message: 'Profile picture updated successfully',
@@ -283,7 +235,6 @@ exports.updateAvatar = async (req, res) => {
 // PUT change password
 exports.changePassword = async (req, res) => {
   try {
-    console.log('Change password request received for user:', req.user._id);
     const { currentPassword, newPassword } = req.body;
 
     if (!currentPassword || !newPassword) {
@@ -301,7 +252,6 @@ exports.changePassword = async (req, res) => {
     }
 
     const user = await User.findById(req.user._id).select('+password');
-    console.log('User found for password change:', !!user, 'User version:', user?.__v);
     
     if (!user) {
       return res.status(404).json({
@@ -311,22 +261,9 @@ exports.changePassword = async (req, res) => {
     }
 
     // Verify current password
-    console.log('Comparing passwords - Current password provided:', !!currentPassword);
-    console.log('Current password length:', currentPassword?.length);
-    console.log('User has stored password:', !!user.password);
-    console.log('Stored password length:', user.password?.length);
-    console.log('Stored password starts with $2a or $2b (bcrypt hash):', /^\$2[ab]\$/.test(user.password));
-    console.log('First 10 chars of stored password:', user.password?.substring(0, 10));
-    
     const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
-    console.log('Password comparison result:', isCurrentPasswordValid);
     
     if (!isCurrentPasswordValid) {
-      // Additional debugging - let's try to hash the current password and see what we get
-      const testSalt = await bcrypt.genSalt(10);
-      const testHash = await bcrypt.hash(currentPassword, testSalt);
-      console.log('Test hash of current password:', testHash.substring(0, 20));
-      
       return res.status(400).json({
         success: false,
         error: 'Current password is incorrect'
@@ -338,7 +275,6 @@ exports.changePassword = async (req, res) => {
     const hashedNewPassword = await bcrypt.hash(newPassword, salt);
 
     // Update password using findByIdAndUpdate to avoid version conflicts
-    console.log('Attempting to update password for user:', req.user._id);
     const updatedUser = await User.findByIdAndUpdate(
       req.user._id,
       { 
@@ -350,8 +286,6 @@ exports.changePassword = async (req, res) => {
         runValidators: true
       }
     );
-
-    console.log('Password updated successfully for user:', req.user._id, 'Updated user version:', updatedUser?.__v);
 
     res.json({
       success: true,
@@ -370,15 +304,12 @@ exports.changePassword = async (req, res) => {
 
 // Test route
 exports.test = (req, res) => {
-  console.log('Test route hit');
   res.json({ message: 'HR Profile controller is working' });
 };
 
 // Debug route to check current user
 exports.debug = async (req, res) => {
   try {
-    console.log('Debug route - User data:', req.user);
-    
     // Get user with password to check hash format
     const userWithPassword = await User.findById(req.user._id).select('+password');
     
