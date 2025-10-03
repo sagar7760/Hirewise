@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import HRLayout from '../../components/layout/HRLayout';
 import { useApiRequest } from '../../hooks/useApiRequest';
+import { SkeletonTable } from '../../components/common/Skeleton';
 
 const HRJobManagement = () => {
   const { makeJsonRequest } = useApiRequest();
@@ -17,11 +18,7 @@ const HRJobManagement = () => {
   const [searchTerm, setSearchTerm] = useState(''); // Debounced search term for API
   const [selectedJob, setSelectedJob] = useState(null);
   const [showJobModal, setShowJobModal] = useState(false);
-  const [openDropdownId, setOpenDropdownId] = useState(null);
   const [deleteConfirmModal, setDeleteConfirmModal] = useState({ show: false, job: null });
-  const [expandedJobId, setExpandedJobId] = useState(null);
-  const [jobApplications, setJobApplications] = useState({});
-  const [loadingApplications, setLoadingApplications] = useState({});
   const [isSearching, setIsSearching] = useState(false);
   const [searchInputRef, setSearchInputRef] = useState(null);
   const [initialLoad, setInitialLoad] = useState(true);
@@ -49,31 +46,31 @@ const HRJobManagement = () => {
       setLoading(true);
       setError(null);
       
-      const queryParams = new URLSearchParams({
+      const params = new URLSearchParams({
         page: page.toString(),
         limit: limit.toString(),
         ...(search && { search }),
         ...(statusFilter && { status: statusFilter }),
-        ...(filterType === 'my-jobs' && { filter: 'my-jobs' }),
-        sortBy: 'createdAt',
-        sortOrder: 'desc'
+        ...(filterType && { filter: filterType })
       });
-
-      const response = await makeJsonRequest(`/api/hr/jobs?${queryParams}`);
+      
+      const response = await makeJsonRequest(`/api/hr/jobs?${params}`);
       
       if (response.success) {
-        setJobs(response.data);
-        setFilteredJobs(response.data);
-        setCurrentPage(response.pagination.currentPage);
-        setTotalPages(response.pagination.totalPages);
-        setTotalJobs(response.pagination.totalJobs);
-        setSummary(response.summary);
+        // The API returns jobs directly in response.data, not response.data.jobs
+        const jobsData = response.data || [];
+        setJobs(jobsData);
+        setFilteredJobs(jobsData);
+        setCurrentPage(response.pagination?.currentPage || 1);
+        setTotalPages(response.pagination?.totalPages || 1);
+        setTotalJobs(response.pagination?.totalJobs || 0);
+        setSummary(response.summary || summary);
       } else {
         setError(response.message || 'Failed to fetch jobs');
       }
     } catch (error) {
       console.error('Error fetching jobs:', error);
-      setError(error.message || 'Failed to fetch jobs');
+      setError('Failed to fetch jobs');
     } finally {
       setLoading(false);
     }
@@ -83,8 +80,8 @@ const HRJobManagement = () => {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (searchInput !== searchTerm) {
-        setIsSearching(true);
         setSearchTerm(searchInput);
+        setIsSearching(true);
       }
     }, 300); // Reduced to 300ms for better responsiveness
 
@@ -94,16 +91,17 @@ const HRJobManagement = () => {
   // Reset searching state when search term changes and request completes
   useEffect(() => {
     if (!loading && isSearching) {
-      setIsSearching(false);
-      // Maintain focus on search input after search completes
-      if (searchInputRef && document.activeElement !== searchInputRef) {
-        setTimeout(() => {
-          searchInputRef.focus();
-          // Restore cursor position to end
-          const length = searchInputRef.value.length;
-          searchInputRef.setSelectionRange(length, length);
-        }, 100);
-      }
+      const timer = setTimeout(() => {
+        setIsSearching(false);
+        // Focus back to search input if it exists
+        if (searchInputRef && document.activeElement !== searchInputRef) {
+          // Only focus if user isn't actively typing
+          if (searchInput === searchTerm) {
+            searchInputRef.focus();
+          }
+        }
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [loading, isSearching, searchInputRef]);
 
@@ -144,11 +142,6 @@ const HRJobManagement = () => {
       const statusFilter = filter === 'active' ? 'active' : filter === 'draft' ? 'draft' : '';
       const filterType = filter === 'my-jobs' ? 'my-jobs' : '';
       
-      // Only trigger search state if search term changed
-      if (searchTerm !== searchInput && searchTerm) {
-        setIsSearching(true);
-      }
-      
       fetchJobs(1, searchTerm, statusFilter, filterType);
       setCurrentPage(1);
     }
@@ -164,9 +157,6 @@ const HRJobManagement = () => {
         if (showJobModal) {
           setShowJobModal(false);
         }
-        if (openDropdownId) {
-          setOpenDropdownId(null);
-        }
       }
     };
 
@@ -174,7 +164,7 @@ const HRJobManagement = () => {
     return () => {
       document.removeEventListener('keydown', handleEscapeKey);
     };
-  }, [deleteConfirmModal.show, showJobModal, openDropdownId]);
+  }, [deleteConfirmModal.show, showJobModal]);
 
   // Handle pagination
   const handlePageChange = (page) => {
@@ -188,22 +178,20 @@ const HRJobManagement = () => {
     const statusLower = status.toLowerCase();
     switch (statusLower) {
       case 'active':
-        return 'bg-black text-white';
+        return 'bg-green-100 text-green-800';
       case 'draft':
-        return 'bg-gray-700 text-white';
+        return 'bg-yellow-100 text-yellow-800';
       case 'inactive':
       case 'archived':
+        return 'bg-gray-100 text-gray-800';
       case 'closed':
-        return 'bg-gray-100 text-gray-600';
+        return 'bg-red-100 text-red-800';
       default:
-        return 'bg-gray-100 text-gray-600';
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   const handleJobAction = async (action, jobId) => {
-    // Close dropdown when action is performed
-    setOpenDropdownId(null);
-    
     try {
       switch (action) {
         case 'view':
@@ -217,133 +205,15 @@ const HRJobManagement = () => {
           navigate(`/hr/jobs/${jobId}/edit`);
           break;
           
-        case 'archive':
-          const archiveResponse = await makeJsonRequest(`/api/hr/jobs/${jobId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'inactive' })
-          });
-          
-          if (archiveResponse.success) {
-            // Refresh jobs list
-            const statusFilter = filter === 'active' ? 'active' : filter === 'draft' ? 'draft' : '';
-            const filterType = filter === 'my-jobs' ? 'my-jobs' : '';
-            fetchJobs(currentPage, searchTerm, statusFilter, filterType);
-          } else {
-            setError(archiveResponse.message || 'Failed to archive job');
-          }
-          break;
-          
-        case 'publish':
-          const publishResponse = await makeJsonRequest(`/api/hr/jobs/${jobId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'active' })
-          });
-          
-          if (publishResponse.success) {
-            // Refresh jobs list
-            const statusFilter = filter === 'active' ? 'active' : filter === 'draft' ? 'draft' : '';
-            const filterType = filter === 'my-jobs' ? 'my-jobs' : '';
-            fetchJobs(currentPage, searchTerm, statusFilter, filterType);
-          } else {
-            setError(publishResponse.message || 'Failed to publish job');
-          }
-          break;
-          
-        case 'activate':
-          const activateResponse = await makeJsonRequest(`/api/hr/jobs/${jobId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'active' })
-          });
-          
-          if (activateResponse.success) {
-            // Refresh jobs list
-            const statusFilter = filter === 'active' ? 'active' : filter === 'draft' ? 'draft' : '';
-            const filterType = filter === 'my-jobs' ? 'my-jobs' : '';
-            fetchJobs(currentPage, searchTerm, statusFilter, filterType);
-          } else {
-            setError(activateResponse.message || 'Failed to activate job');
-          }
-          break;
-          
-        case 'close':
-          const closeResponse = await makeJsonRequest(`/api/hr/jobs/${jobId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'closed' })
-          });
-          
-          if (closeResponse.success) {
-            // Refresh jobs list
-            const statusFilter = filter === 'active' ? 'active' : filter === 'draft' ? 'draft' : '';
-            const filterType = filter === 'my-jobs' ? 'my-jobs' : '';
-            fetchJobs(currentPage, searchTerm, statusFilter, filterType);
-          } else {
-            setError(closeResponse.message || 'Failed to close job');
-          }
-          break;
-          
-        case 'delete':
-          const jobToDelete = jobs.find(job => job.id === jobId);
-          if (jobToDelete) {
-            setDeleteConfirmModal({ show: true, job: jobToDelete });
-            setOpenDropdownId(null); // Close dropdown
-          }
-          break;
-          
         case 'applications':
-          // Toggle applications view inline
-          await toggleJobApplications(jobId);
+          // Navigate to application management page with job filter
+          // Corrected route path to match defined route in App.jsx (/hr/applications)
+          navigate(`/hr/applications?jobId=${jobId}`);
           break;
       }
     } catch (error) {
       console.error('Job action error:', error);
       setError(error.message || 'Action failed');
-    }
-  };
-
-  // Toggle dropdown visibility
-  const toggleDropdown = (jobId) => {
-    setOpenDropdownId(openDropdownId === jobId ? null : jobId);
-  };
-
-  // Fetch applications for a specific job
-  const fetchJobApplications = async (jobId) => {
-    if (jobApplications[jobId]) {
-      return; // Already fetched
-    }
-    
-    try {
-      setLoadingApplications(prev => ({ ...prev, [jobId]: true }));
-      
-      const response = await makeJsonRequest(`/api/hr/jobs/${jobId}/applications`);
-      
-      if (response.success) {
-        setJobApplications(prev => ({
-          ...prev,
-          [jobId]: response.data.applications || response.data || []
-        }));
-      } else {
-        console.error('Failed to fetch applications:', response.message);
-        setJobApplications(prev => ({ ...prev, [jobId]: [] }));
-      }
-    } catch (error) {
-      console.error('Error fetching job applications:', error);
-      setJobApplications(prev => ({ ...prev, [jobId]: [] }));
-    } finally {
-      setLoadingApplications(prev => ({ ...prev, [jobId]: false }));
-    }
-  };
-
-  // Toggle job applications view
-  const toggleJobApplications = async (jobId) => {
-    if (expandedJobId === jobId) {
-      setExpandedJobId(null);
-    } else {
-      setExpandedJobId(jobId);
-      await fetchJobApplications(jobId);
     }
   };
 
@@ -363,41 +233,16 @@ const HRJobManagement = () => {
         const statusFilter = filter === 'active' ? 'active' : filter === 'draft' ? 'draft' : '';
         const filterType = filter === 'my-jobs' ? 'my-jobs' : '';
         fetchJobs(currentPage, searchTerm, statusFilter, filterType);
-        
-        // Show success message (you could use a toast notification here)
-        console.log('Job deleted successfully');
       } else {
-        // Show specific error from backend
-        if (deleteResponse.message && deleteResponse.message.includes('applications')) {
-          // If it's an application-related error, show a more helpful message
-          setError(`${deleteResponse.message} You can close the job instead of deleting it.`);
-        } else {
-          setError(deleteResponse.message || 'Failed to delete job');
-        }
-        setDeleteConfirmModal({ show: false, job: null });
+        setError(deleteResponse.message || 'Failed to delete job');
       }
     } catch (error) {
-      console.error('Delete job error:', error);
-      setError(error.message || 'Failed to delete job. Please try again.');
-      setDeleteConfirmModal({ show: false, job: null });
+      console.error('Error deleting job:', error);
+      setError('Failed to delete job');
     } finally {
       setLoading(false);
     }
   };
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (!event.target.closest('.dropdown-container')) {
-        setOpenDropdownId(null);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
   return (
     <HRLayout>
@@ -426,40 +271,52 @@ const HRJobManagement = () => {
             </div>
           </div>
           
-          {/* Summary Stats */}
+          {/* Summary Statistics */}
           <div className="mt-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
-            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
-              <div className="text-sm text-gray-500 font-['Roboto'] mb-1">Total Jobs</div>
-              <div className="text-2xl font-bold text-black font-['Open_Sans']">{summary.totalJobs}</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
-              <div className="text-sm text-gray-500 font-['Roboto'] mb-1">Active</div>
-              <div className="text-2xl font-bold text-black font-['Open_Sans']">{summary.totalActive}</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
-              <div className="text-sm text-gray-500 font-['Roboto'] mb-1">Draft</div>
-              <div className="text-2xl font-bold text-black font-['Open_Sans']">{summary.totalDraft}</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
-              <div className="text-sm text-gray-500 font-['Roboto'] mb-1">Closed</div>
-              <div className="text-2xl font-bold text-black font-['Open_Sans']">{summary.totalClosed}</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
-              <div className="text-sm text-gray-500 font-['Roboto'] mb-1">Archived</div>
-              <div className="text-2xl font-bold text-black font-['Open_Sans']">{summary.totalInactive}</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
-              <div className="text-sm text-gray-500 font-['Roboto'] mb-1">My Jobs</div>
-              <div className="text-2xl font-bold text-black font-['Open_Sans']">{summary.myJobs}</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
-              <div className="text-sm text-gray-500 font-['Roboto'] mb-1">Total Applicants</div>
-              <div className="text-2xl font-bold text-black font-['Open_Sans']">{summary.totalApplicants}</div>
-            </div>
+            {loading ? (
+              // Skeleton loading for summary cards
+              Array.from({ length: 7 }).map((_, index) => (
+                <div key={index} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                  <div className="h-4 bg-gray-200 rounded w-16 mb-2 animate-pulse"></div>
+                  <div className="h-8 bg-gray-200 rounded w-8 animate-pulse"></div>
+                </div>
+              ))
+            ) : (
+              <>
+                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+                  <div className="text-sm text-gray-500 font-['Roboto'] mb-1">Total Jobs</div>
+                  <div className="text-2xl font-bold text-black font-['Open_Sans']">{summary.totalJobs}</div>
+                </div>
+                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+                  <div className="text-sm text-gray-500 font-['Roboto'] mb-1">Active</div>
+                  <div className="text-2xl font-bold text-black font-['Open_Sans']">{summary.totalActive}</div>
+                </div>
+                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+                  <div className="text-sm text-gray-500 font-['Roboto'] mb-1">Draft</div>
+                  <div className="text-2xl font-bold text-black font-['Open_Sans']">{summary.totalDraft}</div>
+                </div>
+                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+                  <div className="text-sm text-gray-500 font-['Roboto'] mb-1">Closed</div>
+                  <div className="text-2xl font-bold text-black font-['Open_Sans']">{summary.totalClosed}</div>
+                </div>
+                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+                  <div className="text-sm text-gray-500 font-['Roboto'] mb-1">Archived</div>
+                  <div className="text-2xl font-bold text-black font-['Open_Sans']">{summary.totalInactive}</div>
+                </div>
+                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+                  <div className="text-sm text-gray-500 font-['Roboto'] mb-1">My Jobs</div>
+                  <div className="text-2xl font-bold text-black font-['Open_Sans']">{summary.myJobs}</div>
+                </div>
+                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+                  <div className="text-sm text-gray-500 font-['Roboto'] mb-1">Total Applicants</div>
+                  <div className="text-2xl font-bold text-black font-['Open_Sans']">{summary.totalApplicants}</div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Error Display */}
+        {/* Error Message */}
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex">
@@ -475,10 +332,9 @@ const HRJobManagement = () => {
                   <button
                     onClick={() => {
                       setError(null);
-                      fetchJobs(currentPage, searchTerm, 
-                        filter === 'active' ? 'active' : filter === 'draft' ? 'draft' : '',
-                        filter === 'my-jobs' ? 'my-jobs' : ''
-                      );
+                      const statusFilter = filter === 'active' ? 'active' : filter === 'draft' ? 'draft' : '';
+                      const filterType = filter === 'my-jobs' ? 'my-jobs' : '';
+                      fetchJobs(currentPage, searchTerm, statusFilter, filterType);
                     }}
                     className="text-sm bg-red-100 text-red-800 px-3 py-1 rounded-md hover:bg-red-200 transition-colors"
                   >
@@ -490,10 +346,10 @@ const HRJobManagement = () => {
           </div>
         )}
 
-        {/* Filters and Search */}
+        {/* Search and Filter Controls */}
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-            {/* Search */}
+            {/* Search Input */}
             <div className="flex-1 max-w-md">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -507,19 +363,19 @@ const HRJobManagement = () => {
                   value={searchInput}
                   onChange={(e) => {
                     setSearchInput(e.target.value);
-                    setIsSearching(false); // Reset searching state on new input
                   }}
                   onFocus={(e) => {
-                    // Ensure cursor is at the end when focused
-                    const length = e.target.value.length;
-                    e.target.setSelectionRange(length, length);
+                    // Select text when focused via keyboard shortcut
+                    if (e.target.value && !e.target.selectionStart) {
+                      e.target.select();
+                    }
                   }}
                   className="block w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 transition-colors disabled:opacity-50"
                   placeholder="Search jobs by title, department... (Ctrl+F to focus)"
-                  disabled={false} // Never disable the search input to maintain interactivity
+                  disabled={false}
                   autoComplete="off"
                 />
-                {/* Enhanced search status indicator */}
+                {/* Loading/Typing Indicator */}
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                   {searchInput !== searchTerm && searchInput.length > 0 ? (
                     <div className="flex items-center text-xs text-gray-600">
@@ -536,7 +392,7 @@ const HRJobManagement = () => {
               </div>
             </div>
 
-            {/* Filters */}
+            {/* Filter Buttons */}
             <div className="flex space-x-2">
               <button
                 onClick={() => setFilter('all')}
@@ -588,12 +444,7 @@ const HRJobManagement = () => {
 
         {/* Loading State */}
         {loading && (
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-8">
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-              <span className="ml-3 text-gray-600 font-['Roboto']">Loading jobs...</span>
-            </div>
-          </div>
+          <SkeletonTable rows={10} columns={7} />
         )}
 
         {/* Jobs Table */}
@@ -628,306 +479,88 @@ const HRJobManagement = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredJobs.map((job) => (
-                    <React.Fragment key={job.id}>
-                      <tr className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-5 whitespace-nowrap">
+                    <tr key={job.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-5 whitespace-nowrap">
+                        <div>
+                          <Link
+                            // Corrected route path
+                            to={`/hr/applications?jobId=${job.id}`}
+                            className="text-sm font-medium text-black hover:text-blue-800 font-['Open_Sans'] transition-colors cursor-pointer"
+                          >
+                            {job.title}
+                          </Link>
+                          <div className="text-xs text-gray-500 font-['Roboto']">{job.salary}</div>
+                          <div className="text-xs text-gray-400 font-['Roboto']">by {job.postedByName}</div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900 font-['Roboto']">{job.department}</div>
+                        <div className="text-xs text-gray-500 font-['Roboto']">{job.jobType}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(job.status)}`}>
+                          {job.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center space-x-2">
                           <div>
-                            <Link
-                              to={`/hr/jobs/${job.id}/applications`}
-                              className="text-sm font-medium text-black hover:text-blue-800 font-['Open_Sans'] transition-colors cursor-pointer"
-                            >
-                              {job.title}
-                            </Link>
-                            <div className="text-xs text-gray-500 font-['Roboto']">{job.salary}</div>
-                            <div className="text-xs text-gray-400 font-['Roboto']">by {job.postedByName}</div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 font-['Roboto']">{job.department}</div>
-                          <div className="text-xs text-gray-500 font-['Roboto']">{job.jobType}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(job.status)}`}>
-                            {job.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center space-x-2">
-                            <div>
-                              <div className="text-sm text-gray-900 font-['Roboto']">{job.applicants}</div>
-                              {job.recentApplications > 0 && (
-                                <div className="text-xs text-gray-700 font-['Roboto']">
-                                  +{job.recentApplications} this week
-                                </div>
-                              )}
-                            </div>
-                            {job.applicants > 0 && (
-                              <button
-                                onClick={() => toggleJobApplications(job.id)}
-                                className="text-black hover:text-gray-400 transition-colors"
-                                title={expandedJobId === job.id ? "Hide Applications" : "Show Applications"}
-                              >
-                                <svg 
-                                  className={`w-4 h-4 transform transition-transform ${expandedJobId === job.id ? 'rotate-180' : ''}`} 
-                                  fill="none" 
-                                  stroke="currentColor" 
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
-                              </button>
+                            <div className="text-sm text-gray-900 font-['Roboto']">{job.applicants}</div>
+                            {job.recentApplications > 0 && (
+                              <div className="text-xs text-gray-700 font-['Roboto']">
+                                +{job.recentApplications} this week
+                              </div>
                             )}
                           </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500 font-['Roboto']">
-                            {new Date(job.postedDate).toLocaleDateString()}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500 font-['Roboto']">
-                            {job.deadline ? new Date(job.deadline).toLocaleDateString() : 'No deadline'}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex items-center justify-end space-x-2">
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-500 font-['Roboto']">
+                          {new Date(job.postedDate).toLocaleDateString()}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-500 font-['Roboto']">
+                          {job.deadline ? new Date(job.deadline).toLocaleDateString() : 'No deadline'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex items-center justify-end space-x-2">
+                          <button
+                            onClick={() => handleJobAction('view', job.id)}
+                            className="text-gray-600 hover:text-gray-900 transition-colors"
+                            title="View Details"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          </button>
+                          {job.createdBy === 'me' && job.status.toLowerCase() !== 'inactive' && (
                             <button
-                              onClick={() => handleJobAction('view', job.id)}
+                              onClick={() => handleJobAction('edit', job.id)}
                               className="text-gray-600 hover:text-gray-900 transition-colors"
-                              title="View Details"
+                              title="Edit Job"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                               </svg>
                             </button>
-                            {job.createdBy === 'me' && job.status.toLowerCase() !== 'inactive' && (
-                              <button
-                                onClick={() => handleJobAction('edit', job.id)}
-                                className="text-gray-600 hover:text-gray-900 transition-colors"
-                                title="Edit Job"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                              </button>
-                            )}
-                            <div className="relative dropdown-container">
-                              <button 
-                                onClick={() => toggleDropdown(job.id)}
-                                className="text-gray-600 hover:text-gray-900 transition-colors p-1 rounded-full hover:bg-gray-100"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                                </svg>
-                              </button>
-                              {openDropdownId === job.id && (
-                                <div className="absolute right-0 top-8 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-20">
-                                {/* View Applications */}
-                                {job.applicants > 0 && (
-                                  <button
-                                    onClick={() => handleJobAction('applications', job.id)}
-                                    className="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 font-['Roboto'] transition-colors"
-                                  >
-                                    {expandedJobId === job.id ? 'Hide' : 'Show'} Applications ({job.applicants})
-                                  </button>
-                                )}
-                                
-                                {/* Publish for Draft Jobs */}
-                                {job.status.toLowerCase() === 'draft' && (
-                                  <button
-                                    onClick={() => handleJobAction('publish', job.id)}
-                                    className="block w-full text-left px-4 py-2.5 text-sm text-green-600 hover:bg-green-50 font-['Roboto'] transition-colors"
-                                  >
-                                    Publish Job
-                                  </button>
-                                )}
-                                
-                                {/* Archive for Active/Draft Jobs */}
-                                {(job.status.toLowerCase() === 'active' || job.status.toLowerCase() === 'draft') && (
-                                  <button
-                                    onClick={() => handleJobAction('archive', job.id)}
-                                    className="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 font-['Roboto'] transition-colors"
-                                  >
-                                    Archive Job
-                                  </button>
-                                )}
-
-                                {/* Close for Active Jobs */}
-                                {job.status.toLowerCase() === 'active' && (
-                                  <button
-                                    onClick={() => handleJobAction('close', job.id)}
-                                    className="block w-full text-left px-4 py-2.5 text-sm text-orange-600 hover:bg-orange-50 font-['Roboto'] transition-colors"
-                                  >
-                                    Close Job
-                                  </button>
-                                )}
-                                
-                                
-                                
-                                {/* Activate for Inactive/Closed Jobs */}
-                                {(job.status.toLowerCase() === 'inactive' || job.status.toLowerCase() === 'closed') && (
-                                  <button
-                                    onClick={() => handleJobAction('activate', job.id)}
-                                    className="block w-full text-left px-4 py-2.5 text-sm text-green-600 hover:bg-green-50 font-['Roboto'] transition-colors"
-                                  >
-                                    Activate Job
-                                  </button>
-                                )}
-                                
-                                {/* Delete Job - Only for jobs with no applications */}
-                                {job.applicants === 0 && (
-                                  <>
-                                    <div className="border-t border-gray-100 my-1"></div>
-                                    <button
-                                      onClick={() => handleJobAction('delete', job.id)}
-                                      className="block w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 font-['Roboto'] transition-colors"
-                                    >
-                                      Delete Job
-                                    </button>
-                                  </>
-                                )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                      
-                      {/* Expandable Applications Section */}
-                      {expandedJobId === job.id && (
-                        <tr>
-                          <td colSpan="7" className="px-6 py-4 bg-gray-50 border-t">
-                            <div className="space-y-4">
-                              <div className="flex items-center justify-between">
-                                <h4 className="text-lg font-medium text-gray-900 font-['Open_Sans']">
-                                  Applications for "{job.title}"
-                                </h4>
-                                <Link
-                                  to={`/hr/jobs/${job.id}/applications`}
-                                  className="text-sm text-black hover:text-gray-600 font-['Roboto']"
-                                >
-                                  View Full Page →
-                                </Link>
-                              </div>
-                              
-                              {loadingApplications[job.id] ? (
-                                <div className="flex items-center justify-center py-8">
-                                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
-                                  <span className="ml-3 text-gray-600 font-['Roboto']">Loading applications...</span>
-                                </div>
-                              ) : jobApplications[job.id] && Array.isArray(jobApplications[job.id]) && jobApplications[job.id].length > 0 ? (
-                                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                                  <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                      <thead className="bg-gray-50">
-                                        <tr>
-                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Candidate
-                                          </th>
-                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Applied Date
-                                          </th>
-                                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Status
-                                          </th>
-                                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Actions
-                                          </th>
-                                        </tr>
-                                      </thead>
-                                      <tbody className="bg-white divide-y divide-gray-200">
-                                        {Array.isArray(jobApplications[job.id]) && jobApplications[job.id].slice(0, 5).map((application, index) => {
-                                          // Get candidate name properly
-                                          const candidateName = application.applicant 
-                                            ? `${application.applicant.firstName || ''} ${application.applicant.lastName || ''}`.trim()
-                                            : (application.personalInfo 
-                                              ? `${application.personalInfo.firstName || ''} ${application.personalInfo.lastName || ''}`.trim()
-                                              : 'Anonymous');
-                                          
-                                          const candidateEmail = application.applicant?.email || application.personalInfo?.email || 'No email';
-                                          
-                                          return (
-                                          <tr key={application.id || application._id || index} className="hover:bg-gray-50">
-                                            <td className="px-4 py-3 whitespace-nowrap">
-                                              <div className="flex items-center">
-                                                <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
-                                                  <span className="text-xs font-medium text-gray-600">
-                                                    {candidateName !== 'Anonymous' ? candidateName.split(' ').map(n => n[0]).join('').substring(0, 2) : 'AN'}
-                                                  </span>
-                                                </div>
-                                                <div className="ml-3">
-                                                  <div className="text-sm font-medium text-gray-900 font-['Open_Sans']">
-                                                    {candidateName}
-                                                  </div>
-                                                  <div className="text-xs text-gray-500 font-['Roboto']">
-                                                    {candidateEmail}
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap">
-                                              <div className="text-sm text-gray-900 font-['Roboto']">
-                                                {new Date(application.createdAt || Date.now()).toLocaleDateString()}
-                                              </div>
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap">
-                                              <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                                                application.status === 'shortlisted' ? 'bg-gray-800 text-white' :
-                                                application.status === 'under_review' ? 'bg-gray-700 text-white' :
-                                                application.status === 'rejected' ? 'bg-gray-500 text-white' :
-                                                application.status === 'interview_scheduled' ? 'bg-gray-900 text-white' :
-                                                'bg-gray-100 text-gray-600'
-                                              }`}>
-                                                {application.status?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Submitted'}
-                                              </span>
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-                                              <div className="flex items-center justify-end space-x-2">
-                                                <button
-                                                  className="text-gray-600 hover:text-gray-900 transition-colors"
-                                                  title="View Details"
-                                                >
-                                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                  </svg>
-                                                </button>
-                                              </div>
-                                            </td>
-                                          </tr>
-                                          );
-                                        })}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                  {Array.isArray(jobApplications[job.id]) && jobApplications[job.id].length > 5 && (
-                                    <div className="px-4 py-3 bg-gray-50 text-center">
-                                      <Link
-                                        to={`/hr/jobs/${job.id}/applications`}
-                                        className="text-sm text-blue-600 hover:text-blue-800 font-['Roboto']"
-                                      >
-                                        View all {jobApplications[job.id].length} applications →
-                                      </Link>
-                                    </div>
-                                  )}
-                                </div>
-                              ) : (
-                                <div className="text-center py-8 bg-white rounded-lg border border-gray-200">
-                                  <svg className="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                  </svg>
-                                  <h5 className="mt-2 text-sm font-medium text-gray-900 font-['Open_Sans']">No applications yet</h5>
-                                  <p className="mt-1 text-sm text-gray-500 font-['Roboto']">
-                                    Applications for this job will appear here once candidates start applying.
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
+                          )}
+                          {job.applicants > 0 && (
+                            <button
+                              onClick={() => handleJobAction('applications', job.id)}
+                              className="text-gray-600 hover:text-gray-900 transition-colors"
+                              title="View Applications"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
                   ))}
                 </tbody>
               </table>
@@ -977,28 +610,18 @@ const HRJobManagement = () => {
 
                       {/* Page Numbers */}
                       {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        let page;
-                        if (totalPages <= 5) {
-                          page = i + 1;
-                        } else if (currentPage <= 3) {
-                          page = i + 1;
-                        } else if (currentPage >= totalPages - 2) {
-                          page = totalPages - 4 + i;
-                        } else {
-                          page = currentPage - 2 + i;
-                        }
-
+                        const pageNum = i + 1;
                         return (
                           <button
-                            key={page}
-                            onClick={() => handlePageChange(page)}
+                            key={pageNum}
+                            onClick={() => handlePageChange(pageNum)}
                             className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                              page === currentPage
-                                ? 'z-10 bg-black border-black text-white'
+                              currentPage === pageNum
+                                ? 'z-10 bg-gray-50 border-gray-500 text-gray-600'
                                 : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                             }`}
                           >
-                            {page}
+                            {pageNum}
                           </button>
                         );
                       })}
@@ -1183,7 +806,8 @@ const HRJobManagement = () => {
                 </button>
                 {selectedJob.applicants > 0 && (
                   <Link
-                    to={`/hr/jobs/${selectedJob.id}/applications`}
+                    // Corrected route path
+                    to={`/hr/applications?jobId=${selectedJob.id}`}
                     className="bg-black hover:bg-gray-800 text-white px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
                   >
                     View Applications ({selectedJob.applicants})
@@ -1261,8 +885,8 @@ const HRJobManagement = () => {
               {deleteConfirmModal.job && deleteConfirmModal.job.applicants > 0 ? (
                 <button
                   onClick={() => {
+                    // Handle close job instead logic
                     setDeleteConfirmModal({ show: false, job: null });
-                    handleJobAction('close', deleteConfirmModal.job.id);
                   }}
                   disabled={loading}
                   className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium font-['Roboto'] transition-colors disabled:opacity-50"

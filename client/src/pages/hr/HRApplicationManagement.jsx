@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import HRLayout from '../../components/layout/HRLayout';
 import { useHRApplications } from '../../hooks/useHRApplications';
 import { SkeletonTable } from '../../components/common/Skeleton';
 import { useApiRequest } from '../../hooks/useApiRequest';
 
 const HRApplicationManagement = () => {
+  const [searchParams] = useSearchParams();
+  const jobIdFromUrl = searchParams.get('jobId');
+  
   const { makeJsonRequest, makeRequest } = useApiRequest();
   
   // Use custom hook for applications management
@@ -20,7 +23,7 @@ const HRApplicationManagement = () => {
   } = useHRApplications();
 
   // Local state for UI
-  const [selectedJob, setSelectedJob] = useState('all');
+  const [selectedJob, setSelectedJob] = useState(jobIdFromUrl || 'all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [searchInput, setSearchInput] = useState(''); // Immediate input value
@@ -28,6 +31,8 @@ const HRApplicationManagement = () => {
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [sortBy, setSortBy] = useState('appliedDate');
   const [sortOrder, setSortOrder] = useState('desc');
+  const [pageType, setPageType] = useState(jobIdFromUrl ? 'filtered' : 'all'); // Track page type
+  const [currentJobTitle, setCurrentJobTitle] = useState(''); // Store current job title for filtered view
   const [currentPage, setCurrentPage] = useState(1);
   const [showExportConfirm, setShowExportConfirm] = useState(false);
   const [jobs, setJobs] = useState([]);
@@ -35,6 +40,47 @@ const HRApplicationManagement = () => {
   const [initialLoad, setInitialLoad] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [searchInputRef, setSearchInputRef] = useState(null);
+
+  // Handle URL parameter for job filtering
+  useEffect(() => {
+    console.log('URL Parameter Effect:', { jobIdFromUrl, jobsLength: jobs.length });
+    if (jobIdFromUrl) {
+      setSelectedJob(jobIdFromUrl);
+      setPageType('filtered');
+      
+      // Find and set the job title when jobs are loaded
+      if (jobs.length > 0) {
+        // Try both _id and id fields to handle different API responses
+        const job = jobs.find(j => j._id === jobIdFromUrl || j.id === jobIdFromUrl);
+        console.log('Found job:', job);
+        if (job) {
+          setCurrentJobTitle(job.title);
+        } else {
+          console.log('Job not found. Available jobs:', jobs.map(j => ({ _id: j._id, id: j.id, title: j.title })));
+        }
+      }
+    } else {
+      setPageType('all');
+      setCurrentJobTitle('');
+    }
+  }, [jobIdFromUrl, jobs]);
+
+  // Refetch when jobIdFromUrl changes (after initial load) to ensure filter applies
+  useEffect(() => {
+    if (!initialLoad) {
+      const fetchParams = {
+        page: 1,
+        limit: 20,
+        job: jobIdFromUrl ? jobIdFromUrl : (selectedJob !== 'all' ? selectedJob : undefined),
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        search: searchTerm || undefined,
+        sortBy,
+        sortOrder
+      };
+      console.log('Refetch due to jobIdFromUrl change:', fetchParams);
+      fetchApplications(fetchParams);
+    }
+  }, [jobIdFromUrl]);
 
   // Debounced search effect with improved UX
   useEffect(() => {
@@ -132,6 +178,8 @@ const HRApplicationManagement = () => {
         sortBy,
         sortOrder
       };
+
+      console.log('Fetching applications with params:', fetchParams);
 
       // Only trigger search state if search term changed
       if (searchTerm !== searchInput && searchTerm) {
@@ -286,11 +334,30 @@ const HRApplicationManagement = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 font-['Open_Sans']">
-                Application Management
+                {pageType === 'filtered' ? 'Job Applications' : 'Application Management'}
               </h1>
+              {pageType === 'filtered' && currentJobTitle && (
+                <h2 className="text-xl font-semibold text-gray-700 mt-1 font-['Open_Sans']">
+                  {currentJobTitle}
+                </h2>
+              )}
               <p className="mt-2 text-gray-600 font-['Roboto']">
-                Review and manage candidate applications
+                {pageType === 'filtered' 
+                  ? 'Applications for the selected job position' 
+                  : 'Review and manage candidate applications'
+                }
               </p>
+              {pageType === 'filtered' && (
+                <div className="mt-2">
+                  <Link 
+                    // Corrected route path to show all applications
+                    to="/hr/applications"
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  >
+                    ← View all applications
+                  </Link>
+                </div>
+              )}
             </div>
             <div className="flex space-x-3">
               <button
@@ -357,14 +424,19 @@ const HRApplicationManagement = () => {
               <select
                 value={selectedJob}
                 onChange={(e) => setSelectedJob(e.target.value)}
-                disabled={loading || loadingJobs}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loading || loadingJobs || pageType === 'filtered'}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed ${
+                  pageType === 'filtered' ? 'bg-blue-50 border-blue-300' : ''
+                }`}
               >
                 <option value="all">All Jobs</option>
                 {jobs.map(job => (
-                  <option key={job.id} value={job.id}>{job.title}</option>
+                  <option key={job._id || job.id} value={job.id || job._id}>{job.title}</option>
                 ))}
               </select>
+              {pageType === 'filtered' && (
+                <p className="text-xs text-blue-600 mt-1">Filter set from job selection</p>
+              )}
             </div>
 
             {/* Status Filter */}
