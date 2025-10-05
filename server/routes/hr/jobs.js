@@ -185,9 +185,13 @@ router.patch('/:id/status', [
       });
     }
 
-    // Update status
+    const previousStatus = job.status;
     job.status = status;
     job.updatedAt = new Date();
+
+    if (status === 'active' && previousStatus === 'draft' && !job.publishedAt) {
+      job.publishedAt = new Date();
+    }
 
     if (status === 'closed') {
       job.closedAt = new Date();

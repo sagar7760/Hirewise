@@ -3,22 +3,123 @@ const Application = require('../../models/Application');
 const Interview = require('../../models/Interview');
 const User = require('../../models/User');
 const mongoose = require('mongoose');
+exports.getRecentJobs = async (req, res) => {
+  try {
+    const companyId = req.user.company?._id || req.user.companyId;
+    const jobs = await Job.find({ company: companyId })
+      .sort({ createdAt: -1 })
+      .limit(8)
+      .populate('postedBy', 'firstName lastName')
+      .lean();
 
+    // For each job compute applicants count (lean approach)
+    const jobIds = jobs.map(j => j._id);
+    const counts = await Application.aggregate([
+      { $match: { job: { $in: jobIds } } },
+      { $group: { _id: '$job', count: { $sum: 1 } } }
+    ]);
+    const countMap = counts.reduce((acc, c) => { acc[c._id.toString()] = c.count; return acc; }, {});
+
+    const formatted = jobs.map(j => ({
+      id: j._id,
+      title: j.title,
+      department: j.department,
+      status: j.status.charAt(0).toUpperCase() + j.status.slice(1),
+      applicants: countMap[j._id.toString()] || 0,
+      postedDate: j.publishedAt || (j.status === 'active' ? j.updatedAt : j.createdAt),
+      createdBy: j.postedBy?._id.toString() === req.user.id ? 'me' : 'other'
+    }));
+
+    res.json({ success: true, recentJobs: formatted });
+  } catch (error) {
+    console.error('Error fetching recent jobs:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch recent jobs', details: error.message });
+  }
+};
+
+exports.getRecentApplications = async (req, res) => {
+  try {
+    const companyId = req.user.company?._id || req.user.companyId;
+    const myJobIds = await Job.find({ postedBy: req.user.id, company: companyId }).distinct('_id');
+
+    const apps = await Application.find({ job: { $in: myJobIds } })
+      .populate('applicant', 'firstName lastName')
+      .populate('job', 'title')
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .lean();
+
+    const formatted = apps.map(a => ({
+      id: a._id,
+      candidate: `${a.applicant.firstName} ${a.applicant.lastName}`,
+      job: a.job?.title || 'Unknown',
+      appliedDate: a.createdAt,
+      resumeScore: typeof a.aiAnalysis?.overallScore === 'number' ? (a.aiAnalysis.overallScore / 10).toFixed(1) : null,
+      status: a.status
+    }));
+
+    res.json({ success: true, recentApplications: formatted });
+  } catch (error) {
+    console.error('Error fetching recent applications:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch recent applications', details: error.message });
+  }
+};
+
+exports.getUpcomingInterviews = async (req, res) => {
+  try {
+    const companyId = req.user.company?._id || req.user.companyId;
+    const myJobIds = await Job.find({ postedBy: req.user.id, company: companyId }).distinct('_id');
+    const applicationIds = await Application.find({ job: { $in: myJobIds } }).distinct('_id');
+
+    const now = new Date();
+    const interviews = await Interview.find({
+      application: { $in: applicationIds },
+      status: 'scheduled',
+      scheduledDate: { $gt: now }
+    })
+      .populate({
+        path: 'application',
+        populate: [
+          { path: 'applicant', select: 'firstName lastName' },
+          { path: 'job', select: 'title' }
+        ]
+      })
+      .populate('interviewer', 'firstName lastName')
+      .sort({ scheduledDate: 1 })
+      .limit(5)
+      .lean();
+
+    const formatted = interviews.map(i => ({
+      id: i._id,
+      candidate: `${i.application.applicant.firstName} ${i.application.applicant.lastName}`,
+      job: i.application.job?.title || 'Unknown',
+      date: i.scheduledDate,
+      interviewer: i.interviewer ? `${i.interviewer.firstName} ${i.interviewer.lastName}` : 'TBD',
+      status: i.status
+    }));
+
+    res.json({ success: true, upcomingInterviews: formatted });
+  } catch (error) {
+    console.error('Error fetching upcoming interviews:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch upcoming interviews', details: error.message });
+  }
+};
 console.log('HR Dashboard controller module loaded');
 
 // Get HR dashboard statistics
 exports.getStats = async (req, res) => {
   try {
     // Get total jobs posted by this HR in their company
+    const companyId = req.user.company?._id || req.user.companyId;
     const totalJobs = await Job.countDocuments({ 
       postedBy: req.user.id,
-      companyId: req.user.companyId
+      company: companyId
     });
 
     // Get total applications across all HR's jobs
     const hrJobs = await Job.find({ 
       postedBy: req.user.id,
-      companyId: req.user.companyId
+      company: companyId
     }).select('_id');
     const hrJobIds = hrJobs.map(job => job._id);
 
@@ -59,7 +160,7 @@ exports.getStats = async (req, res) => {
     
     const jobsPostedLastMonth = await Job.countDocuments({
       postedBy: req.user.id,
-      companyId: req.user.companyId,
+      company: companyId,
       createdAt: { $gte: thirtyDaysAgo }
     });
 

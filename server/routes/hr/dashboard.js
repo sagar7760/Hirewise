@@ -46,4 +46,9 @@ router.get('/trends',
 // @access  Private (HR, Admin)
 router.get('/top-jobs', auth, authorize('hr', 'admin'), requireCompany, dashboardController.getTopJobs);
 
+// New endpoints for dashboard widgets
+router.get('/recent-jobs', auth, authorize('hr', 'admin'), requireCompany, dashboardController.getRecentJobs);
+router.get('/recent-applications', auth, authorize('hr', 'admin'), requireCompany, dashboardController.getRecentApplications);
+router.get('/upcoming-interviews', auth, authorize('hr', 'admin'), requireCompany, dashboardController.getUpcomingInterviews);
+
 module.exports = router;

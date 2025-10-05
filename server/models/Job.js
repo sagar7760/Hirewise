@@ -118,6 +118,11 @@ const jobSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Track when a draft becomes publicly active
+jobSchema.add({
+  publishedAt: { type: Date }
+});
+
 // Indexes for better performance
 jobSchema.index({ title: 'text', description: 'text' });
 jobSchema.index({ status: 1 });
