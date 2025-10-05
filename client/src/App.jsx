@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 
 // Context Providers
 import { AuthProvider } from './contexts/AuthContext.jsx'
+import { ToastProvider } from './contexts/ToastContext.jsx'
 import { ThemeProvider } from './contexts/ThemeContext.jsx'
 
 // Debug utilities (only in development)
@@ -64,6 +65,7 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
+        <ToastProvider>
         <Router>
         <Routes>
           {/* Public Routes (Marketing Site) */}
@@ -274,6 +276,7 @@ function App() {
           } />
         </Routes>
       </Router>
+        </ToastProvider>
     </AuthProvider>
     </ThemeProvider>
   )

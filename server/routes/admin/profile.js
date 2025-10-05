@@ -1,7 +1,7 @@
 const express = require('express');
 const { auth } = require('../../middleware/auth');
 const { uploadProfilePic } = require('../../middleware/upload');
-const { getProfile, updateProfile, updateAvatar, getAvatar } = require('../../controllers/admin/profileController');
+const { getProfile, updateProfile, updateAvatar, getAvatar, changePassword } = require('../../controllers/admin/profileController');
 
 const router = express.Router();
 
@@ -16,5 +16,8 @@ router.post('/avatar', auth, updateAvatar);
 
 // GET /api/admin/profile/avatar - Get admin avatar
 router.get('/avatar', auth, getAvatar);
+
+// POST /api/admin/profile/change-password - Change password
+router.post('/change-password', auth, changePassword);
 
 module.exports = router;

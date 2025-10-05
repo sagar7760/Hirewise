@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/layout/AdminLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useApiRequest } from '../../hooks/useApiRequest';
+import { useToast } from '../../contexts/ToastContext.jsx';
 
 // Helper function to get the full image URL
 const getImageUrl = (logoData) => {
@@ -38,6 +39,7 @@ const OrganizationSettingsPage = () => {
   const { makeRequest, makeJsonRequest } = useApiRequest();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const toast = useToast();
   
   const [organizationData, setOrganizationData] = useState({
     name: '',
@@ -117,13 +119,17 @@ const OrganizationSettingsPage = () => {
           setOrganizationData(companyData);
           setEditedData(companyData);
         } else {
-          setError(data.message || 'Failed to load organization data');
+          const msg = data.message || 'Failed to load organization data';
+          setError(msg);
+          toast.error(msg);
         }
       } catch (err) {
         console.error('Error loading organization data:', err);
         // Authentication errors are handled by useApiRequest hook
         if (err.message !== 'Authentication required') {
-          setError('Failed to load organization data. Please try again.');
+          const msg = 'Failed to load organization data. Please try again.';
+          setError(msg);
+          toast.error(msg);
         }
       } finally {
         setLoading(false);
@@ -212,18 +218,20 @@ const OrganizationSettingsPage = () => {
         setOrganizationData(updatedData);
         setEditedData(updatedData);
         setIsEditing(false);
-        
-        // Show success message (you can add a toast notification here)
-        console.log('Organization data saved successfully');
+        toast.success('Organization settings saved');
       } else {
-        setError(data.message || 'Failed to save organization data. Please try again.');
+        const msg = data.message || 'Failed to save organization data. Please try again.';
+        setError(msg);
+        toast.error(msg);
       }
       
     } catch (error) {
       console.error('Error saving organization data:', error);
       // Authentication errors are handled by useApiRequest hook
       if (error.message !== 'Authentication required') {
-        setError('Failed to save organization data. Please try again.');
+        const msg = 'Failed to save organization data. Please try again.';
+        setError(msg);
+        toast.error(msg);
       }
     } finally {
       setLoading(false);
@@ -241,13 +249,17 @@ const OrganizationSettingsPage = () => {
       // Validate file type
       const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
       if (!allowedTypes.includes(file.type)) {
-        setError('Please select a valid image file (JPG, JPEG, or PNG).');
+        const msg = 'Please select a valid image file (JPG, JPEG, or PNG).';
+        setError(msg);
+        toast.error(msg);
         return;
       }
       
       // Validate file size (2MB max)
       if (file.size > 2 * 1024 * 1024) {
-        setError('Logo file size must be less than 2MB.');
+        const msg = 'Logo file size must be less than 2MB.';
+        setError(msg);
+        toast.error(msg);
         return;
       }
 
@@ -258,14 +270,19 @@ const OrganizationSettingsPage = () => {
         logoFile: file // Store the actual file for upload
       });
       
-      setError(''); // Clear any previous errors
+      if (error) setError(''); // Clear any previous errors
+      toast.success('Logo ready for upload (not yet saved)');
     }
   };
 
   const handleTransferOwnership = () => {
+    if (!transferEmail) {
+      toast.error('Please enter an email address');
+      return;
+    }
     if (transferEmail && window.confirm(`Are you sure you want to transfer admin ownership to ${transferEmail}? This action cannot be undone.`)) {
-      // TODO: Implement ownership transfer
-      console.log('Ownership transferred to:', transferEmail);
+      // TODO: Implement ownership transfer API
+      toast.info('Ownership transfer request submitted (placeholder)');
       setShowTransferModal(false);
       setTransferEmail('');
     }
@@ -283,20 +300,20 @@ const OrganizationSettingsPage = () => {
 
   return (
     <AdminLayout>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Loading State */}
         {loading && (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-            <span className="ml-2 text-gray-600 font-['Roboto']">Loading organization data...</span>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
+            <span className="ml-2 text-gray-600 dark:text-gray-300 font-['Roboto']">Loading organization data...</span>
           </div>
         )}
 
         {/* Error State */}
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <div className="mb-6 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg">
             <div className="flex items-center">
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 mr-2 stroke-current" fill="none" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               {error}
@@ -311,19 +328,19 @@ const OrganizationSettingsPage = () => {
             <div className="mb-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 font-['Open_Sans'] mb-2">
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white font-['Open_Sans'] mb-2">
                     Organization Settings
                   </h1>
-                  <p className="text-gray-600 font-['Roboto']">
+                  <p className="text-gray-600 dark:text-gray-300 font-['Roboto']">
                     Manage your organization's profile and configuration.
                   </p>
                 </div>
             {!isEditing ? (
               <button
                 onClick={handleEdit}
-                className="bg-black hover:bg-gray-800 text-white px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors flex items-center"
+                className="bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-black px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors flex items-center"
               >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 mr-2 stroke-current" fill="none" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
                 Edit Profile
@@ -332,13 +349,13 @@ const OrganizationSettingsPage = () => {
               <div className="flex space-x-3">
                 <button
                   onClick={handleCancel}
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium font-['Roboto'] hover:bg-gray-50 transition-colors"
+                  className="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium font-['Roboto'] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
-                  className="bg-black hover:bg-gray-800 text-white px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors"
+                  className="bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-black px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors"
                 >
                   Save Changes
                 </button>
@@ -349,19 +366,19 @@ const OrganizationSettingsPage = () => {
 
         <div className="space-y-8">
           {/* Organization Profile */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 font-['Open_Sans'] mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white font-['Open_Sans'] mb-6">
               Organization Profile
             </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Logo Section */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-3">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-3">
                   Organization Logo
                 </label>
                 <div className="flex items-center space-x-4">
-                  <div className="h-20 w-20 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden">
+                  <div className="h-20 w-20 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
                     {(isEditing ? editedData.logo : organizationData.logo) ? (
                       <img
                         src={isEditing ? editedData.logo : organizationData.logo}
@@ -378,7 +395,7 @@ const OrganizationSettingsPage = () => {
                         }}
                       />
                     ) : (
-                      <div className="flex flex-col items-center justify-center text-gray-400">
+                      <div className="flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
                         <svg className="h-8 w-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                         </svg>
@@ -404,7 +421,7 @@ const OrganizationSettingsPage = () => {
                       />
                       <label
                         htmlFor="logo-upload"
-                        className="cursor-pointer bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                        className="cursor-pointer bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
                       >
                         Change Logo
                       </label>
@@ -415,7 +432,7 @@ const OrganizationSettingsPage = () => {
 
               {/* Organization Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">
                   Organization Name
                 </label>
                 {isEditing ? (
@@ -423,36 +440,36 @@ const OrganizationSettingsPage = () => {
                     type="text"
                     value={editedData.name}
                     onChange={(e) => setEditedData({ ...editedData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700"
                   />
                 ) : (
-                  <p className="text-gray-900 font-['Roboto'] py-2">{organizationData.name}</p>
+                  <p className="text-gray-900 dark:text-white font-['Roboto'] py-2">{organizationData.name}</p>
                 )}
               </div>
 
               {/* Industry */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">
                   Industry
                 </label>
                 {isEditing ? (
                   <select
                     value={editedData.industry}
                     onChange={(e) => setEditedData({ ...editedData, industry: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700"
                   >
                     {industries.map(industry => (
                       <option key={industry} value={industry}>{industry}</option>
                     ))}
                   </select>
                 ) : (
-                  <p className="text-gray-900 font-['Roboto'] py-2">{organizationData.industry}</p>
+                  <p className="text-gray-900 dark:text-white font-['Roboto'] py-2">{organizationData.industry}</p>
                 )}
               </div>
 
               {/* Description */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">
                   Description
                 </label>
                 {isEditing ? (
@@ -460,16 +477,16 @@ const OrganizationSettingsPage = () => {
                     value={editedData.description}
                     onChange={(e) => setEditedData({ ...editedData, description: e.target.value })}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700"
                   />
                 ) : (
-                  <p className="text-gray-900 font-['Roboto'] py-2">{organizationData.description}</p>
+                  <p className="text-gray-900 dark:text-white font-['Roboto'] py-2">{organizationData.description}</p>
                 )}
               </div>
 
               {/* Website */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">
                   Website
                 </label>
                 {isEditing ? (
@@ -477,10 +494,10 @@ const OrganizationSettingsPage = () => {
                     type="url"
                     value={editedData.website}
                     onChange={(e) => setEditedData({ ...editedData, website: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700"
                   />
                 ) : (
-                  <a href={organizationData.website} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-400 font-['Roboto'] py-2 block">
+                  <a href={organizationData.website} target="_blank" rel="noopener noreferrer" className="text-blue-500 dark:text-blue-400 hover:text-blue-400 dark:hover:text-blue-300 font-['Roboto'] py-2 block">
                     {organizationData.website}
                   </a>
                 )}
@@ -489,14 +506,14 @@ const OrganizationSettingsPage = () => {
           </div>
 
           {/* Contact Information */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 font-['Open_Sans'] mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white font-['Open_Sans'] mb-6">
               Contact Information
             </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">
                   Phone
                 </label>
                 {isEditing ? (
@@ -507,15 +524,15 @@ const OrganizationSettingsPage = () => {
                       ...editedData,
                       contact: { ...editedData.contact, phone: e.target.value }
                     })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700"
                   />
                 ) : (
-                  <p className="text-gray-900 font-['Roboto'] py-2">{organizationData.contact.phone}</p>
+                  <p className="text-gray-900 dark:text-white font-['Roboto'] py-2">{organizationData.contact.phone}</p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">
                   Email
                 </label>
                 {isEditing ? (
@@ -526,16 +543,16 @@ const OrganizationSettingsPage = () => {
                       ...editedData,
                       contact: { ...editedData.contact, email: e.target.value }
                     })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700"
                   />
                 ) : (
-                  <p className="text-gray-900 font-['Roboto'] py-2">{organizationData.contact.email}</p>
+                  <p className="text-gray-900 dark:text-white font-['Roboto'] py-2">{organizationData.contact.email}</p>
                 )}
               </div>
 
               {/* Address */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">
                   Address
                 </label>
                 {isEditing ? (
@@ -548,7 +565,7 @@ const OrganizationSettingsPage = () => {
                         ...editedData,
                         address: { ...editedData.address, street: e.target.value }
                       })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700"
                     />
                     <input
                       type="text"
@@ -558,7 +575,7 @@ const OrganizationSettingsPage = () => {
                         ...editedData,
                         address: { ...editedData.address, city: e.target.value }
                       })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700"
                     />
                     <input
                       type="text"
@@ -568,7 +585,7 @@ const OrganizationSettingsPage = () => {
                         ...editedData,
                         address: { ...editedData.address, state: e.target.value }
                       })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700"
                     />
                     <input
                       type="text"
@@ -578,11 +595,11 @@ const OrganizationSettingsPage = () => {
                         ...editedData,
                         address: { ...editedData.address, zipCode: e.target.value }
                       })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-800 dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700"
                     />
                   </div>
                 ) : (
-                  <p className="text-gray-900 font-['Roboto'] py-2">
+                  <p className="text-gray-900 dark:text-white font-['Roboto'] py-2">
                     {organizationData.address.street}, {organizationData.address.city}, {organizationData.address.state} {organizationData.address.zipCode}, {organizationData.address.country}
                   </p>
                 )}
@@ -591,8 +608,8 @@ const OrganizationSettingsPage = () => {
           </div>
 
           {/* Organization Settings */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 font-['Open_Sans'] mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white font-['Open_Sans'] mb-6">
               Organization Settings
             </h2>
             
@@ -619,12 +636,12 @@ const OrganizationSettingsPage = () => {
                   description: 'Mandate feedback from interviewers after each interview'
                 }
               ].map((setting) => (
-                <div key={setting.key} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                <div key={setting.key} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-900 font-['Open_Sans']">
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-white font-['Open_Sans']">
                       {setting.label}
                     </h3>
-                    <p className="text-sm text-gray-500 font-['Roboto']">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">
                       {setting.description}
                     </p>
                   </div>
@@ -638,10 +655,10 @@ const OrganizationSettingsPage = () => {
                     />
                     <div className={`relative w-11 h-6 rounded-full transition-colors ${
                       isEditing 
-                        ? (editedData.settings[setting.key] ? 'bg-gray-800' : 'bg-gray-200')
-                        : (organizationData.settings[setting.key] ? 'bg-gray-800' : 'bg-gray-200')
+                        ? (editedData.settings[setting.key] ? 'bg-gray-900 dark:bg-white' : 'bg-gray-300 dark:bg-gray-600')
+                        : (organizationData.settings[setting.key] ? 'bg-gray-800' : 'bg-gray-300 dark:bg-gray-600')
                     }`}>
-                      <div className={`absolute top-[2px] left-[2px] bg-white border border-gray-300 rounded-full h-5 w-5 transition-all ${
+                      <div className={`absolute top-[2px] left-[2px] bg-white dark:bg-gray-800 border border-gray-300 dark:border-transparent rounded-full h-5 w-5 transition-all ${
                         (isEditing ? editedData.settings[setting.key] : organizationData.settings[setting.key]) ? 'translate-x-full' : ''
                       }`}></div>
                     </div>
@@ -652,17 +669,17 @@ const OrganizationSettingsPage = () => {
           </div>
 
           {/* Admin Actions */}
-          <div className="bg-white rounded-lg border border-red-200 p-6">
-            <h2 className="text-xl font-semibold text-red-900 font-['Open_Sans'] mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-red-200 dark:border-red-700/50 p-6">
+            <h2 className="text-xl font-semibold text-red-900 dark:text-red-300 font-['Open_Sans'] mb-6">
               Admin Actions
             </h2>
             
             <div className="space-y-4">
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                <h3 className="text-sm font-medium text-red-900 font-['Open_Sans'] mb-2">
+              <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700/50 rounded-lg">
+                <h3 className="text-sm font-medium text-red-900 dark:text-red-300 font-['Open_Sans'] mb-2">
                   Transfer Admin Ownership
                 </h3>
-                <p className="text-sm text-red-700 font-['Roboto'] mb-4">
+                <p className="text-sm text-red-700 dark:text-red-400 font-['Roboto'] mb-4">
                   Transfer admin privileges to another HR member. This action cannot be undone.
                 </p>
                 <button
@@ -678,27 +695,27 @@ const OrganizationSettingsPage = () => {
 
         {/* Transfer Ownership Modal */}
         {showTransferModal && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-lg bg-white">
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-black/70 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700">
               <div className="mt-3">
-                <h3 className="text-lg font-semibold text-red-900 font-['Open_Sans'] mb-4">
+                <h3 className="text-lg font-semibold text-red-900 dark:text-red-300 font-['Open_Sans'] mb-4">
                   Transfer Admin Ownership
                 </h3>
                 
                 <div className="mb-4">
-                  <p className="text-sm text-gray-600 font-['Roboto'] mb-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto'] mb-4">
                     Enter the email address of the HR member you want to transfer admin ownership to. 
                     They will receive an email notification and become the new organization administrator.
                   </p>
                   
-                  <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">
                     HR Email Address
                   </label>
                   <input
                     type="email"
                     value={transferEmail}
                     onChange={(e) => setTransferEmail(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 dark:focus:ring-red-400 focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700"
                     placeholder="Enter email address"
                   />
                 </div>
@@ -709,7 +726,7 @@ const OrganizationSettingsPage = () => {
                       setShowTransferModal(false);
                       setTransferEmail('');
                     }}
-                    className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium font-['Roboto'] transition-colors"
+                    className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white font-medium font-['Roboto'] transition-colors"
                   >
                     Cancel
                   </button>

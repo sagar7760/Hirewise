@@ -16,6 +16,36 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [isRefreshingUser, setIsRefreshingUser] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState(0);
+  const [avatarHydrating, setAvatarHydrating] = useState(false);
+
+  const hydrateAvatarIfNeeded = useCallback(async (candidateUser) => {
+    try {
+      if (!candidateUser || avatarHydrating) return;
+      const avatarVal = candidateUser.avatar || candidateUser.profilePicture;
+      if (avatarVal === 'base64_stored' && token) {
+        setAvatarHydrating(true);
+        const resp = await fetch('/api/admin/profile/avatar', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+            if (data?.success && data.avatar && data.avatar.startsWith('data:image/')) {
+              const hydrated = { ...candidateUser, avatar: data.avatar, profilePicture: data.avatar };
+              setUser(hydrated);
+              localStorage.setItem('user', JSON.stringify(hydrated));
+            }
+        }
+      }
+    } catch (e) {
+      console.warn('Avatar hydration failed:', e.message);
+    } finally {
+      setAvatarHydrating(false);
+    }
+  }, [token, avatarHydrating]);
 
   useEffect(() => {
     // Check for stored auth data on component mount
@@ -48,6 +78,9 @@ export const AuthProvider = ({ children }) => {
         } else {
           console.log('✅ AuthContext: User data looks complete, skipping refresh');
         }
+
+        // Attempt avatar hydration if placeholder present
+        hydrateAvatarIfNeeded(parsedUser);
       } catch (error) {
         console.error('Error parsing stored user data:', error);
         localStorage.removeItem('token');
@@ -152,6 +185,8 @@ export const AuthProvider = ({ children }) => {
     console.log("updateUser - Setting user to:", updatedUser);
     setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
+    // Trigger hydration if avatar is placeholder
+    hydrateAvatarIfNeeded(updatedUser);
   };
 
   const refreshUser = async (forceRefresh = false) => {
@@ -277,6 +312,7 @@ export const AuthProvider = ({ children }) => {
     user,
     token,
     loading,
+    avatarHydrating,
     login,
     logout,
     updateUser,

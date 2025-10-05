@@ -1,4 +1,5 @@
 const User = require('../../models/User');
+const bcrypt = require('bcryptjs');
 
 // @desc    Get admin profile
 // @access  Private (Admin only)
@@ -428,5 +429,43 @@ module.exports = {
   getProfile,
   updateProfile,
   updateAvatar,
-  getAvatar
+  getAvatar,
+  // Change password for admin user
+  changePassword: async (req, res) => {
+    try {
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ success: false, error: 'Access denied. Admin role required.' });
+      }
+
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ success: false, error: 'Current password and new password are required' });
+      }
+      if (newPassword.length < 6) {
+        return res.status(400).json({ success: false, error: 'New password must be at least 6 characters long' });
+      }
+
+      const user = await User.findById(req.user._id).select('+password');
+      if (!user) {
+        return res.status(404).json({ success: false, error: 'User not found' });
+      }
+
+      const match = await bcrypt.compare(currentPassword, user.password);
+      if (!match) {
+        return res.status(400).json({ success: false, error: 'Current password is incorrect' });
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      const hashed = await bcrypt.hash(newPassword, salt);
+      user.password = hashed;
+      user.lastPasswordChange = new Date();
+      await user.save();
+
+      res.json({ success: true, message: 'Password changed successfully' });
+    } catch (error) {
+      console.error('Error changing admin password:', error);
+      res.status(500).json({ success: false, error: 'Failed to change password', details: error.message });
+    }
+  }
 };
