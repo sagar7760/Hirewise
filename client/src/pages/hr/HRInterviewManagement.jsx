@@ -1,220 +1,247 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import HRLayout from '../../components/layout/HRLayout';
+import { useApiRequest } from '../../hooks/useApiRequest';
 
 const HRInterviewManagement = () => {
-  const [interviews, setInterviews] = useState([
-    {
-      id: 1,
-      candidate: {
-        name: 'John Smith',
-        email: 'john.smith@email.com',
-        phone: '+1 (555) 123-4567'
-      },
-      job: {
-        id: 1,
-        title: 'Senior Frontend Developer',
-        department: 'Engineering'
-      },
-      interviewer: {
-        id: 1,
-        name: 'Sarah Johnson',
-        email: 'sarah.johnson@company.com',
-        title: 'Senior Engineering Manager'
-      },
-      scheduledDate: '2025-09-10',
-      scheduledTime: '10:00',
-      duration: 60,
-      status: 'Scheduled',
-      type: 'Technical',
-      location: 'Conference Room A',
-      notes: 'Focus on React and TypeScript skills',
-      feedback: null
-    },
-    {
-      id: 2,
-      candidate: {
-        name: 'Emily Davis',
-        email: 'emily.davis@email.com',
-        phone: '+1 (555) 987-6543'
-      },
-      job: {
-        id: 2,
-        title: 'Product Manager',
-        department: 'Product'
-      },
-      interviewer: {
-        id: 2,
-        name: 'Mike Wilson',
-        email: 'mike.wilson@company.com',
-        title: 'VP of Product'
-      },
-      scheduledDate: '2025-09-10',
-      scheduledTime: '14:00',
-      duration: 45,
-      status: 'Confirmed',
-      type: 'Behavioral',
-      location: 'Virtual Meeting',
-      notes: 'Assess leadership and strategic thinking',
-      feedback: null
-    },
-    {
-      id: 3,
-      candidate: {
-        name: 'Alex Rodriguez',
-        email: 'alex.rodriguez@email.com',
-        phone: '+1 (555) 234-5678'
-      },
-      job: {
-        id: 3,
-        title: 'UX Designer',
-        department: 'Design'
-      },
-      interviewer: {
-        id: 3,
-        name: 'Lisa Chen',
-        email: 'lisa.chen@company.com',
-        title: 'Design Director'
-      },
-      scheduledDate: '2025-09-11',
-      scheduledTime: '11:00',
-      duration: 90,
-      status: 'Completed',
-      type: 'Portfolio Review',
-      location: 'Design Studio',
-      notes: 'Review portfolio and design process',
-      feedback: {
-        rating: 8,
-        comments: 'Strong portfolio with excellent UI skills. Good understanding of user research.',
-        recommendation: 'Hire',
-        strengths: ['Excellent visual design', 'Strong user empathy', 'Good communication'],
-        concerns: ['Limited experience with complex systems', 'Need to develop leadership skills'],
-        submittedAt: '2025-09-11T12:30:00'
-      }
-    },
-    {
-      id: 4,
-      candidate: {
-        name: 'David Kim',
-        email: 'david.kim@email.com',
-        phone: '+1 (555) 456-7890'
-      },
-      job: {
-        id: 4,
-        title: 'Data Scientist',
-        department: 'Analytics'
-      },
-      interviewer: {
-        id: 4,
-        name: 'Robert Brown',
-        email: 'robert.brown@company.com',
-        title: 'Head of Data Science'
-      },
-      scheduledDate: '2025-09-09',
-      scheduledTime: '15:00',
-      duration: 75,
-      status: 'Completed',
-      type: 'Technical',
-      location: 'Virtual Meeting',
-      notes: 'Machine learning case study discussion',
-      feedback: {
-        rating: 9,
-        comments: 'Exceptional technical skills and problem-solving ability. Great cultural fit.',
-        recommendation: 'Strong Hire',
-        strengths: ['Deep ML expertise', 'Excellent problem-solving', 'Great communication', 'Cultural fit'],
-        concerns: ['Might be overqualified for current role'],
-        submittedAt: '2025-09-09T16:15:00'
-      }
-    }
-  ]);
+  // Replace static mock data with dynamic state
+  const { makeJsonRequest } = useApiRequest();
+  const [interviews, setInterviews] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const [filteredInterviews, setFilteredInterviews] = useState(interviews);
+  // Filters / pagination
   const [statusFilter, setStatusFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('all'); // maps: today -> today, week -> this_week (server), past -> client filter
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit] = useState(20);
+  const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, totalInterviews: 0 });
+  const [summary, setSummary] = useState({ todayInterviews: 0, upcomingInterviews: 0 });
+
+  // Modal state
   const [selectedInterview, setSelectedInterview] = useState(null);
   const [showInterviewModal, setShowInterviewModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [scheduleForm, setScheduleForm] = useState({ applicationId: '', interviewerId: '', date: '', time: '', duration: '60', type: 'video', location: '', notes: '' });
+  const [rescheduleModal, setRescheduleModal] = useState({ open: false, id: null, date: '', time: '', duration: '' });
+  const [submitting, setSubmitting] = useState(false);
+  const [interviewers, setInterviewers] = useState([]); // populated via /api/hr/interviewers
+  const [candidates, setCandidates] = useState([]); // derived from applications API
+  const [candidateSearch, setCandidateSearch] = useState('');
+  const candidateSearchTimer = useRef();
+  const [candidateLoading, setCandidateLoading] = useState(false);
+  const [showCandidateList, setShowCandidateList] = useState(false);
+  const candidateResultsRef = useRef(null);
+  const [candidateHighlight, setCandidateHighlight] = useState(-1);
+  const [candidateJobFilter, setCandidateJobFilter] = useState('all');
+  const [jobsForFilter, setJobsForFilter] = useState([]);
 
-  const [interviewers] = useState([
-    { id: 1, name: 'Sarah Johnson', title: 'Senior Engineering Manager', department: 'Engineering' },
-    { id: 2, name: 'Mike Wilson', title: 'VP of Product', department: 'Product' },
-    { id: 3, name: 'Lisa Chen', title: 'Design Director', department: 'Design' },
-    { id: 4, name: 'Robert Brown', title: 'Head of Data Science', department: 'Analytics' },
-    { id: 5, name: 'Jennifer Liu', title: 'HR Manager', department: 'Human Resources' }
-  ]);
+  // Map backend statuses to display labels
+  const statusDisplayMap = {
+    scheduled: 'Scheduled',
+    confirmed: 'Confirmed',
+    in_progress: 'In Progress',
+    completed: 'Completed',
+    cancelled: 'Cancelled',
+    rescheduled: 'Rescheduled',
+    no_show: 'No Show'
+  };
 
-  useEffect(() => {
-    let filtered = interviews;
+  const reverseStatusDisplayMap = Object.fromEntries(Object.entries(statusDisplayMap).map(([k,v]) => [v, k]));
 
-    // Filter by status
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(interview => interview.status === statusFilter);
-    }
+  const normalizeInterview = (i) => {
+    const applicant = i.application?.applicant || {};
+    const job = i.application?.job || {};
+    const interviewer = i.interviewer || {};
+    return {
+      id: i._id,
+      candidate: {
+        name: [applicant.firstName, applicant.lastName].filter(Boolean).join(' ') || 'Unknown',
+        email: applicant.email || 'N/A',
+        phone: applicant.phone || 'N/A'
+      },
+      job: {
+        id: job._id,
+        title: job.title || 'Unknown Role',
+        department: job.department || job.employmentType || '—'
+      },
+      interviewer: {
+        id: interviewer._id,
+        name: [interviewer.firstName, interviewer.lastName].filter(Boolean).join(' ') || '—',
+        email: interviewer.email || '—',
+        title: interviewer.title || ''
+      },
+      scheduledDate: i.scheduledDate,
+      scheduledTime: i.scheduledTime,
+      duration: i.duration,
+      status: statusDisplayMap[i.status] || i.status,
+      type: i.type,
+      location: i.location || i.meetingDetails?.location || i.meetingDetails?.meetingLink || '—',
+      notes: i.notes || i.agenda || '',
+      feedback: i.feedback && i.feedback.submittedAt ? {
+        rating: i.feedback.overallRating,
+        recommendation: i.feedback.recommendation,
+        submittedAt: i.feedback.submittedAt,
+        comments: i.feedback.additionalNotes || ''
+      } : null
+    };
+  };
 
-    // Filter by date
-    if (dateFilter !== 'all') {
-      const today = new Date();
-      const interviewDate = new Date();
-      
-      switch (dateFilter) {
-        case 'today':
-          filtered = filtered.filter(interview => {
-            const schedDate = new Date(interview.scheduledDate);
-            return schedDate.toDateString() === today.toDateString();
-          });
-          break;
-        case 'week':
-          const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-          filtered = filtered.filter(interview => {
-            const schedDate = new Date(interview.scheduledDate);
-            return schedDate >= today && schedDate <= weekFromNow;
-          });
-          break;
-        case 'past':
-          filtered = filtered.filter(interview => {
-            const schedDate = new Date(interview.scheduledDate);
-            return schedDate < today;
-          });
-          break;
+  const buildQueryString = () => {
+    const params = new URLSearchParams();
+    params.set('page', page.toString());
+    params.set('limit', limit.toString());
+    if (statusFilter !== 'all') params.set('status', reverseStatusDisplayMap[statusFilter] || statusFilter.toLowerCase());
+    // Date filter mapping
+    if (dateFilter === 'today') params.set('dateRange', 'today');
+    else if (dateFilter === 'week') params.set('dateRange', 'this_week');
+    // 'past' handled client side
+    return params.toString();
+  };
+
+  const fetchInterviews = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const qs = buildQueryString();
+      const res = await makeJsonRequest(`/api/hr/interviews?${qs}`);
+      if (res?.success) {
+        const raw = res.data?.interviews || [];
+        let normalized = raw.map(normalizeInterview);
+        // Client-side past filter (scheduledDate < now)
+        if (dateFilter === 'past') {
+          const now = new Date();
+            normalized = normalized.filter(iv => new Date(iv.scheduledDate) < now);
+        }
+        // Client-side search
+        if (searchTerm) {
+          const term = searchTerm.toLowerCase();
+          normalized = normalized.filter(iv =>
+            iv.candidate.name.toLowerCase().includes(term) ||
+            iv.job.title.toLowerCase().includes(term) ||
+            (iv.interviewer.name && iv.interviewer.name.toLowerCase().includes(term))
+          );
+        }
+        setInterviews(normalized);
+        if (res.data?.pagination) setPagination(res.data.pagination);
+        if (res.data?.summary) setSummary(res.data.summary);
+      } else {
+        setError(res?.message || 'Failed to load interviews');
       }
-    }
-
-    // Search
-    if (searchTerm) {
-      filtered = filtered.filter(interview =>
-        interview.candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        interview.job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        interview.interviewer.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    setFilteredInterviews(filtered);
-  }, [interviews, statusFilter, dateFilter, searchTerm]);
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Scheduled':
-        return 'bg-gray-200 text-gray-800';
-      case 'Confirmed':
-        return 'bg-gray-600 text-white';
-      case 'Completed':
-        return 'bg-gray-800 text-white';
-      case 'Cancelled':
-        return 'bg-gray-400 text-white';
-      case 'No Show':
-        return 'bg-gray-300 text-gray-700';
-      default:
-        return 'bg-gray-100 text-gray-600';
+    } catch (e) {
+      setError(e.message || 'Error fetching interviews');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getRecommendationColor = (recommendation) => {
-    switch (recommendation) {
+  // Fetch when filters/page change (exclude searchTerm for now; search is client side)
+  useEffect(() => {
+    fetchInterviews();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, dateFilter, page]);
+
+  // Re-filter on search term change without refetch
+  const filteredInterviews = useMemo(() => {
+    if (!searchTerm) return interviews;
+    const term = searchTerm.toLowerCase();
+    return interviews.filter(iv =>
+      iv.candidate.name.toLowerCase().includes(term) ||
+      iv.job.title.toLowerCase().includes(term) ||
+      (iv.interviewer.name && iv.interviewer.name.toLowerCase().includes(term))
+    );
+  }, [interviews, searchTerm]);
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Scheduled': return 'bg-gray-200 text-gray-800';
+      case 'Rescheduled': return 'bg-gray-200 text-gray-800';
+      case 'Confirmed': return 'bg-gray-600 text-white';
+      case 'In Progress': return 'bg-gray-500 text-white';
+      case 'Completed': return 'bg-gray-800 text-white';
+      case 'Cancelled': return 'bg-gray-400 text-white';
+      case 'No Show': return 'bg-gray-300 text-gray-700';
+      default: return 'bg-gray-100 text-gray-600';
+    }
+  };
+
+  const handleInterviewAction = async (action, interviewId) => {
+    const interview = interviews.find(int => int.id === interviewId);
+    if (!interview) return;
+    if (action === 'view') { setSelectedInterview(interview); setShowInterviewModal(true); return; }
+    if (action === 'reschedule') { openReschedule(interview); return; }
+
+    // Optimistic update helper
+    const updateStatusLocal = (newStatusDisplay) => {
+      setInterviews(prev => prev.map(int => int.id === interviewId ? { ...int, status: newStatusDisplay } : int));
+    };
+
+    try {
+      switch (action) {
+        case 'confirm': {
+          const backendStatus = 'confirmed';
+          updateStatusLocal(statusDisplayMap[backendStatus]);
+          await makeJsonRequest(`/api/hr/interviews/${interviewId}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: backendStatus })
+          });
+          break;
+        }
+        case 'cancel': {
+          const backendStatus = 'cancelled';
+          updateStatusLocal(statusDisplayMap[backendStatus]);
+          await makeJsonRequest(`/api/hr/interviews/${interviewId}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: backendStatus, cancellationReason: 'Cancelled via UI' })
+          });
+          break;
+        }
+        default:
+          break;
+      }
+    } catch (e) {
+      // Revert optimistic change on error by refetching
+      console.error('Action error:', e);
+      fetchInterviews();
+    }
+  };
+
+  const formatDateTime = (date, time) => {
+    if (!date) return { date: '—', time: '—' };
+    const dateObj = new Date(date);
+    // If scheduledTime is present combine; else use existing time param
+    let timeStr = time;
+    if (!timeStr && dateObj instanceof Date && !isNaN(dateObj)) {
+      timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    return {
+      date: dateObj.toLocaleDateString(),
+      time: timeStr || '—'
+    };
+  };
+
+  const isUpcoming = (date, time) => {
+    if (!date) return false;
+    const dateOnly = new Date(date);
+    if (time) {
+      const [hh, mm] = time.split(':');
+      dateOnly.setHours(parseInt(hh || '0'), parseInt(mm || '0'));
+    }
+    return dateOnly > new Date();
+  };
+
+  const getRecommendationColor = (rec) => {
+    switch (rec) {
+      case 'strongly_recommend':
       case 'Strong Hire':
         return 'text-gray-900 font-semibold';
+      case 'recommend':
       case 'Hire':
         return 'text-gray-700';
+      case 'do_not_recommend':
       case 'No Hire':
         return 'text-gray-500';
       default:
@@ -222,45 +249,222 @@ const HRInterviewManagement = () => {
     }
   };
 
-  const handleInterviewAction = (action, interviewId) => {
-    switch (action) {
-      case 'view':
-        const interview = interviews.find(int => int.id === interviewId);
-        setSelectedInterview(interview);
-        setShowInterviewModal(true);
-        break;
-      case 'confirm':
-        setInterviews(interviews.map(int =>
-          int.id === interviewId ? { ...int, status: 'Confirmed' } : int
-        ));
-        break;
-      case 'cancel':
-        setInterviews(interviews.map(int =>
-          int.id === interviewId ? { ...int, status: 'Cancelled' } : int
-        ));
-        break;
-      case 'reschedule':
-        // Open reschedule modal
-        console.log('Reschedule interview:', interviewId);
-        break;
+  // Debounced search handling
+  const searchInputRef = useRef(null);
+  const [rawSearch, setRawSearch] = useState('');
+  useEffect(()=>{ setRawSearch(searchTerm); },[]);
+  const debounceTimer = useRef();
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setRawSearch(value);
+    clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(()=> setSearchTerm(value), 400);
+  };
+
+  // Fetch minimal candidates (applications) for scheduling (shortlisted + under_review)
+  const fetchCandidates = useCallback(async (searchTerm='') => {
+    try {
+      setCandidateLoading(true);
+      const qs = new URLSearchParams();
+      qs.set('limit','20');
+      qs.set('status','shortlisted');
+      if (candidateJobFilter && candidateJobFilter !== 'all') qs.set('job', candidateJobFilter);
+      if (searchTerm) qs.set('search', searchTerm);
+      const res = await makeJsonRequest(`/api/hr/applications?${qs.toString()}`);
+      if (res?.success && Array.isArray(res.data)) {
+        const list = res.data.map(a => ({
+          id: a.id || a._id,
+          name: a.candidate?.name || `${a.applicantDetails?.firstName || ''} ${a.applicantDetails?.lastName || ''}`.trim() || 'Candidate',
+          email: a.candidate?.email || a.applicantDetails?.email,
+          jobId: a.job?.id || a.jobDetails?._id,
+          jobTitle: a.job?.title || a.jobDetails?.title
+        }));
+        setCandidates(list);
+      } else if (searchTerm) {
+        setCandidates([]);
+      }
+    } catch(err){ if (searchTerm) setCandidates([]); }
+    finally { setCandidateLoading(false); }
+  }, [makeJsonRequest]);
+
+  // Fetch interviewers (new HR endpoint) & candidates
+  const fetchInterviewers = useCallback(async () => {
+    try {
+      const res = await makeJsonRequest('/api/hr/interviewers');
+      if (res?.success && Array.isArray(res.data)) {
+        setInterviewers(res.data.map(i => ({ id: i.id, name: i.name, email: i.email })));
+      }
+    } catch(err){ /* silent */ }
+  }, [makeJsonRequest]);
+
+  useEffect(()=>{ fetchCandidates(); fetchInterviewers(); }, [fetchCandidates, fetchInterviewers]);
+
+  // Fetch jobs for candidate job filter (lightweight subset via /api/hr/jobs limit=100)
+  useEffect(()=>{
+    const loadJobs = async () => {
+      try { const res = await makeJsonRequest('/api/hr/jobs?limit=100'); if (res?.success && Array.isArray(res.data)) { setJobsForFilter(res.data.map(j => ({ id: j._id || j.id, title: j.title }))); } } catch(err) { /* silent */ }
+    };
+    loadJobs();
+  }, [makeJsonRequest]);
+
+  const handleCandidateSearchChange = (e) => {
+    const val = e.target.value;
+    setCandidateSearch(val);
+    clearTimeout(candidateSearchTimer.current);
+    candidateSearchTimer.current = setTimeout(()=> fetchCandidates(val.trim()), 400);
+    setShowCandidateList(true);
+    setCandidateHighlight(-1);
+  };
+
+  const handleCandidateKeyDown = (e) => {
+    if (!showCandidateList) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setCandidateHighlight(h => Math.min(candidates.length - 1, h + 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setCandidateHighlight(h => Math.max(0, h - 1));
+    } else if (e.key === 'Enter') {
+      if (candidateHighlight >= 0 && candidateHighlight < candidates.length) {
+        const c = candidates[candidateHighlight];
+        setScheduleForm(f => ({ ...f, applicationId: c.id }));
+        setCandidateSearch(`${c.name} (${c.email})`);
+        setShowCandidateList(false);
+      }
+    } else if (e.key === 'Escape') {
+      setShowCandidateList(false);
     }
   };
 
-  const formatDateTime = (date, time) => {
-    const dateObj = new Date(`${date}T${time}`);
-    return {
-      date: dateObj.toLocaleDateString(),
-      time: dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
+  const selectCandidate = (c) => {
+    setScheduleForm(f=>({...f, applicationId:c.id}));
+    setCandidateSearch(`${c.name} (${c.email})`);
+    setShowCandidateList(false);
   };
 
-  const isUpcoming = (date, time) => {
-    const interviewDateTime = new Date(`${date}T${time}`);
-    return interviewDateTime > new Date();
+  // Hide list when clicking outside
+  useEffect(()=>{
+    const onClick = (evt) => {
+      if (candidateResultsRef.current && !candidateResultsRef.current.contains(evt.target)) {
+        setShowCandidateList(false);
+      }
+    };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, []);
+
+  // Available slots state (suggestions based on interviewer + date + duration)
+  const [slotState, setSlotState] = useState({ loading:false, slots:[], error:null });
+  const loadAvailableSlots = async () => {
+    const { interviewerId, date, duration } = scheduleForm;
+    if (!interviewerId || !date) return;
+    setSlotState(s => ({ ...s, loading:true, error:null }));
+    try {
+      const res = await makeJsonRequest(`/api/hr/interviews/available-slots/${interviewerId}?date=${date}&duration=${duration}`);
+      if (res?.success) {
+        setSlotState({ loading:false, slots:res.data?.availableSlots || [], error:null });
+      } else {
+        setSlotState({ loading:false, slots:[], error: res?.message || 'Failed to load slots' });
+      }
+    } catch(err){ setSlotState({ loading:false, slots:[], error: err.message }); }
   };
+
+  const resetScheduleForm = () => setScheduleForm({ applicationId: '', interviewerId: '', date: '', time: '', duration: '60', type: 'video', location: '', notes: '' });
+
+  const submitSchedule = async (e) => {
+    e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const { applicationId, interviewerId, date, time, duration, type, location, notes } = scheduleForm;
+      if (!applicationId || !interviewerId || !date || !time) {
+        throw new Error('Please fill required fields');
+      }
+      const payload = {
+        applicationId,
+        interviewerId,
+        scheduledDate: date,
+        scheduledTime: time,
+        duration: parseInt(duration,10),
+        type,
+        location: location || undefined,
+        notes: notes || undefined
+      };
+      const res = await makeJsonRequest('/api/hr/interviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res?.success) throw new Error(res?.message || 'Failed to schedule');
+      setShowScheduleModal(false);
+      resetScheduleForm();
+      setSlotState({ loading:false, slots:[], error:null });
+      fetchInterviews();
+      addToast('Interview scheduled successfully','success');
+    } catch(err){
+      setError(err.message);
+      addToast(err.message || 'Failed to schedule','error');
+    } finally { setSubmitting(false); }
+  };
+
+  const openReschedule = (interview) => {
+    setRescheduleModal({
+      open: true,
+      id: interview.id,
+      date: interview.scheduledDate ? new Date(interview.scheduledDate).toISOString().slice(0,10) : '',
+      time: interview.scheduledTime || '',
+      duration: String(interview.duration || 60)
+    });
+  };
+
+  const submitReschedule = async (e) => {
+    e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const { id, date, time, duration, reason } = rescheduleModal;
+      if (!id || !date || !time) throw new Error('Missing fields');
+      const res = await makeJsonRequest(`/api/hr/interviews/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scheduledDate: date, scheduledTime: time, duration: parseInt(duration,10), rescheduleReason: reason || 'HR reschedule' })
+      });
+      if (!res?.success) throw new Error(res?.message || 'Failed to reschedule');
+      setRescheduleModal({ open:false, id:null, date:'', time:'', duration:'', reason:'' });
+      fetchInterviews();
+      addToast('Interview rescheduled','success');
+    } catch(err){ setError(err.message); } finally { setSubmitting(false); }
+  };
+
+  // Toast notifications
+  const [toasts, setToasts] = useState([]);
+  const addToast = (message, type='info', ttl=4000) => {
+    const id = Date.now() + Math.random();
+    setToasts(t => [...t, { id, message, type }]);
+    setTimeout(()=> setToasts(t => t.filter(to => to.id !== id)), ttl);
+  };
+  const removeToast = (id) => setToasts(t => t.filter(to => to.id !== id));
+
+  // Validation flags
+  const isScheduleValid = !!(scheduleForm.applicationId && scheduleForm.interviewerId && scheduleForm.date && scheduleForm.time);
+  const isRescheduleValid = !!(rescheduleModal.id && rescheduleModal.date && rescheduleModal.time && rescheduleModal.duration);
 
   return (
     <HRLayout>
+      {/* Toast Container */}
+      {toasts.length > 0 && (
+        <div className="fixed top-4 right-4 z-50 space-y-3">
+          {toasts.map(t => (
+            <div key={t.id} className={`min-w-[220px] max-w-xs px-4 py-3 rounded-lg shadow border text-sm font-['Roboto'] flex items-start gap-2 animate-fade-in-down ${t.type==='success' ? 'bg-green-50 border-green-200 text-green-800' : t.type==='error' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-gray-50 border-gray-200 text-gray-700'}` }>
+              <span className="flex-1 leading-snug">{t.message}</span>
+              <button onClick={()=>removeToast(t.id)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -272,6 +476,12 @@ const HRInterviewManagement = () => {
               <p className="mt-2 text-gray-600 font-['Roboto']">
                 Schedule and manage candidate interviews
               </p>
+              {/* Summary chips */}
+              <div className="mt-4 flex flex-wrap gap-3 text-sm">
+                <span className="px-3 py-1 bg-gray-100 rounded-full font-['Roboto'] text-gray-700">Today: {summary.todayInterviews}</span>
+                <span className="px-3 py-1 bg-gray-100 rounded-full font-['Roboto'] text-gray-700">Upcoming: {summary.upcomingInterviews}</span>
+                <span className="px-3 py-1 bg-gray-100 rounded-full font-['Roboto'] text-gray-700">Total: {pagination.totalInterviews}</span>
+              </div>
             </div>
             <button
               onClick={() => setShowScheduleModal(true)}
@@ -285,9 +495,9 @@ const HRInterviewManagement = () => {
           </div>
         </div>
 
-        {/* Filters and Search */}
+        {/* Filters */}
         <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Search */}
             <div>
               <div className="relative">
@@ -298,8 +508,8 @@ const HRInterviewManagement = () => {
                 </div>
                 <input
                   type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={rawSearch}
+                  onChange={handleSearchChange}
                   className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
                   placeholder="Search interviews..."
                 />
@@ -310,14 +520,17 @@ const HRInterviewManagement = () => {
             <div>
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => { setPage(1); setStatusFilter(e.target.value); }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
               >
                 <option value="all">All Status</option>
                 <option value="Scheduled">Scheduled</option>
                 <option value="Confirmed">Confirmed</option>
+                <option value="Rescheduled">Rescheduled</option>
+                <option value="In Progress">In Progress</option>
                 <option value="Completed">Completed</option>
                 <option value="Cancelled">Cancelled</option>
+                <option value="No Show">No Show</option>
               </select>
             </div>
 
@@ -325,7 +538,7 @@ const HRInterviewManagement = () => {
             <div>
               <select
                 value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
+                onChange={(e) => { setPage(1); setDateFilter(e.target.value); }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
               >
                 <option value="all">All Dates</option>
@@ -334,10 +547,30 @@ const HRInterviewManagement = () => {
                 <option value="past">Past Interviews</option>
               </select>
             </div>
+
+            {/* Pagination Controls */}
+            <div className="flex items-center justify-end gap-2">
+              <button
+                disabled={pagination.currentPage <= 1 || loading}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                className="px-3 py-2 text-sm border rounded disabled:opacity-40 font-['Roboto']"
+              >Prev</button>
+              <span className="text-sm font-['Roboto'] text-gray-600">{pagination.currentPage} / {pagination.totalPages}</span>
+              <button
+                disabled={pagination.currentPage >= pagination.totalPages || loading}
+                onClick={() => setPage(p => p + 1)}
+                className="px-3 py-2 text-sm border rounded disabled:opacity-40 font-['Roboto']"
+              >Next</button>
+            </div>
           </div>
         </div>
 
-        {/* Interviews Table */}
+        {/* Error State */}
+        {error && (
+          <div className="mb-4 p-4 rounded bg-red-50 border border-red-200 text-red-700 font-['Roboto'] text-sm">{error}</div>
+        )}
+
+        {/* Table */}
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -367,10 +600,22 @@ const HRInterviewManagement = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredInterviews.map((interview) => {
+                {loading && (
+                  [...Array(5)].map((_, idx) => (
+                    <tr key={idx} className="animate-pulse">
+                      <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-32 mb-2" /><div className="h-3 bg-gray-100 rounded w-24" /></td>
+                      <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-36 mb-2" /><div className="h-3 bg-gray-100 rounded w-20" /></td>
+                      <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-28 mb-2" /><div className="h-3 bg-gray-100 rounded w-24" /></td>
+                      <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-28 mb-2" /><div className="h-3 bg-gray-100 rounded w-16" /></td>
+                      <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-20 mb-2" /><div className="h-3 bg-gray-100 rounded w-20" /></td>
+                      <td className="px-6 py-4"><div className="h-5 bg-gray-200 rounded-full w-20" /></td>
+                      <td className="px-6 py-4 text-right"><div className="h-4 bg-gray-200 rounded w-16 ml-auto" /></td>
+                    </tr>
+                  ))
+                )}
+                {!loading && filteredInterviews.map(interview => {
                   const { date, time } = formatDateTime(interview.scheduledDate, interview.scheduledTime);
                   const upcoming = isUpcoming(interview.scheduledDate, interview.scheduledTime);
-                  
                   return (
                     <tr key={interview.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -389,7 +634,7 @@ const HRInterviewManagement = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900 font-['Roboto']">{interview.interviewer.name}</div>
-                        <div className="text-sm text-gray-500 font-['Roboto']">{interview.interviewer.title}</div>
+                        <div className="text-sm text-gray-500 font-['Roboto']">{interview.interviewer.email}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900 font-['Roboto']">{date}</div>
@@ -428,7 +673,6 @@ const HRInterviewManagement = () => {
                               </svg>
                             </button>
                           )}
-
                           {upcoming && interview.status !== 'Cancelled' && (
                             <>
                               <button
@@ -461,7 +705,7 @@ const HRInterviewManagement = () => {
           </div>
         </div>
 
-        {filteredInterviews.length === 0 && (
+        {!loading && filteredInterviews.length === 0 && !error && (
           <div className="text-center py-12">
             <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4h3a2 2 0 012 2v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 012-2h3z" />
@@ -572,10 +816,11 @@ const HRInterviewManagement = () => {
                         ))}
                       </ul>
                     </div>
+                    {selectedInterview.feedback.weaknesses && (
                     <div>
                       <h5 className="text-sm font-medium text-gray-700 font-['Roboto'] mb-2">Areas of Concern</h5>
                       <ul className="space-y-1">
-                        {selectedInterview.feedback.concerns.map((concern, index) => (
+                        {selectedInterview.feedback.weaknesses.map((concern, index) => (
                           <li key={index} className="text-sm text-gray-600 font-['Roboto'] flex items-start">
                             <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
                             {concern}
@@ -583,6 +828,7 @@ const HRInterviewManagement = () => {
                         ))}
                       </ul>
                     </div>
+                  )}
                   </div>
                 </div>
               )}
@@ -627,28 +873,67 @@ const HRInterviewManagement = () => {
                 </button>
               </div>
               
-              <form className="space-y-4">
+              <form className="space-y-4" onSubmit={submitSchedule}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+                  <div className="space-y-1">
+                    <label className="block text-sm font-medium text-gray-700 font-['Roboto']">
                       Candidate
                     </label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900">
-                      <option value="">Select candidate...</option>
-                      <option value="maria-garcia">Maria Garcia - Senior Frontend Developer</option>
-                      <option value="david-kim">David Kim - Product Manager</option>
-                    </select>
+                    <div className="relative" ref={candidateResultsRef}>
+                      <div className="flex gap-2 mb-1">
+                        <select value={candidateJobFilter} onChange={(e)=>{ setCandidateJobFilter(e.target.value); fetchCandidates(candidateSearch.trim()); setShowCandidateList(true); }} className="px-2 py-1 border border-gray-300 rounded text-sm font-['Roboto']">
+                          <option value="all">All Jobs</option>
+                          {jobsForFilter.map(j => <option key={j.id} value={j.id}>{j.title?.slice(0,40)}</option>)}
+                        </select>
+                        {candidateLoading && <span className="self-center text-xs text-gray-500 font-['Roboto'] animate-pulse">Loading...</span>}
+                      </div>
+                      <input
+                        type="text"
+                        value={candidateSearch}
+                        onChange={handleCandidateSearchChange}
+                        onFocus={()=>{ if (candidates.length>0) setShowCandidateList(true); }}
+                        onKeyDown={handleCandidateKeyDown}
+                        placeholder="Search name or email..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                      />
+                      {showCandidateList && (
+                        <div className="absolute z-10 mt-2 max-h-60 w-full overflow-y-auto border border-gray-200 rounded-md bg-white shadow-lg divide-y" role="listbox">
+                          {candidates.length === 0 && !candidateLoading && candidateSearch && (
+                            <div className="p-2 text-xs text-gray-500 font-['Roboto']">No matches</div>
+                          )}
+                          {candidates.map((c, idx) => {
+                            const selected = scheduleForm.applicationId === c.id;
+                            const highlighted = idx === candidateHighlight;
+                            return (
+                              <button
+                                type="button"
+                                key={c.id}
+                                onClick={()=>selectCandidate(c)}
+                                className={`w-full text-left px-3 py-2 text-sm font-['Roboto'] flex flex-col transition-colors ${highlighted ? 'bg-gray-800 text-white' : selected ? 'bg-gray-100' : 'hover:bg-gray-50'}`}
+                                role="option"
+                                aria-selected={selected}
+                              >
+                                <span className="font-medium truncate">{c.name}</span>
+                                <span className={`text-xs ${highlighted ? 'text-gray-200' : 'text-gray-500'}`}>{c.email} • {c.jobTitle}</span>
+                              </button>
+                            );
+                          })}
+                          {candidateLoading && <div className="p-2 text-xs text-gray-500 font-['Roboto']">Loading...</div>}
+                        </div>
+                      )}
+                      {scheduleForm.applicationId && (
+                        <p className="mt-1 text-xs text-gray-600 font-['Roboto']">Selected application ID: {scheduleForm.applicationId}</p>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
                       Interviewer
                     </label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900">
+                    <select value={scheduleForm.interviewerId} onChange={e=>setScheduleForm(f=>({...f, interviewerId:e.target.value}))} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900">
                       <option value="">Select interviewer...</option>
                       {interviewers.map(interviewer => (
-                        <option key={interviewer.id} value={interviewer.id}>
-                          {interviewer.name} - {interviewer.title}
-                        </option>
+                        <option key={interviewer.id} value={interviewer.id}>{interviewer.name}</option>
                       ))}
                     </select>
                   </div>
@@ -656,25 +941,32 @@ const HRInterviewManagement = () => {
                     <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
                       Date
                     </label>
-                    <input
-                      type="date"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
-                    />
+                    <input type="date" value={scheduleForm.date} onChange={e=>setScheduleForm(f=>({...f, date:e.target.value}))} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
                       Time
                     </label>
-                    <input
-                      type="time"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
-                    />
+                    <div className="flex gap-2">
+                      <input type="time" value={scheduleForm.time} onChange={e=>setScheduleForm(f=>({...f, time:e.target.value}))} className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900" />
+                      <button type="button" onClick={loadAvailableSlots} className="px-3 py-2 text-sm border rounded-lg font-['Roboto']" disabled={!scheduleForm.interviewerId || !scheduleForm.date || slotState.loading}>
+                        {slotState.loading ? 'Loading...' : 'Slots'}
+                      </button>
+                    </div>
+                    {slotState.error && <p className="mt-1 text-xs text-red-600 font-['Roboto']">{slotState.error}</p>}
+                    {slotState.slots.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2 max-h-28 overflow-y-auto">
+                        {slotState.slots.slice(0,30).map(s => (
+                          <button type="button" key={s.startTime} onClick={()=>setScheduleForm(f=>({...f, time:s.startTime}))} className={`px-2 py-1 rounded text-xs border ${scheduleForm.time===s.startTime? 'bg-black text-white' : 'bg-gray-50 hover:bg-gray-100'}`}>{s.startTime}</button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
                       Duration (minutes)
                     </label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900">
+                    <select value={scheduleForm.duration} onChange={e=>setScheduleForm(f=>({...f, duration:e.target.value}))} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900">
                       <option value="30">30 minutes</option>
                       <option value="45">45 minutes</option>
                       <option value="60">60 minutes</option>
@@ -685,12 +977,11 @@ const HRInterviewManagement = () => {
                     <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
                       Interview Type
                     </label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900">
-                      <option value="Technical">Technical</option>
-                      <option value="Behavioral">Behavioral</option>
-                      <option value="Portfolio Review">Portfolio Review</option>
-                      <option value="Culture Fit">Culture Fit</option>
-                      <option value="Final Round">Final Round</option>
+                    <select value={scheduleForm.type} onChange={e=>setScheduleForm(f=>({...f, type:e.target.value}))} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900">
+                      <option value="phone">Phone</option>
+                      <option value="video">Video</option>
+                      <option value="in-person">In-Person</option>
+                      <option value="panel">Panel</option>
                     </select>
                   </div>
                 </div>
@@ -699,22 +990,14 @@ const HRInterviewManagement = () => {
                   <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
                     Location
                   </label>
-                  <input
-                    type="text"
-                    placeholder="Conference Room A or Virtual Meeting"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
-                  />
+                  <input type="text" value={scheduleForm.location} onChange={e=>setScheduleForm(f=>({...f, location:e.target.value}))} placeholder="Conference Room A or Virtual Meeting" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900" />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
                     Notes
                   </label>
-                  <textarea
-                    rows={3}
-                    placeholder="Interview focus areas, special instructions..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
-                  ></textarea>
+                  <textarea rows={3} value={scheduleForm.notes} onChange={e=>setScheduleForm(f=>({...f, notes:e.target.value}))} placeholder="Interview focus areas, special instructions..." className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900" />
                 </div>
 
                 <div className="flex justify-end space-x-3 pt-4">
@@ -727,13 +1010,55 @@ const HRInterviewManagement = () => {
                   </button>
                   <button
                     type="submit"
-                    className="bg-black hover:bg-gray-800 text-white px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
+                    disabled={submitting || !isScheduleValid}
+                    className={`px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors text-white ${(!isScheduleValid || submitting) ? 'bg-gray-400 cursor-not-allowed' : 'bg-black hover:bg-gray-800'}`}
                   >
-                    Schedule Interview
+                    {submitting ? 'Scheduling...' : isScheduleValid ? 'Schedule Interview' : 'Fill Required Fields'}
                   </button>
                 </div>
               </form>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reschedule Modal */}
+      {rescheduleModal.open && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-3/4 max-w-md shadow-lg rounded-lg bg-white">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-gray-900 font-['Open_Sans']">Reschedule Interview</h3>
+              <button onClick={()=>setRescheduleModal({ open:false, id:null, date:'', time:'', duration:'', reason:'' })} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <form onSubmit={submitReschedule} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 font-['Roboto']">Date</label>
+                <input type="date" value={rescheduleModal.date} onChange={e=>setRescheduleModal(m=>({...m, date:e.target.value}))} className="w-full px-3 py-2 border rounded" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 font-['Roboto']">Time</label>
+                <input type="time" value={rescheduleModal.time} onChange={e=>setRescheduleModal(m=>({...m, time:e.target.value}))} className="w-full px-3 py-2 border rounded" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 font-['Roboto']">Duration (minutes)</label>
+                <select value={rescheduleModal.duration} onChange={e=>setRescheduleModal(m=>({...m, duration:e.target.value}))} className="w-full px-3 py-2 border rounded">
+                  <option value="30">30</option>
+                  <option value="45">45</option>
+                  <option value="60">60</option>
+                  <option value="90">90</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 font-['Roboto']">Reason</label>
+                <input type="text" value={rescheduleModal.reason || ''} onChange={e=>setRescheduleModal(m=>({...m, reason:e.target.value}))} placeholder="(Optional) reason for reschedule" className="w-full px-3 py-2 border rounded" />
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={()=>setRescheduleModal({ open:false, id:null, date:'', time:'', duration:'', reason:'' })} className="px-4 py-2 border rounded">Cancel</button>
+                <button type="submit" disabled={submitting || !isRescheduleValid} className={`px-5 py-2 rounded text-white ${(!isRescheduleValid || submitting) ? 'bg-gray-400 cursor-not-allowed' : 'bg-black hover:bg-gray-800'}`}>{submitting? 'Saving...' : isRescheduleValid ? 'Save Changes' : 'Fill Required'}</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

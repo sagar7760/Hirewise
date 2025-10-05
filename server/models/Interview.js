@@ -21,6 +21,11 @@ const interviewSchema = new mongoose.Schema({
     enum: ['phone', 'video', 'in-person', 'technical', 'behavioral', 'panel'],
     required: [true, 'Interview type is required']
   },
+  // Time component (HH:mm) stored separately for easier queries and UI formatting
+  scheduledTime: {
+    type: String,
+    required: false // validated at route level
+  },
   round: {
     type: Number,
     default: 1,
@@ -36,8 +41,15 @@ const interviewSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['scheduled', 'in_progress', 'completed', 'cancelled', 'rescheduled', 'no_show'],
+    enum: ['scheduled', 'confirmed', 'in_progress', 'completed', 'cancelled', 'rescheduled', 'no_show'],
     default: 'scheduled'
+  },
+  // Simple top-level fields for common UI access (parallel to meetingDetails / agenda)
+  location: String,
+  meetingLink: String,
+  notes: {
+    type: String,
+    maxlength: 1000
   },
   meetingDetails: {
     location: String,           // For in-person interviews
@@ -102,6 +114,19 @@ const interviewSchema = new mongoose.Schema({
     },
     submittedAt: Date
   },
+  // Reschedule history
+  rescheduleHistory: [{
+    oldDate: Date,
+    oldTime: String,
+    newDate: Date,
+    newTime: String,
+    rescheduledBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    rescheduledAt: Date,
+    reason: String
+  }],
+  cancellationReason: String,
+  cancelledAt: Date,
+  completedAt: Date,
   // Reminders and notifications
   reminders: [{
     type: {

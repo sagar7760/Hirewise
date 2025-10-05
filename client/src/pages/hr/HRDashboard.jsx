@@ -77,9 +77,9 @@ const HRDashboard = () => {
         setLoadingJobs(false);
       }
       const res = await makeJsonRequest('/api/hr/dashboard/recent-jobs');
-      if (res && res.jobs) {
-        setRecentJobs(res.jobs);
-        setCache('recentJobs', res.jobs, 120); // 2 min TTL
+      if (res && res.recentJobs) {
+        setRecentJobs(res.recentJobs);
+        setCache('recentJobs', res.recentJobs, 120); // 2 min TTL
       }
     } catch (err) {
       setError(prev => prev || 'Failed to load recent jobs');
@@ -97,9 +97,9 @@ const HRDashboard = () => {
         setLoadingApplications(false);
       }
       const res = await makeJsonRequest('/api/hr/dashboard/recent-applications');
-      if (res && res.applications) {
-        setRecentApplications(res.applications);
-        setCache('recentApplications', res.applications, 60);
+      if (res && res.recentApplications) {
+        setRecentApplications(res.recentApplications);
+        setCache('recentApplications', res.recentApplications, 60);
       }
     } catch (err) {
       setError(prev => prev || 'Failed to load applications');
@@ -117,9 +117,9 @@ const HRDashboard = () => {
         setLoadingInterviews(false);
       }
       const res = await makeJsonRequest('/api/hr/dashboard/upcoming-interviews');
-      if (res && res.interviews) {
-        setUpcomingInterviews(res.interviews);
-        setCache('upcomingInterviews', res.interviews, 60);
+      if (res && res.upcomingInterviews) {
+        setUpcomingInterviews(res.upcomingInterviews);
+        setCache('upcomingInterviews', res.upcomingInterviews, 60);
       }
     } catch (err) {
       setError(prev => prev || 'Failed to load interviews');
@@ -300,13 +300,20 @@ const HRDashboard = () => {
                       </div>
                     </div>
                   ))
+                ) : recentJobs.length === 0 ? (
+                  <div className="p-6 border border-dashed border-gray-300 rounded-lg text-center text-sm text-gray-500">
+                    No recent jobs found.
+                    <div className="mt-2">
+                      <Link to="/hr/jobs/create" className="text-gray-700 underline">Create your first job</Link>
+                    </div>
+                  </div>
                 ) : recentJobs.slice(0, 3).map((job) => (
                   <div key={job._id || job.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3">
                         <h3 className="text-sm font-medium text-gray-900 font-['Open_Sans']">{job.title}</h3>
                         <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(job.status)}`}>
-                          {job.status?.charAt(0).toUpperCase() + job.status?.slice(1)}
+                          {job.status}
                         </span>
                       </div>
                       <p className="text-xs text-gray-500 font-['Roboto'] mt-1">
@@ -352,17 +359,21 @@ const HRDashboard = () => {
                       </div>
                     </div>
                   ))
+                ) : upcomingInterviews.length === 0 ? (
+                  <div className="p-6 border border-dashed border-gray-300 rounded-lg text-center text-sm text-gray-500">
+                    No upcoming interviews scheduled.
+                  </div>
                 ) : upcomingInterviews.map((interview) => (
                   <div key={interview._id || interview.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3">
-                        <h3 className="text-sm font-medium text-gray-900 font-['Open_Sans']">{interview.candidate?.name || interview.candidateName || 'Candidate'}</h3>
+                        <h3 className="text-sm font-medium text-gray-900 font-['Open_Sans']">{interview.candidate || interview.candidateName || 'Candidate'}</h3>
                         <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(interview.status)}`}>
                           {interview.status?.charAt(0).toUpperCase() + interview.status?.slice(1)}
                         </span>
                       </div>
                       <p className="text-xs text-gray-500 font-['Roboto'] mt-1">
-                        {(interview.job?.title || interview.jobTitle || 'Job')} • {(interview.interviewer?.name || interview.interviewerName || 'Interviewer')}
+                        {(interview.job || interview.jobTitle || 'Job')} • {(interview.interviewer || interview.interviewerName || 'Interviewer')}
                       </p>
                     </div>
                     <div className="text-right">
@@ -421,13 +432,19 @@ const HRDashboard = () => {
                         <SkeletonTable rows={3} columns={6} />
                       </td>
                     </tr>
+                  ) : recentApplications.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-8 text-center text-sm text-gray-500">
+                        No recent applications.
+                      </td>
+                    </tr>
                   ) : recentApplications.map((application) => (
                     <tr key={application._id || application.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900 font-['Open_Sans']">{application.candidate?.name || application.candidateName || 'Candidate'}</div>
+                        <div className="text-sm font-medium text-gray-900 font-['Open_Sans']">{application.candidate || application.candidateName || 'Candidate'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 font-['Roboto']">{application.job?.title || application.jobTitle || 'Job'}</div>
+                        <div className="text-sm text-gray-900 font-['Roboto']">{application.job || application.jobTitle || 'Job'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-500 font-['Roboto']">
@@ -436,7 +453,7 @@ const HRDashboard = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className={`text-sm font-['Roboto'] ${getScoreColor(application.resumeScore)}`}>
-                          {(application.resumeScore ?? 0).toFixed(1)}/10
+                          {application.resumeScore != null ? Number(application.resumeScore).toFixed(1) : '–'}/10
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -446,13 +463,13 @@ const HRDashboard = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
-                          <button className="text-gray-600 hover:text-gray-900 transition-colors">
+                          <button className="text-gray-600 hover:text-gray-900 transition-colors" aria-label="View application">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
                           </button>
-                          <button className="text-gray-600 hover:text-gray-900 transition-colors">
+                          <button className="text-gray-600 hover:text-gray-900 transition-colors" aria-label="Shortlist application">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>

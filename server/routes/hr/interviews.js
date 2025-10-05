@@ -9,6 +9,9 @@ const mongoose = require('mongoose');
 
 const router = express.Router();
 
+// All HR interview routes require authentication & HR/Admin role
+router.use(auth, authorize('hr','admin'));
+
 // @route   GET /api/hr/interviews
 // @desc    Get all interviews for HR's jobs with filtering and pagination
 // @access  Private (HR, Admin)
@@ -49,10 +52,8 @@ router.get('/', [
       sortOrder = 'asc'
     } = req.query;
 
-    // Get HR's jobs
-    const hrJobs = await Job.find({ 
-      postedBy: req.user?.id || new mongoose.Types.ObjectId() 
-    }).select('_id');
+    // Get HR's jobs (must be authenticated due to router.use)
+    const hrJobs = await Job.find({ postedBy: req.user.id }).select('_id');
     const hrJobIds = hrJobs.map(job => job._id);
 
     // Get applications for HR's jobs
@@ -264,9 +265,7 @@ router.post('/', [
     } = req.body;
 
     // Verify application exists and belongs to HR's job
-    const hrJobs = await Job.find({ 
-      postedBy: req.user?.id || new mongoose.Types.ObjectId() 
-    }).select('_id');
+    const hrJobs = await Job.find({ postedBy: req.user.id }).select('_id');
     const hrJobIds = hrJobs.map(job => job._id);
 
     const application = await Application.findOne({
@@ -294,32 +293,22 @@ router.post('/', [
       });
     }
 
-    // Check for interviewer availability (simple check - no double booking)
-    const scheduledDateTime = new Date(scheduledDate + 'T' + scheduledTime);
+    // Check for interviewer availability (simple overlap detection)
+    const scheduledDateTime = new Date(`${scheduledDate}T${scheduledTime}`);
     const endDateTime = new Date(scheduledDateTime.getTime() + duration * 60000);
 
-    const conflictingInterview = await Interview.findOne({
+    // Fetch same-day interviews for that interviewer to test overlap in JS (simpler & avoids $concat on date)
+    const sameDayInterviews = await Interview.find({
       interviewer: interviewerId,
       status: { $in: ['scheduled', 'confirmed'] },
-      $or: [
-        {
-          $and: [
-            { scheduledDate: scheduledDate },
-            { scheduledTime: { $lte: scheduledTime } },
-            { 
-              $expr: {
-                $gte: [
-                  { $add: [
-                    { $dateFromString: { dateString: { $concat: ['$scheduledDate', 'T', '$scheduledTime'] } } },
-                    { $multiply: ['$duration', 60000] }
-                  ]},
-                  scheduledDateTime
-                ]
-              }
-            }
-          ]
-        }
-      ]
+      scheduledDate
+    }).lean();
+
+    const conflictingInterview = sameDayInterviews.find(iv => {
+      if (!iv.scheduledTime) return false;
+      const ivStart = new Date(`${iv.scheduledDate}T${iv.scheduledTime}`);
+      const ivEnd = new Date(ivStart.getTime() + (iv.duration || 60) * 60000);
+      return (scheduledDateTime < ivEnd) && (endDateTime > ivStart); // overlap condition
     });
 
     if (conflictingInterview) {
@@ -416,9 +405,7 @@ router.get('/:id', [
     }
 
     // Get HR's jobs to verify access
-    const hrJobs = await Job.find({ 
-      postedBy: req.user?.id || new mongoose.Types.ObjectId() 
-    }).select('_id');
+    const hrJobs = await Job.find({ postedBy: req.user.id }).select('_id');
     const hrJobIds = hrJobs.map(job => job._id);
 
     const applications = await Application.find({
@@ -513,9 +500,7 @@ router.put('/:id', [
     }
 
     // Get HR's jobs to verify access
-    const hrJobs = await Job.find({ 
-      postedBy: req.user?.id || new mongoose.Types.ObjectId() 
-    }).select('_id');
+    const hrJobs = await Job.find({ postedBy: req.user.id }).select('_id');
     const hrJobIds = hrJobs.map(job => job._id);
 
     const applications = await Application.find({
