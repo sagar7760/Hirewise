@@ -31,6 +31,8 @@ const adminOrganizationRoutes = require('./routes/admin/organization');
 const adminProfileRoutes = require('./routes/admin/profile');
 const adminHRRoutes = require('./routes/admin/hr');
 const adminInterviewerRoutes = require('./routes/admin/interviewers');
+const adminJobsRoutes = require('./routes/admin/jobs');
+const adminDashboardRoutes = require('./routes/admin/dashboard');
 
 // HR routes
 const hrProfileRoutes = require('./routes/hr/profile');
@@ -101,6 +103,8 @@ app.use('/api/admin/organization', adminOrganizationRoutes);
 app.use('/api/admin/profile', adminProfileRoutes);
 app.use('/api/admin/hr', adminHRRoutes);
 app.use('/api/admin/interviewers', adminInterviewerRoutes);
+app.use('/api/admin/jobs', adminJobsRoutes);
+app.use('/api/admin/dashboard', adminDashboardRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

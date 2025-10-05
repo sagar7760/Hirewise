@@ -1,108 +1,161 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from '../../components/layout/AdminLayout';
+import { useApiRequest } from '../../hooks/useApiRequest';
+import { SkeletonTable } from '../../components/common/Skeleton';
 
 const AllJobsPage = () => {
-  const [jobs, setJobs] = useState([
-    {
-      id: 1,
-      title: 'Senior Frontend Developer',
-      department: 'Engineering',
-      location: 'San Francisco, CA',
-      type: 'Full-time',
-      status: 'active',
-      applications: 45,
-      shortlisted: 8,
-      hired: 2,
-      postedBy: 'Sarah Johnson',
-      postedDate: '2024-03-01',
-      salary: '$120,000 - $150,000'
-    },
-    {
-      id: 2,
-      title: 'Product Manager',
-      department: 'Product',
-      location: 'Remote',
-      type: 'Full-time',
-      status: 'active',
-      applications: 32,
-      shortlisted: 6,
-      hired: 1,
-      postedBy: 'Michael Chen',
-      postedDate: '2024-02-28',
-      salary: '$130,000 - $160,000'
-    },
-    {
-      id: 3,
-      title: 'UX Designer',
-      department: 'Design',
-      location: 'New York, NY',
-      type: 'Full-time',
-      status: 'active',
-      applications: 28,
-      shortlisted: 5,
-      hired: 0,
-      postedBy: 'Emma Davis',
-      postedDate: '2024-03-05',
-      salary: '$90,000 - $120,000'
-    },
-    {
-      id: 4,
-      title: 'Data Scientist',
-      department: 'Engineering',
-      location: 'San Francisco, CA',
-      type: 'Full-time',
-      status: 'closed',
-      applications: 52,
-      shortlisted: 12,
-      hired: 3,
-      postedBy: 'David Wilson',
-      postedDate: '2024-02-15',
-      salary: '$140,000 - $170,000'
-    },
-    {
-      id: 5,
-      title: 'Marketing Specialist',
-      department: 'Marketing',
-      location: 'Austin, TX',
-      type: 'Part-time',
-      status: 'active',
-      applications: 18,
-      shortlisted: 3,
-      hired: 0,
-      postedBy: 'Sarah Johnson',
-      postedDate: '2024-03-10',
-      salary: '$50,000 - $65,000'
-    }
-  ]);
+  const { makeJsonRequest } = useApiRequest();
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [selectedJob, setSelectedJob] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterHR, setFilterHR] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterDepartment, setFilterDepartment] = useState('all');
+  const [filterJobType, setFilterJobType] = useState('all');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [departments, setDepartments] = useState([]);
+  const [jobTypes, setJobTypes] = useState([]);
+  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, totalItems: 0, limit: 10 });
+  const [selectedJobs, setSelectedJobs] = useState(new Set());
+  const [openMenuJobId, setOpenMenuJobId] = useState(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const rootRef = useRef(null);
 
-  const hrs = ['Sarah Johnson', 'Michael Chen', 'Emma Davis', 'David Wilson'];
+  const [hrs, setHrs] = useState([]);
 
-  const filteredJobs = jobs.filter(job => {
-    const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         job.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         job.location.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || job.status === filterStatus;
-    const matchesHR = filterHR === 'all' || job.postedBy === filterHR;
-    
-    return matchesSearch && matchesStatus && matchesHR;
-  });
+  const buildQuery = () => {
+    const params = [];
+    if (filterStatus !== 'all') params.push(`status=${encodeURIComponent(filterStatus)}`);
+    if (filterDepartment !== 'all') params.push(`department=${encodeURIComponent(filterDepartment)}`);
+    if (filterJobType !== 'all') params.push(`jobType=${encodeURIComponent(filterJobType)}`);
+    if (searchTerm) params.push(`search=${encodeURIComponent(searchTerm)}`);
+    if (fromDate) params.push(`fromDate=${encodeURIComponent(fromDate)}`);
+    if (toDate) params.push(`toDate=${encodeURIComponent(toDate)}`);
+    if (sortBy) params.push(`sortBy=${encodeURIComponent(sortBy)}`);
+    if (sortOrder) params.push(`sortOrder=${encodeURIComponent(sortOrder)}`);
+    params.push(`page=${page}`);
+    params.push(`limit=${limit}`);
+    return params.length ? `?${params.join('&')}` : '';
+  };
 
-  const handleJobAction = (jobId, action) => {
-    if (action === 'close') {
-      setJobs(jobs.map(job => 
-        job.id === jobId ? { ...job, status: 'closed' } : job
-      ));
-    } else if (action === 'reopen') {
-      setJobs(jobs.map(job => 
-        job.id === jobId ? { ...job, status: 'active' } : job
-      ));
+  const loadJobs = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const query = buildQuery();
+      const data = await makeJsonRequest(`/api/admin/jobs${query}`);
+      if (data?.jobs) {
+        setJobs(data.jobs);
+        setHrs(data.postedBy || []);
+        setDepartments(data.departments || []);
+        // Ensure remote & hybrid appear in job type filter even if not returned distinctly yet
+        let incomingJobTypes = data.jobTypes || [];
+        const lower = incomingJobTypes.map(j => (j || '').toLowerCase());
+        ['remote','hybrid'].forEach(opt => { if(!lower.includes(opt)) incomingJobTypes.push(opt); });
+        setJobTypes(incomingJobTypes);
+        if (data.pagination) setPagination(data.pagination);
+        // reset selections when data set changes
+        setSelectedJobs(new Set());
+      }
+    } catch (e) {
+      setError('Failed to load jobs');
+    } finally {
+      setLoading(false);
     }
-    console.log(`Job ${jobId} ${action}d`);
+  };
+
+  useEffect(() => { loadJobs(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (!openMenuJobId) return;
+      if (!e.target.closest('[data-job-actions]')) {
+        setOpenMenuJobId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [openMenuJobId]);
+  useEffect(() => { setPage(1); }, [filterStatus, filterDepartment, filterJobType, searchTerm, fromDate, toDate, sortBy, sortOrder, limit]);
+  useEffect(() => { loadJobs(); /* eslint-disable-next-line */ }, [filterStatus, filterDepartment, filterJobType, searchTerm, fromDate, toDate, sortBy, sortOrder, page, limit]);
+
+  // postedBy filter is client-side only to avoid server roundtrip when just inspecting subset
+  const filteredJobs = jobs.filter(job => (filterHR === 'all' || job.postedBy === filterHR));
+
+  const handleJobAction = async (jobId, action) => {
+    const newStatus = action === 'close' ? 'closed' : 'active';
+    try {
+      const response = await makeJsonRequest(`/api/admin/jobs/${jobId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (response?.job) {
+        setJobs(jobs.map(j => j.id === jobId ? response.job : j));
+      }
+    } catch (e) {
+      setError(e.message || 'Failed to update job status');
+    }
+  };
+
+  const updateJobStatusDirect = async (jobId, status) => {
+    try {
+      const response = await makeJsonRequest(`/api/admin/jobs/${jobId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      if (response?.job) {
+        setJobs(prev => prev.map(j => j.id === jobId ? response.job : j));
+      }
+    } catch (e) {
+      setError(e.message || 'Failed to update job status');
+    } finally {
+      setOpenMenuJobId(null);
+    }
+  };
+
+  const handleBulkAction = async (status) => {
+    if (selectedJobs.size === 0) return;
+    try {
+      await makeJsonRequest('/api/admin/jobs/bulk/status', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobIds: Array.from(selectedJobs), status })
+      });
+      setJobs(jobs.map(j => selectedJobs.has(j.id) ? { ...j, status } : j));
+      setSelectedJobs(new Set());
+    } catch (e) {
+      setError(e.message || 'Bulk update failed');
+    }
+  };
+
+  const toggleSelectJob = (jobId) => {
+    setSelectedJobs(prev => {
+      const next = new Set(prev);
+      if (next.has(jobId)) next.delete(jobId); else next.add(jobId);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedJobs.size === filteredJobs.length) setSelectedJobs(new Set());
+    else setSelectedJobs(new Set(filteredJobs.map(j => j.id)));
+  };
+
+  const openJobDetail = async (job) => {
+    setSelectedJob(job); // show immediately
+    try {
+      const detail = await makeJsonRequest(`/api/admin/jobs/${job.id}`);
+      if (detail?.job) setSelectedJob(prev => ({ ...prev, ...detail.job }));
+    } catch (_) { /* silent */ }
   };
 
   const formatDate = (dateString) => {
@@ -126,14 +179,14 @@ const AllJobsPage = () => {
     }
   };
 
-  const totalJobs = jobs.length;
-  const activeJobs = jobs.filter(job => job.status === 'active').length;
-  const totalApplications = jobs.reduce((sum, job) => sum + job.applications, 0);
-  const totalHired = jobs.reduce((sum, job) => sum + job.hired, 0);
+  const totalJobs = pagination.totalItems || jobs.length;
+  const activeJobs = jobs.filter(job => job.status === 'active').length; // page-scoped
+  const totalApplications = jobs.reduce((sum, job) => sum + (job.applications || 0), 0); // page-scoped; could use server totals later
+  const totalHired = jobs.reduce((sum, job) => sum + (job.hired || 0), 0); // page-scoped
 
   return (
     <AdminLayout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div ref={rootRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 font-['Open_Sans'] mb-2">
@@ -143,6 +196,10 @@ const AllJobsPage = () => {
             Monitor all job postings across your organization.
           </p>
         </div>
+
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">{error}</div>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -203,76 +260,161 @@ const AllJobsPage = () => {
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
-                Search Jobs
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
-                  placeholder="Search by title, department, or location"
-                />
-                <svg className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
+        {/* Filters (Reorganized) */}
+        <div className="bg-white rounded-lg border border-gray-200 p-5 mb-6">
+          {/* Top row: search + quick status pills */}
+          <div className="flex flex-col md:flex-row md:items-center gap-4">
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e)=> setSearchTerm(e.target.value)}
+                placeholder="Search by title, department, or location"
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
+              />
+              <svg className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
-                Status
-              </label>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
-              >
-                <option value="all">All Statuses</option>
-                <option value="active">Active</option>
-                <option value="closed">Closed</option>
-                <option value="draft">Draft</option>
-              </select>
+            <div className="flex flex-wrap items-center gap-2">
+              {['all','active','closed','draft','inactive'].map(s => (
+                <button
+                  key={s}
+                  onClick={()=> { setFilterStatus(s); setPage(1); }}
+                  className={`px-3 py-1 rounded-full text-sm font-['Roboto'] border transition-colors ${filterStatus===s ? 'bg-gray-900 text-white border-gray-900' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'}`}
+                >
+                  {s === 'all' ? 'All' : s.charAt(0).toUpperCase()+s.slice(1)}
+                </button>
+              ))}
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
-                Posted By
-              </label>
-              <select
-                value={filterHR}
-                onChange={(e) => setFilterHR(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
-              >
-                <option value="all">All HRs</option>
-                {hrs.map(hr => (
-                  <option key={hr} value={hr}>{hr}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex items-end">
+            <div className="flex items-center gap-2 ml-auto">
               <button
-                onClick={() => {
+                onClick={()=> setShowAdvanced(prev=>!prev)}
+                className="px-3 py-2 text-sm font-['Roboto'] border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+              >
+                <svg className={`w-4 h-4 ${showAdvanced?'rotate-90':''} transition-transform`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+                {showAdvanced? 'Hide Filters' : 'More Filters'}
+              </button>
+              <button
+                onClick={()=> {
                   setSearchTerm('');
                   setFilterStatus('all');
                   setFilterHR('all');
+                  setFilterDepartment('all');
+                  setFilterJobType('all');
+                  setFromDate('');
+                  setToDate('');
+                  setSortBy('createdAt');
+                  setSortOrder('desc');
+                  setPage(1);
                 }}
-                className="w-full px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium font-['Roboto'] transition-colors"
-              >
-                Clear Filters
-              </button>
+                className="px-3 py-2 text-sm font-['Roboto'] border border-gray-300 rounded-lg hover:bg-gray-50"
+              >Clear</button>
+            </div>
+          </div>
+
+          {/* Active filter chips */}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {filterDepartment !== 'all' && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-['Roboto']">
+                Dept: {filterDepartment}
+                <button onClick={()=> setFilterDepartment('all')} className="hover:text-gray-900">✕</button>
+              </span>
+            )}
+            {filterJobType !== 'all' && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-['Roboto']">
+                Type: {filterJobType}
+                <button onClick={()=> setFilterJobType('all')} className="hover:text-gray-900">✕</button>
+              </span>
+            )}
+            {filterHR !== 'all' && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-['Roboto']">
+                HR: {filterHR}
+                <button onClick={()=> setFilterHR('all')} className="hover:text-gray-900">✕</button>
+              </span>
+            )}
+            {(fromDate || toDate) && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-['Roboto']">
+                Date: {fromDate || '…'} → {toDate || '…'}
+                <button onClick={()=> { setFromDate(''); setToDate(''); }} className="hover:text-gray-900">✕</button>
+              </span>
+            )}
+            {!(filterDepartment !== 'all' || filterJobType !== 'all' || filterHR !== 'all' || fromDate || toDate) && (
+              <span className="text-xs text-gray-500 font-['Roboto']">No additional filters applied.</span>
+            )}
+          </div>
+
+          {/* Advanced filters collapsible */}
+          {showAdvanced && (
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-6 gap-4">
+              <div>
+                <label className="block text-xs font-semibold tracking-wide text-gray-700 font-['Roboto'] mb-2">Department</label>
+                <select value={filterDepartment} onChange={(e)=> setFilterDepartment(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900">
+                  <option value="all">All Departments</option>
+                  {departments.map(dep => <option key={dep} value={dep}>{dep}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold tracking-wide text-gray-700 font-['Roboto'] mb-2">Job Type</label>
+                <select value={filterJobType} onChange={(e)=> setFilterJobType(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900">
+                  <option value="all">All Types</option>
+                  {jobTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold tracking-wide text-gray-700 font-['Roboto'] mb-2">Posted By</label>
+                <select value={filterHR} onChange={(e)=> setFilterHR(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900">
+                  <option value="all">All HRs</option>
+                  {hrs.map(hr => <option key={hr} value={hr}>{hr}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold tracking-wide text-gray-700 font-['Roboto'] mb-2">From</label>
+                <input type="date" value={fromDate} onChange={(e)=> setFromDate(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold tracking-wide text-gray-700 font-['Roboto'] mb-2">To</label>
+                <input type="date" value={toDate} onChange={(e)=> setToDate(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold tracking-wide text-gray-700 font-['Roboto'] mb-2">Sort</label>
+                <select value={`${sortBy}:${sortOrder}`} onChange={(e)=> { const [sb,so] = e.target.value.split(':'); setSortBy(sb); setSortOrder(so);} } className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900">
+                  <option value="createdAt:desc">Newest</option>
+                  <option value="createdAt:asc">Oldest</option>
+                  <option value="title:asc">Title A-Z</option>
+                  <option value="title:desc">Title Z-A</option>
+                  <option value="applications:desc">Applications High-Low</option>
+                  <option value="applications:asc">Applications Low-High</option>
+                  <option value="status:asc">Status A-Z</option>
+                  <option value="status:desc">Status Z-A</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* Pagination controls (moved inside filter card bottom) */}
+          <div className="mt-6 flex flex-wrap items-center gap-4">
+            <div className="text-sm text-gray-600 font-['Roboto']">Page {pagination.page} of {pagination.totalPages} • {pagination.totalItems} jobs</div>
+            <div className="flex items-center space-x-2">
+              <button disabled={page <= 1} onClick={()=> setPage(p => Math.max(1, p-1))} className={`px-3 py-1 rounded border text-sm ${page <= 1 ? 'text-gray-400 border-gray-200' : 'text-gray-700 border-gray-300 hover:bg-gray-50'}`}>Prev</button>
+              <button disabled={page >= pagination.totalPages} onClick={()=> setPage(p => Math.min(pagination.totalPages, p+1))} className={`px-3 py-1 rounded border text-sm ${page >= pagination.totalPages ? 'text-gray-400 border-gray-200' : 'text-gray-700 border-gray-300 hover:bg-gray-50'}`}>Next</button>
+              <select value={limit} onChange={(e)=> setLimit(parseInt(e.target.value) || 10)} className="px-2 py-1 border border-gray-300 rounded text-sm">
+                {[10,20,50].map(l => <option key={l} value={l}>{l}/page</option>)}
+              </select>
             </div>
           </div>
         </div>
 
         {/* Jobs Table */}
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+  <div className="bg-white rounded-lg border border-gray-200">
+          {selectedJobs.size > 0 && (
+            <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between text-sm">
+              <div className="font-['Roboto'] text-gray-700">{selectedJobs.size} selected</div>
+              <div className="flex gap-2">
+                <button onClick={()=> handleBulkAction('active')} className="px-3 py-1 bg-black text-white rounded text-sm hover:bg-gray-800">Activate</button>
+                <button onClick={()=> handleBulkAction('closed')} className="px-3 py-1 bg-gray-200 text-gray-800 rounded text-sm hover:bg-gray-300">Close</button>
+                <button onClick={()=> setSelectedJobs(new Set())} className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">Clear</button>
+              </div>
+            </div>
+          )}
           <div className="px-6 py-4 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900 font-['Open_Sans']">
               Jobs ({filteredJobs.length})
@@ -280,9 +422,15 @@ const AllJobsPage = () => {
           </div>
           
           <div className="overflow-x-auto">
+            {loading ? (
+              <SkeletonTable rows={6} columns={6} />
+            ) : (
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="px-3 py-3">
+                    <input type="checkbox" onChange={toggleSelectAll} checked={filteredJobs.length > 0 && selectedJobs.size === filteredJobs.length} />
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-['Roboto']">
                     Job Details
                   </th>
@@ -306,6 +454,9 @@ const AllJobsPage = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredJobs.map((job) => (
                   <tr key={job.id} className="hover:bg-gray-50">
+                    <td className="px-3 py-4 whitespace-nowrap">
+                      <input type="checkbox" checked={selectedJobs.has(job.id)} onChange={()=> toggleSelectJob(job.id)} />
+                    </td>
                     <td className="px-6 py-4">
                       <div>
                         <div className="text-sm font-medium text-gray-900 font-['Open_Sans']">
@@ -341,10 +492,10 @@ const AllJobsPage = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-['Roboto']">
                       {formatDate(job.postedDate)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium overflow-visible">
                       <div className="flex items-center justify-end space-x-2">
                         <button
-                          onClick={() => setSelectedJob(job)}
+                          onClick={() => openJobDetail(job)}
                           className="text-gray-700 hover:text-gray-900 transition-colors"
                           title="View Details"
                         >
@@ -353,56 +504,84 @@ const AllJobsPage = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
                         </button>
-                        {job.status === 'active' ? (
+                        <div className="relative inline-block text-left" data-job-actions>
                           <button
-                            onClick={() => handleJobAction(job.id, 'close')}
-                            className="text-gray-600 hover:text-gray-800 transition-colors"
-                            title="Close Job"
+                            onClick={() => setOpenMenuJobId(openMenuJobId === job.id ? null : job.id)}
+                            className="p-1 rounded hover:bg-gray-100 text-gray-600 hover:text-gray-800 focus:outline-none"
+                            title="Actions"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6h.01M12 12h.01M12 18h.01" />
                             </svg>
                           </button>
-                        ) : (
-                          <button
-                            onClick={() => handleJobAction(job.id, 'reopen')}
-                            className="text-gray-600 hover:text-gray-800 transition-colors"
-                            title="Reopen Job"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          </button>
-                        )}
+                          {openMenuJobId === job.id && (
+                            <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                              <div className="py-1 text-sm flex flex-col" role="menu" aria-label="Job actions">
+                                <button
+                                  disabled={job.status === 'active'}
+                                  onClick={() => updateJobStatusDirect(job.id, 'active')}
+                                  className={`w-full text-left px-4 py-2 font-['Roboto'] flex items-center gap-2 ${job.status==='active' ? 'text-gray-400 cursor-not-allowed bg-gray-50' : 'text-gray-700 hover:bg-gray-100'}`}
+                                  role="menuitem"
+                                >
+                                  <span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> Publish
+                                  {job.status==='active' && <svg className="w-3 h-3 ml-auto text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg>}
+                                </button>
+                                <button
+                                  disabled={job.status === 'closed'}
+                                  onClick={() => updateJobStatusDirect(job.id, 'closed')}
+                                  className={`w-full text-left px-4 py-2 font-['Roboto'] flex items-center gap-2 ${job.status==='closed' ? 'text-gray-400 cursor-not-allowed bg-gray-50' : 'text-gray-700 hover:bg-gray-100'}`}
+                                  role="menuitem"
+                                >
+                                  <span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> Close
+                                  {job.status==='closed' && <svg className="w-3 h-3 ml-auto text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg>}
+                                </button>
+                                <button
+                                  disabled={job.status === 'inactive'}
+                                  onClick={() => updateJobStatusDirect(job.id, 'inactive')}
+                                  className={`w-full text-left px-4 py-2 font-['Roboto'] flex items-center gap-2 ${job.status==='inactive' ? 'text-gray-400 cursor-not-allowed bg-gray-50' : 'text-gray-700 hover:bg-gray-100'}`}
+                                  role="menuitem"
+                                >
+                                  <span className="w-2 h-2 rounded-full bg-gray-400 inline-block" /> Archive
+                                  {job.status==='inactive' && <svg className="w-3 h-3 ml-auto text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg>}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            )}
           </div>
         </div>
 
         {/* Job Details Modal */}
         {selectedJob && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-lg bg-white">
-              <div className="mt-3">
+          <div className="fixed inset-0 bg-gray-700/60 backdrop-blur-sm flex items-start justify-center z-50 p-4 overflow-y-auto">
+            <div className="relative mt-16 w-full max-w-3xl bg-white rounded-xl shadow-2xl border border-gray-200">
+              <div className="absolute top-3 right-3">
+                <button
+                  onClick={() => setSelectedJob(null)}
+                  className="p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  aria-label="Close"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="px-6 pt-6 pb-4 max-h-[85vh] overflow-y-auto custom-scrollbar">
+                <div className="mb-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-900 font-['Open_Sans']">
                     Job Details
                   </h3>
-                  <button
-                    onClick={() => setSelectedJob(null)}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
+                    <span className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full font-['Roboto'] ${getStatusColor(selectedJob.status)}`}>{selectedJob.status}</span>
                 </div>
-                
-                <div className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-6">
                   <div>
                     <h4 className="text-lg font-medium text-gray-900 font-['Open_Sans']">
                       {selectedJob.title}
@@ -411,66 +590,111 @@ const AllJobsPage = () => {
                       {selectedJob.department} • {selectedJob.location}
                     </p>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="font-medium text-gray-700 font-['Roboto']">Posted by:</span>
-                      <p className="text-gray-900 font-['Roboto']">{selectedJob.postedBy}</p>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-700 font-['Roboto']">Type:</span>
-                      <p className="text-gray-900 font-['Roboto']">{selectedJob.type}</p>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-700 font-['Roboto']">Salary:</span>
-                      <p className="text-gray-900 font-['Roboto']">{selectedJob.salary}</p>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-700 font-['Roboto']">Status:</span>
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full font-['Roboto'] ${getStatusColor(selectedJob.status)}`}>
-                        {selectedJob.status}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="border-t pt-4">
-                    <h5 className="font-medium text-gray-700 font-['Roboto'] mb-2">Application Statistics:</h5>
-                    <div className="grid grid-cols-3 gap-4 text-center">
+                    <div className="grid grid-cols-2 gap-4 text-sm mt-1">
                       <div>
-                        <p className="text-2xl font-bold text-gray-800 font-['Open_Sans']">{selectedJob.applications}</p>
-                        <p className="text-xs text-gray-600 font-['Roboto']">Applied</p>
+                        <span className="font-medium text-gray-700 font-['Roboto']">Posted by:</span>
+                        <p className="text-gray-900 font-['Roboto']">{selectedJob.postedBy}</p>
                       </div>
                       <div>
-                        <p className="text-2xl font-bold text-gray-700 font-['Open_Sans']">{selectedJob.shortlisted}</p>
-                        <p className="text-xs text-gray-600 font-['Roboto']">Shortlisted</p>
+                        <span className="font-medium text-gray-700 font-['Roboto']">Type:</span>
+                        <p className="text-gray-900 font-['Roboto']">{selectedJob.type}</p>
                       </div>
-                      <div>
-                        <p className="text-2xl font-bold text-gray-700 font-['Open_Sans']">{selectedJob.hired}</p>
-                        <p className="text-xs text-gray-600 font-['Roboto']">Hired</p>
+                      <div className="md:col-span-2">
+                        <span className="font-medium text-gray-700 font-['Roboto']">Salary:</span>
+                        <p className="text-gray-900 font-['Roboto'] mt-0.5">{selectedJob.salary}</p>
                       </div>
                     </div>
                   </div>
+
+                  <div className="border-t pt-4 space-y-4">
+                    <div>
+                      <h5 className="font-medium text-gray-700 font-['Roboto'] mb-2">Application Statistics</h5>
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                          <p className="text-2xl font-bold text-gray-800 font-['Open_Sans']">{selectedJob.applicationStats?.total ?? selectedJob.applications}</p>
+                          <p className="text-xs text-gray-600 font-['Roboto']">Applied</p>
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-gray-700 font-['Open_Sans']">{selectedJob.applicationStats?.shortlisted ?? selectedJob.shortlisted}</p>
+                          <p className="text-xs text-gray-600 font-['Roboto']">Shortlisted</p>
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-gray-700 font-['Open_Sans']">{selectedJob.applicationStats?.hired ?? selectedJob.hired}</p>
+                          <p className="text-xs text-gray-600 font-['Roboto']">Hired</p>
+                        </div>
+                      </div>
+                    </div>
+                    {selectedJob.applicationStats?.byStatus && (
+                      <div className="text-xs text-gray-600 font-['Roboto'] grid grid-cols-2 gap-2">
+                        {Object.entries(selectedJob.applicationStats.byStatus).map(([k,v]) => (
+                          <div key={k} className="flex justify-between"><span>{k}</span><span className="font-medium text-gray-800">{v}</span></div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                
-                <div className="flex justify-end space-x-3 mt-6">
-                  <button
-                    onClick={() => setSelectedJob(null)}
-                    className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium font-['Roboto'] transition-colors"
-                  >
-                    Close
-                  </button>
-                  <button
-                    onClick={() => {
-                      // Navigate to detailed job management
-                      console.log('Navigate to job details page for job:', selectedJob.id);
-                    }}
-                    className="bg-black hover:bg-gray-800 text-white px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
-                  >
-                    Manage Job
-                  </button>
+
+                {/* Extended Details */}
+                <div className="mt-8 border-t pt-6 space-y-8">
+                  <div className="space-y-3">
+                    <h5 className="text-sm font-semibold text-gray-800 font-['Roboto'] tracking-wide">Core Details</h5>
+                    <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm font-['Roboto']">
+                      <div><dt className="text-gray-500">Experience</dt><dd className="text-gray-900 font-medium">{selectedJob.experienceLevel || '—'}</dd></div>
+                      <div><dt className="text-gray-500">Location Type</dt><dd className="text-gray-900 font-medium">{selectedJob.locationType || '—'}</dd></div>
+                      <div><dt className="text-gray-500">Deadline</dt><dd className="text-gray-900 font-medium">{selectedJob.applicationDeadline ? new Date(selectedJob.applicationDeadline).toLocaleDateString() : '—'}</dd></div>
+                      <div><dt className="text-gray-500">Max Applicants</dt><dd className="text-gray-900 font-medium">{selectedJob.maxApplicants || '—'}</dd></div>
+                      <div><dt className="text-gray-500">Views</dt><dd className="text-gray-900 font-medium">{selectedJob.views ?? '—'}</dd></div>
+                      <div><dt className="text-gray-500">Created</dt><dd className="text-gray-900 font-medium">{selectedJob.createdAt ? new Date(selectedJob.createdAt).toLocaleDateString() : '—'}</dd></div>
+                      <div><dt className="text-gray-500">Published</dt><dd className="text-gray-900 font-medium">{selectedJob.publishedAt ? new Date(selectedJob.publishedAt).toLocaleDateString() : '—'}</dd></div>
+                      <div><dt className="text-gray-500">Resume Required</dt><dd className="text-gray-900 font-medium">{selectedJob.resumeRequired ? 'Yes' : 'No'}</dd></div>
+                    </dl>
+                  </div>
+                  {selectedJob.qualification?.length > 0 && (
+                    <div>
+                      <h5 className="text-sm font-semibold text-gray-800 font-['Roboto'] mb-2">Qualifications</h5>
+                      <ul className="flex flex-wrap gap-2 text-xs font-['Roboto']">{selectedJob.qualification.map(q => <li key={q} className="px-2 py-1 bg-gray-100 rounded">{q}</li>)}</ul>
+                    </div>
+                  )}
+                  {(selectedJob.requiredSkills?.length > 0 || selectedJob.preferredSkills?.length > 0) && (
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {selectedJob.requiredSkills?.length > 0 && (
+                        <div>
+                          <h5 className="text-sm font-semibold text-gray-800 font-['Roboto'] mb-2">Required Skills</h5>
+                          <ul className="flex flex-wrap gap-2 text-xs font-['Roboto']">{selectedJob.requiredSkills.map(s => <li key={s} className="px-2 py-1 bg-gray-100 rounded">{s}</li>)}</ul>
+                        </div>
+                      )}
+                      {selectedJob.preferredSkills?.length > 0 && (
+                        <div>
+                          <h5 className="text-sm font-semibold text-gray-800 font-['Roboto'] mb-2">Preferred Skills</h5>
+                          <ul className="flex flex-wrap gap-2 text-xs font-['Roboto']">{selectedJob.preferredSkills.map(s => <li key={s} className="px-2 py-1 bg-gray-50 border border-gray-200 rounded">{s}</li>)}</ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {selectedJob.defaultInterviewRounds?.length > 0 && (
+                    <div>
+                      <h5 className="text-sm font-semibold text-gray-800 font-['Roboto'] mb-2">Interview Rounds</h5>
+                      <ol className="list-decimal list-inside space-y-1 text-sm text-gray-700 font-['Roboto']">{selectedJob.defaultInterviewRounds.map((r,i) => <li key={i}>{r}</li>)}</ol>
+                    </div>
+                  )}
+                  {selectedJob.description && (
+                    <div>
+                      <h5 className="text-sm font-semibold text-gray-800 font-['Roboto'] mb-2">Description</h5>
+                      <p className="text-sm leading-relaxed text-gray-700 font-['Roboto'] whitespace-pre-line max-h-60 overflow-y-auto pr-1">{selectedJob.description}</p>
+                    </div>
+                  )}
+                  {selectedJob.salaryRange && (selectedJob.salaryRange.min || selectedJob.salaryRange.max) && (
+                    <div>
+                      <h5 className="text-sm font-semibold text-gray-800 font-['Roboto'] mb-2">Salary Details</h5>
+                      <p className="text-sm text-gray-700 font-['Roboto']">{selectedJob.salaryRange.min ? selectedJob.salaryRange.min : ''}{selectedJob.salaryRange.min && selectedJob.salaryRange.max ? ' - ' : ''}{selectedJob.salaryRange.max ? selectedJob.salaryRange.max : ''}{selectedJob.salaryRange.currency ? ` ${selectedJob.salaryRange.currency}` : ''}{selectedJob.salaryRange.period ? ` / ${selectedJob.salaryRange.period}` : ''}{selectedJob.salaryRange.format ? ` (${selectedJob.salaryRange.format})` : ''}</p>
+                    </div>
+                  )}
                 </div>
-              </div>
-            </div>
+                <div className="flex justify-end mt-8 pt-4 border-t">
+                  <button onClick={() => setSelectedJob(null)} className="px-5 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-['Roboto'] hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-300">Close</button>
+                </div>
+              </div>{/* end scroll area */}
+            </div>{/* end modal panel */}
           </div>
         )}
       </div>
