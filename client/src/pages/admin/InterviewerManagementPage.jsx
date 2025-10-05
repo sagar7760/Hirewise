@@ -1,53 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/layout/AdminLayout';
+import { useApiRequest } from '../../hooks/useApiRequest';
+import { SkeletonTable } from '../../components/common/Skeleton';
 
 const InterviewerManagementPage = () => {
-  const [interviewers, setInterviewers] = useState([
-    {
-      id: 1,
-      name: 'Alex Thompson',
-      email: 'alex.thompson@company.com',
-      department: 'Engineering',
-      expertise: ['JavaScript', 'React', 'Node.js'],
-      assignedJobs: 5,
-      completedInterviews: 23,
-      status: 'active',
-      dateAdded: '2024-01-20'
-    },
-    {
-      id: 2,
-      name: 'Maria Rodriguez',
-      email: 'maria.rodriguez@company.com',
-      department: 'Design',
-      expertise: ['UI/UX Design', 'Figma', 'User Research'],
-      assignedJobs: 3,
-      completedInterviews: 15,
-      status: 'active',
-      dateAdded: '2024-02-15'
-    },
-    {
-      id: 3,
-      name: 'James Wilson',
-      email: 'james.wilson@company.com',
-      department: 'Data Science',
-      expertise: ['Python', 'Machine Learning', 'SQL'],
-      assignedJobs: 4,
-      completedInterviews: 18,
-      status: 'active',
-      dateAdded: '2024-01-30'
-    },
-    {
-      id: 4,
-      name: 'Sophie Chen',
-      email: 'sophie.chen@company.com',
-      department: 'Product',
-      expertise: ['Product Strategy', 'Analytics', 'Agile'],
-      assignedJobs: 2,
-      completedInterviews: 12,
-      status: 'inactive',
-      dateAdded: '2024-03-01'
-    }
-  ]);
+  const { makeJsonRequest } = useApiRequest();
+  const [interviewers, setInterviewers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingInterviewer, setEditingInterviewer] = useState(null);
@@ -61,21 +21,47 @@ const InterviewerManagementPage = () => {
 
   const departments = ['Engineering', 'Design', 'Data Science', 'Product', 'Marketing', 'Sales', 'HR'];
 
-  const handleAddInterviewer = () => {
-    if (newInterviewer.name && newInterviewer.email && newInterviewer.department) {
-      const newInterviewerData = {
-        id: interviewers.length + 1,
-        name: newInterviewer.name,
-        email: newInterviewer.email,
-        department: newInterviewer.department,
-        expertise: newInterviewer.expertise,
-        assignedJobs: 0,
-        completedInterviews: 0,
-        status: 'active',
-        dateAdded: new Date().toISOString().split('T')[0]
-      };
-      setInterviewers([...interviewers, newInterviewerData]);
-      resetForm();
+  // Load interviewers
+  const loadInterviewers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await makeJsonRequest('/api/admin/interviewers');
+      setInterviewers(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setError('Failed to load interviewers');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadInterviewers(); }, []);
+
+  const handleAddInterviewer = async () => {
+    const nameParts = newInterviewer.name.trim().split(' ');
+    const firstName = nameParts.shift();
+    const lastName = nameParts.join(' ') || '-';
+    if (firstName && newInterviewer.email && newInterviewer.department && newInterviewer.password) {
+      try {
+        const response = await makeJsonRequest('/api/admin/interviewers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            firstName,
+            lastName,
+            email: newInterviewer.email,
+            department: newInterviewer.department,
+            password: newInterviewer.password,
+            expertise: newInterviewer.expertise
+          })
+        });
+        if (response?.interviewer) {
+          setInterviewers([...interviewers, response.interviewer]);
+          resetForm();
+        }
+      } catch (e) {
+        setError(e.message || 'Failed to add interviewer');
+      }
     }
   };
 
@@ -85,40 +71,61 @@ const InterviewerManagementPage = () => {
       name: interviewer.name,
       email: interviewer.email,
       department: interviewer.department,
-      expertise: [...interviewer.expertise]
+      expertise: [...(interviewer.expertise || [])],
+      password: ''
     });
     setShowAddModal(true);
   };
 
-  const handleUpdateInterviewer = () => {
+  const handleUpdateInterviewer = async () => {
     if (newInterviewer.name && newInterviewer.email && newInterviewer.department && editingInterviewer) {
-      setInterviewers(interviewers.map(interviewer => 
-        interviewer.id === editingInterviewer.id 
-          ? { 
-              ...interviewer, 
-              name: newInterviewer.name, 
-              email: newInterviewer.email,
-              department: newInterviewer.department,
-              expertise: newInterviewer.expertise
-            }
-          : interviewer
-      ));
-      resetForm();
+      try {
+        const nameParts = newInterviewer.name.trim().split(' ');
+        const firstName = nameParts.shift();
+        const lastName = nameParts.join(' ') || '-';
+        const payload = {
+          firstName,
+            lastName,
+          email: newInterviewer.email,
+          department: newInterviewer.department,
+          expertise: newInterviewer.expertise
+        };
+        if (newInterviewer.password) payload.password = newInterviewer.password;
+        const response = await makeJsonRequest(`/api/admin/interviewers/${editingInterviewer.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (response?.interviewer) {
+          setInterviewers(interviewers.map(i => i.id === editingInterviewer.id ? response.interviewer : i));
+          resetForm();
+        }
+      } catch (e) {
+        setError(e.message || 'Failed to update interviewer');
+      }
     }
   };
 
-  const handleRemoveInterviewer = (interviewerId) => {
+  const handleRemoveInterviewer = async (interviewerId) => {
     if (window.confirm('Are you sure you want to remove this interviewer? This action cannot be undone.')) {
-      setInterviewers(interviewers.filter(interviewer => interviewer.id !== interviewerId));
+      try {
+        await makeJsonRequest(`/api/admin/interviewers/${interviewerId}`, { method: 'DELETE' });
+        setInterviewers(interviewers.filter(i => i.id !== interviewerId));
+      } catch (e) {
+        setError(e.message || 'Failed to delete interviewer');
+      }
     }
   };
 
-  const handleToggleStatus = (interviewerId) => {
-    setInterviewers(interviewers.map(interviewer => 
-      interviewer.id === interviewerId 
-        ? { ...interviewer, status: interviewer.status === 'active' ? 'inactive' : 'active' }
-        : interviewer
-    ));
+  const handleToggleStatus = async (interviewerId) => {
+    try {
+      const response = await makeJsonRequest(`/api/admin/interviewers/${interviewerId}/status`, { method: 'PUT' });
+      if (response?.interviewer) {
+        setInterviewers(interviewers.map(i => i.id === interviewerId ? response.interviewer : i));
+      }
+    } catch (e) {
+      setError(e.message || 'Failed to toggle status');
+    }
   };
 
   const addExpertise = () => {
@@ -141,8 +148,9 @@ const InterviewerManagementPage = () => {
   const resetForm = () => {
     setShowAddModal(false);
     setEditingInterviewer(null);
-    setNewInterviewer({ name: '', email: '', department: '', expertise: [] });
+    setNewInterviewer({ name: '', email: '', department: '', expertise: [], password: '' });
     setExpertiseInput('');
+    setError(null);
   };
 
   const formatDate = (dateString) => {
@@ -182,6 +190,10 @@ const InterviewerManagementPage = () => {
             </button>
           </div>
         </div>
+
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">{error}</div>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -244,15 +256,17 @@ const InterviewerManagementPage = () => {
           </div>
         </div>
 
-        {/* Interviewers Table */}
+        {/* Interviewers Table / Loading */}
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900 font-['Open_Sans']">
               Interviewers ({interviewers.length})
             </h3>
           </div>
-          
           <div className="overflow-x-auto">
+            {loading ? (
+              <SkeletonTable rows={5} columns={6} />
+            ) : (
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -335,6 +349,8 @@ const InterviewerManagementPage = () => {
                         <button
                           onClick={() => handleEditInterviewer(interviewer)}
                           className="text-gray-700 hover:text-gray-900 transition-colors"
+                          title="Edit Interviewer"
+                          aria-label="Edit Interviewer"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -347,6 +363,8 @@ const InterviewerManagementPage = () => {
                               ? 'text-gray-600 hover:text-gray-800' 
                               : 'text-gray-500 hover:text-gray-700'
                           }`}
+                          title={interviewer.status === 'active' ? 'Deactivate Interviewer' : 'Activate Interviewer'}
+                          aria-label={interviewer.status === 'active' ? 'Deactivate Interviewer' : 'Activate Interviewer'}
                         >
                           {interviewer.status === 'active' ? (
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -361,6 +379,8 @@ const InterviewerManagementPage = () => {
                         <button
                           onClick={() => handleRemoveInterviewer(interviewer.id)}
                           className="text-gray-600 hover:text-gray-800 transition-colors"
+                          title="Delete Interviewer"
+                          aria-label="Delete Interviewer"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16" />
@@ -372,6 +392,7 @@ const InterviewerManagementPage = () => {
                 ))}
               </tbody>
             </table>
+            )}
           </div>
         </div>
 
@@ -408,6 +429,18 @@ const InterviewerManagementPage = () => {
                       onChange={(e) => setNewInterviewer({ ...newInterviewer, email: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
                       placeholder="Enter email address"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+                      Password {editingInterviewer && <span className="text-gray-500">(leave empty to keep current)</span>}
+                    </label>
+                    <input
+                      type="password"
+                      value={newInterviewer.password || ''}
+                      onChange={(e) => setNewInterviewer({ ...newInterviewer, password: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-gray-900"
+                      placeholder={editingInterviewer ? 'Enter new password (optional)' : 'Enter password'}
                     />
                   </div>
                   
