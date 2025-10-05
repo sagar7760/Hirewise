@@ -1,29 +1,53 @@
 const bcrypt = require('bcryptjs');
 const User = require('../../models/User');
+const Job = require('../../models/Job');
+const Application = require('../../models/Application');
 
 // @desc    Get all HR users for the admin's company
 // @access  Private (Admin only)
 const getAllHRUsers = async (req, res) => {
   try {
-    const hrUsers = await User.find({ 
+    const hrUsers = await User.find({
       role: 'hr',
-      companyId: req.user.companyId 
+      companyId: req.user.companyId
     })
-    .select('-password')
-    .sort({ createdAt: -1 });
+      .select('-password')
+      .sort({ createdAt: -1 });
 
-    const formattedHRs = hrUsers.map(hr => ({
-      id: hr._id,
-      name: `${hr.firstName} ${hr.lastName}`.trim() || 'N/A',
-      email: hr.email,
-      department: hr.department || 'N/A',
-      dateJoined: hr.joiningDate ? hr.joiningDate.toISOString().split('T')[0] : new Date(hr.createdAt).toISOString().split('T')[0],
-      status: hr.isActive !== false ? 'active' : 'inactive',
-      jobTitle: hr.jobTitle || 'HR',
-      location: hr.workLocation || hr.location || 'N/A',
-      jobsPosted: 0, // TODO: Calculate actual jobs posted by this HR
-      candidatesHired: 0 // TODO: Calculate actual candidates hired by this HR
-    }));
+    const hrIds = hrUsers.map(u => u._id);
+
+    // Aggregate jobs posted per HR (exclude drafts so only real postings count)
+    const jobsPostedAgg = await Job.aggregate([
+      { $match: { company: req.user.companyId, postedBy: { $in: hrIds }, status: { $ne: 'draft' } } },
+      { $group: { _id: '$postedBy', count: { $sum: 1 } } }
+    ]);
+    const jobsPostedMap = jobsPostedAgg.reduce((acc, j) => { acc[j._id.toString()] = j.count; return acc; }, {});
+
+    // Aggregate hires per HR (applications with offer accepted for that HR's jobs)
+    const hiresAgg = await Application.aggregate([
+      { $match: { status: 'offer_accepted' } },
+      { $lookup: { from: 'jobs', localField: 'job', foreignField: '_id', as: 'jobDoc' } },
+      { $unwind: '$jobDoc' },
+      { $match: { 'jobDoc.company': req.user.companyId, 'jobDoc.postedBy': { $in: hrIds } } },
+      { $group: { _id: '$jobDoc.postedBy', count: { $sum: 1 } } }
+    ]);
+    const hiresMap = hiresAgg.reduce((acc, h) => { acc[h._id.toString()] = h.count; return acc; }, {});
+
+    const formattedHRs = hrUsers.map(hr => {
+      const idStr = hr._id.toString();
+      return {
+        id: hr._id,
+        name: `${hr.firstName} ${hr.lastName}`.trim() || 'N/A',
+        email: hr.email,
+        department: hr.department || 'N/A',
+        dateJoined: hr.joiningDate ? hr.joiningDate.toISOString().split('T')[0] : new Date(hr.createdAt).toISOString().split('T')[0],
+        status: hr.isActive !== false ? 'active' : 'inactive',
+        jobTitle: hr.jobTitle || 'HR',
+        location: hr.workLocation || hr.location || 'N/A',
+        jobsPosted: jobsPostedMap[idStr] || 0,
+        candidatesHired: hiresMap[idStr] || 0
+      };
+    });
 
     res.json(formattedHRs);
   } catch (error) {
@@ -63,7 +87,16 @@ const createHRUser = async (req, res) => {
     const salt = await bcrypt.genSalt(12);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create new HR user
+    // Resolve company context (admin creating HR must belong to a company)
+    const resolvedCompanyId = req.user.companyId || (req.user.company?._id || req.user.company);
+
+    if (!resolvedCompanyId) {
+      return res.status(400).json({
+        error: 'Unable to determine company context for HR creation'
+      });
+    }
+
+    // Create new HR user (both company & companyId are required by schema for company roles)
     const newHRUser = new User({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
@@ -71,7 +104,8 @@ const createHRUser = async (req, res) => {
       password: hashedPassword,
       role: 'hr',
       department: department.trim(),
-      company: req.user.company || req.user.companyId,
+      company: resolvedCompanyId,
+      companyId: resolvedCompanyId,
       joiningDate: new Date(),
       isActive: true,
       jobTitle: 'HR',
@@ -309,6 +343,22 @@ const toggleHRUserStatus = async (req, res) => {
       { new: true }
     ).select('-password');
 
+    // Recompute performance metrics for this HR so frontend stats don't break
+    const jobsPosted = await Job.countDocuments({
+      postedBy: hrId,
+      company: req.user.companyId,
+      status: { $ne: 'draft' }
+    });
+
+    const hiresAgg = await Application.aggregate([
+      { $match: { status: 'offer_accepted' } },
+      { $lookup: { from: 'jobs', localField: 'job', foreignField: '_id', as: 'jobDoc' } },
+      { $unwind: '$jobDoc' },
+      { $match: { 'jobDoc.company': req.user.companyId, 'jobDoc.postedBy': updatedUser._id } },
+      { $group: { _id: '$jobDoc.postedBy', count: { $sum: 1 } } }
+    ]);
+    const candidatesHired = hiresAgg.length ? hiresAgg[0].count : 0;
+
     const responseData = {
       id: updatedUser._id,
       name: `${updatedUser.firstName} ${updatedUser.lastName}`.trim(),
@@ -318,7 +368,9 @@ const toggleHRUserStatus = async (req, res) => {
       dateJoined: updatedUser.joiningDate ? updatedUser.joiningDate.toISOString().split('T')[0] : new Date(updatedUser.createdAt).toISOString().split('T')[0],
       status: updatedUser.isActive ? 'active' : 'inactive',
       jobTitle: updatedUser.jobTitle || 'HR',
-      location: updatedUser.workLocation || updatedUser.location || 'N/A'
+      location: updatedUser.workLocation || updatedUser.location || 'N/A',
+      jobsPosted,
+      candidatesHired
     };
 
     res.json({

@@ -455,6 +455,13 @@ userSchema.methods.canManageCompany = function() {
 
 // Pre-save middleware
 userSchema.pre('save', function(next) {
+  // Ensure companyId & company stay in sync if either is provided
+  if (this.company && !this.companyId) {
+    this.companyId = this.company;
+  } else if (this.companyId && !this.company) {
+    this.company = this.companyId;
+  }
+
   // Set admin permissions for company admin
   if (this.role === 'admin' && this.isCompanyAdmin) {
     this.permissions = {
