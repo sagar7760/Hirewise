@@ -101,91 +101,13 @@ const HREditJob = () => {
     'Culture Fit Interview'
   ];
 
-  // Fetch job details for editing
-  useEffect(() => {
-    const fetchJobDetails = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await makeJsonRequest(`/api/hr/jobs/${jobId}`);
-        
-        if (response.success) {
-          const job = response.data;
-          
-          // Process salary data for display
-          const processSalaryForDisplay = (value, format) => {
-            if (!value) return '';
-            const numValue = parseFloat(value);
-            if (format === 'lpa') {
-              return numValue.toString();
-            } else {
-              // If format is absolute but value looks like it might be in lakhs
-              // (legacy data detection)
-              if (numValue < 100 && numValue > 0) {
-                // Likely in lakhs already, keep as is and set format to lpa
-                return numValue.toString();
-              } else {
-                // Convert to display based on actual format
-                return numValue.toString();
-              }
-            }
-          };
-
-          // Detect salary format for legacy data
-          let detectedFormat = job.salaryRange?.format || 'absolute';
-          if (!job.salaryRange?.format && job.salaryRange?.min) {
-            const minValue = parseFloat(job.salaryRange.min);
-            // If value is less than 100 and greater than 0, it's likely in LPA format
-            if (minValue < 100 && minValue > 0) {
-              detectedFormat = 'lpa';
-            }
-          }
-          
-          setJobData({
-            title: job.title || '',
-            description: job.description || '',
-            department: job.department || '',
-            customDepartment: '',
-            jobType: job.jobType || '',
-            location: job.location || '',
-            locationType: job.locationType || 'onsite',
-            qualification: job.qualification || [],
-            customQualifications: [],
-            experienceLevel: job.experienceLevel || '',
-            requiredSkills: job.requiredSkills || [],
-            preferredSkills: job.preferredSkills || [],
-            salaryRange: {
-              min: processSalaryForDisplay(job.salaryRange?.min, detectedFormat),
-              max: processSalaryForDisplay(job.salaryRange?.max, detectedFormat),
-              currency: job.salaryRange?.currency || 'INR',
-              period: job.salaryRange?.period || 'year',
-              format: detectedFormat
-            },
-            applicationDeadline: job.applicationDeadline ? 
-              new Date(job.applicationDeadline).toISOString().split('T')[0] : '',
-            maxApplicants: job.maxApplicants || '',
-            resumeRequired: job.resumeRequired !== false,
-            allowMultipleApplications: job.allowMultipleApplications || false,
-            defaultInterviewRounds: job.defaultInterviewRounds || [],
-            defaultInterviewer: job.defaultInterviewer || '',
-            status: job.status || 'draft'
-          });
-        } else {
-          setError(response.message || 'Failed to fetch job details');
-        }
-      } catch (error) {
-        console.error('Error fetching job details:', error);
-        setError(error.message || 'Failed to fetch job details');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (jobId) {
-      fetchJobDetails();
-    }
-  }, [jobId, makeJsonRequest]);
+  const defaultInterviewers = [
+    'Sarah Johnson (HR Manager)',
+    'Mike Wilson (Senior Engineer)',
+    'Lisa Chen (Design Lead)',
+    'Robert Brown (Product Manager)',
+    'Emily Davis (Tech Lead)'
+  ];
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -382,13 +304,92 @@ const HREditJob = () => {
     }
   };
 
+  // Fetch job details for editing
+  useEffect(() => {
+    const fetchJobDetails = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await makeJsonRequest(`/api/hr/jobs/${jobId}`);
+        
+        if (response.success) {
+          const job = response.data;
+          
+          // Process salary data for display
+          const processSalaryForDisplay = (value, format) => {
+            if (!value) return '';
+            const numValue = parseFloat(value);
+            if (format === 'lpa') {
+              return numValue.toString();
+            } else {
+              // If stored value is large, we assume it's absolute, otherwise default behavior
+              return numValue.toString();
+            }
+          };
+
+          // Detect salary format for legacy data
+          let detectedFormat = job.salaryRange?.format || 'absolute';
+          if (!job.salaryRange?.format && job.salaryRange?.min) {
+            const minValue = parseFloat(job.salaryRange.min);
+            if (minValue < 100 && minValue > 0) { // Simple heuristic for LPA
+              detectedFormat = 'lpa';
+            }
+          }
+          
+          setJobData(prev => ({
+            ...prev,
+            title: job.title || '',
+            description: job.description || '',
+            department: job.department || '',
+            customDepartment: '',
+            jobType: job.jobType || '',
+            location: job.location || '',
+            locationType: job.locationType || 'onsite',
+            qualification: job.qualification || [],
+            customQualifications: [],
+            experienceLevel: job.experienceLevel || '',
+            requiredSkills: job.requiredSkills || [],
+            preferredSkills: job.preferredSkills || [],
+            salaryRange: {
+              min: processSalaryForDisplay(job.salaryRange?.min, detectedFormat),
+              max: processSalaryForDisplay(job.salaryRange?.max, detectedFormat),
+              currency: job.salaryRange?.currency || 'INR',
+              period: job.salaryRange?.period || 'year',
+              format: detectedFormat
+            },
+            applicationDeadline: job.applicationDeadline ? 
+              new Date(job.applicationDeadline).toISOString().split('T')[0] : '',
+            maxApplicants: job.maxApplicants || '',
+            resumeRequired: job.resumeRequired !== false,
+            allowMultipleApplications: job.allowMultipleApplications || false,
+            defaultInterviewRounds: job.defaultInterviewRounds || [],
+            defaultInterviewer: job.defaultInterviewer || '',
+            status: job.status || 'draft'
+          }));
+        } else {
+          setError(response.message || 'Failed to fetch job details');
+        }
+      } catch (error) {
+        console.error('Error fetching job details:', error);
+        setError(error.message || 'Failed to fetch job details');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (jobId) {
+      fetchJobDetails();
+    }
+  }, [jobId, makeJsonRequest]);
+
   if (loading) {
     return (
       <HRLayout>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-            <span className="ml-3 text-gray-600 font-['Roboto']">Loading job details...</span>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
+            <span className="ml-3 text-gray-600 dark:text-gray-300 font-['Roboto']">Loading job details...</span>
           </div>
         </div>
       </HRLayout>
@@ -399,20 +400,20 @@ const HREditJob = () => {
     return (
       <HRLayout>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-4 transition-colors duration-300">
             <div className="flex">
               <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-5 w-5 text-red-400 dark:text-red-300 stroke-current" fill="none" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800 font-['Roboto']">Error</h3>
-                <div className="mt-2 text-sm text-red-700 font-['Roboto']">{error}</div>
+                <h3 className="text-sm font-medium text-red-800 dark:text-red-300 font-['Roboto']">Error</h3>
+                <div className="mt-2 text-sm text-red-700 dark:text-red-400 font-['Roboto']">{error}</div>
                 <div className="mt-4">
                   <button
                     onClick={() => navigate('/hr/jobs')}
-                    className="text-sm bg-red-100 text-red-800 px-3 py-1 rounded-md hover:bg-red-200 transition-colors"
+                    className="text-sm bg-red-100 dark:bg-red-700 text-red-800 dark:text-white px-3 py-1 rounded-md hover:bg-red-200 dark:hover:bg-red-600 transition-colors"
                   >
                     Back to Jobs
                   </button>
@@ -432,18 +433,18 @@ const HREditJob = () => {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 font-['Open_Sans']">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white font-['Open_Sans'] transition-colors duration-300">
                 Edit Job Posting
               </h1>
-              <p className="mt-2 text-gray-600 font-['Roboto']">
+              <p className="mt-2 text-gray-600 dark:text-gray-300 font-['Roboto'] transition-colors duration-300">
                 Update your job posting details
               </p>
             </div>
             <button
               onClick={() => navigate('/hr/jobs')}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors flex items-center"
+              className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors flex items-center"
             >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 mr-2 stroke-current" fill="none" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
               Back to Jobs
@@ -452,11 +453,11 @@ const HREditJob = () => {
           
           {/* Status indicator */}
           <div className="mt-4 flex items-center space-x-2">
-            <span className="text-sm text-gray-500 font-['Roboto']">Current Status:</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">Current Status:</span>
             <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-              jobData.status === 'active' ? 'bg-green-100 text-green-800' :
-              jobData.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
-              'bg-gray-100 text-gray-600'
+              jobData.status === 'active' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' :
+              jobData.status === 'draft' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400' :
+              'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
             }`}>
               {jobData.status}
             </span>
@@ -465,16 +466,16 @@ const HREditJob = () => {
 
         {/* Error Display */}
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="mb-6 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-4 transition-colors duration-300">
             <div className="flex">
               <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-5 w-5 text-red-400 dark:text-red-300 stroke-current" fill="none" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800 font-['Roboto']">Error</h3>
-                <div className="mt-2 text-sm text-red-700 font-['Roboto']">{error}</div>
+                <h3 className="text-sm font-medium text-red-800 dark:text-red-300 font-['Roboto']">Error</h3>
+                <div className="mt-2 text-sm text-red-700 dark:text-red-400 font-['Roboto']">{error}</div>
               </div>
             </div>
           </div>
@@ -482,13 +483,13 @@ const HREditJob = () => {
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Basic Information */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-gray-900 font-['Open_Sans'] mb-6">Basic Information</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-6 transition-colors duration-300">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white font-['Open_Sans'] mb-6 transition-colors duration-300">Basic Information</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Job Title */}
               <div className="md:col-span-2">
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+                <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">
                   Job Title *
                 </label>
                 <input
@@ -497,7 +498,7 @@ const HREditJob = () => {
                   name="title"
                   value={jobData.title}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-300"
                   placeholder="e.g., Senior Frontend Developer"
                   required
                 />
@@ -505,7 +506,7 @@ const HREditJob = () => {
 
               {/* Department */}
               <div>
-                <label htmlFor="department" className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+                <label htmlFor="department" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">
                   Department *
                 </label>
                 <select
@@ -513,13 +514,14 @@ const HREditJob = () => {
                   name="department"
                   value={jobData.department}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700 transition-colors duration-300"
                   required={!jobData.customDepartment}
                 >
                   <option value="">Select Department</option>
                   {departments.map(dept => (
                     <option key={dept} value={dept}>{dept}</option>
                   ))}
+                  <option value="Other">Other (Custom)</option>
                 </select>
                 {jobData.department === 'Other' && (
                   <input
@@ -527,7 +529,7 @@ const HREditJob = () => {
                     name="customDepartment"
                     value={jobData.customDepartment}
                     onChange={handleInputChange}
-                    className="w-full mt-2 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                    className="w-full mt-2 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-300"
                     placeholder="Enter custom department"
                   />
                 )}
@@ -535,7 +537,7 @@ const HREditJob = () => {
 
               {/* Job Type */}
               <div>
-                <label htmlFor="jobType" className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+                <label htmlFor="jobType" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">
                   Job Type *
                 </label>
                 <select
@@ -543,7 +545,7 @@ const HREditJob = () => {
                   name="jobType"
                   value={jobData.jobType}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700 transition-colors duration-300"
                   required
                 >
                   <option value="">Select Job Type</option>
@@ -555,7 +557,7 @@ const HREditJob = () => {
 
               {/* Location */}
               <div>
-                <label htmlFor="location" className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+                <label htmlFor="location" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">
                   Location *
                 </label>
                 <input
@@ -564,7 +566,7 @@ const HREditJob = () => {
                   name="location"
                   value={jobData.location}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-300"
                   placeholder="e.g., New York, NY"
                   required
                 />
@@ -572,7 +574,7 @@ const HREditJob = () => {
 
               {/* Location Type */}
               <div>
-                <label htmlFor="locationType" className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+                <label htmlFor="locationType" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">
                   Work Type
                 </label>
                 <select
@@ -580,7 +582,7 @@ const HREditJob = () => {
                   name="locationType"
                   value={jobData.locationType}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700 transition-colors duration-300"
                 >
                   <option value="onsite">On-site</option>
                   <option value="remote">Remote</option>
@@ -590,7 +592,7 @@ const HREditJob = () => {
 
               {/* Experience Level */}
               <div>
-                <label htmlFor="experienceLevel" className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+                <label htmlFor="experienceLevel" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">
                   Experience Level *
                 </label>
                 <select
@@ -598,7 +600,7 @@ const HREditJob = () => {
                   name="experienceLevel"
                   value={jobData.experienceLevel}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700 transition-colors duration-300"
                   required
                 >
                   <option value="">Select Experience Level</option>
@@ -611,7 +613,7 @@ const HREditJob = () => {
 
             {/* Job Description */}
             <div className="mt-6">
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">
                 Job Description *
               </label>
               <textarea
@@ -620,7 +622,7 @@ const HREditJob = () => {
                 rows={6}
                 value={jobData.description}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-300"
                 placeholder="Describe the role, responsibilities, and what you're looking for in a candidate..."
                 required
               />
@@ -628,12 +630,12 @@ const HREditJob = () => {
           </div>
 
           {/* Skills Section */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-gray-900 font-['Open_Sans'] mb-6">Skills & Requirements</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-6 transition-colors duration-300">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white font-['Open_Sans'] mb-6 transition-colors duration-300">Skills & Requirements</h2>
             
             {/* Required Skills */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">
                 Required Skills
               </label>
               <div className="flex items-center space-x-2 mb-3">
@@ -642,13 +644,13 @@ const HREditJob = () => {
                   value={skillInput}
                   onChange={(e) => setSkillInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill('required'))}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-300"
                   placeholder="Type a skill and press Enter"
                 />
                 <button
                   type="button"
                   onClick={() => addSkill('required')}
-                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg font-medium font-['Roboto'] transition-colors"
+                  className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg font-medium font-['Roboto'] transition-colors"
                 >
                   Add
                 </button>
@@ -657,13 +659,13 @@ const HREditJob = () => {
                 {jobData.requiredSkills.map((skill, index) => (
                   <span
                     key={index}
-                    className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-800 text-sm rounded-full font-['Roboto'] border border-blue-200"
+                    className="inline-flex items-center px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 text-sm rounded-full font-['Roboto'] border border-blue-200 dark:border-blue-700 transition-colors duration-300"
                   >
                     {skill}
                     <button
                       type="button"
                       onClick={() => removeSkill('required', index)}
-                      className="ml-2 text-blue-600 hover:text-blue-800"
+                      className="ml-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
                     >
                       ×
                     </button>
@@ -674,7 +676,7 @@ const HREditJob = () => {
 
             {/* Preferred Skills */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">
                 Preferred Skills
               </label>
               <div className="flex items-center space-x-2 mb-3">
@@ -683,13 +685,13 @@ const HREditJob = () => {
                   value={preferredSkillInput}
                   onChange={(e) => setPreferredSkillInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill('preferred'))}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-300"
                   placeholder="Type a skill and press Enter"
                 />
                 <button
                   type="button"
                   onClick={() => addSkill('preferred')}
-                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg font-medium font-['Roboto'] transition-colors"
+                  className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg font-medium font-['Roboto'] transition-colors"
                 >
                   Add
                 </button>
@@ -698,13 +700,13 @@ const HREditJob = () => {
                 {jobData.preferredSkills.map((skill, index) => (
                   <span
                     key={index}
-                    className="inline-flex items-center px-3 py-1.5 bg-green-50 text-green-800 text-sm rounded-full font-['Roboto'] border border-green-200"
+                    className="inline-flex items-center px-3 py-1.5 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-400 text-sm rounded-full font-['Roboto'] border border-green-200 dark:border-green-700 transition-colors duration-300"
                   >
                     {skill}
                     <button
                       type="button"
                       onClick={() => removeSkill('preferred', index)}
-                      className="ml-2 text-green-600 hover:text-green-800"
+                      className="ml-2 text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300"
                     >
                       ×
                     </button>
@@ -715,19 +717,19 @@ const HREditJob = () => {
 
             {/* Qualifications */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">
                 Required Qualifications
               </label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 border border-gray-300 dark:border-gray-600 rounded-lg p-3 max-h-40 overflow-y-auto bg-white dark:bg-gray-700">
                 {qualificationOptions.map(qual => (
                   <label key={qual} className="flex items-center">
                     <input
                       type="checkbox"
                       checked={jobData.qualification.includes(qual)}
                       onChange={() => handleQualificationChange(qual)}
-                      className="rounded border-gray-300 text-gray-600 focus:ring-gray-500 focus:ring-offset-0"
+                      className="rounded border-gray-300 dark:border-gray-600 text-black dark:text-white focus:ring-black dark:focus:ring-white focus:ring-offset-0 bg-white dark:bg-gray-800"
                     />
-                    <span className="ml-2 text-sm text-gray-900 font-['Roboto']">{qual}</span>
+                    <span className="ml-2 text-sm text-gray-900 dark:text-white font-['Roboto']">{qual}</span>
                   </label>
                 ))}
               </div>
@@ -739,31 +741,31 @@ const HREditJob = () => {
                   value={customQualificationInput}
                   onChange={(e) => setCustomQualificationInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomQualification())}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-300"
                   placeholder="Add custom qualification"
                 />
                 <button
                   type="button"
                   onClick={addCustomQualification}
-                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg font-medium font-['Roboto'] transition-colors"
+                  className="px-4 py-2 bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200 rounded-r-lg font-medium font-['Roboto'] transition-colors"
                 >
                   Add
                 </button>
               </div>
               
-              {/* Display custom qualifications */}
+              {/* Display custom qualifications (separate section) */}
               {jobData.qualification.filter(qual => !qualificationOptions.includes(qual)).length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {jobData.qualification.filter(qual => !qualificationOptions.includes(qual)).map((qual, index) => (
                     <span
                       key={`custom-${index}`}
-                      className="inline-flex items-center px-3 py-1.5 bg-purple-50 text-purple-800 text-sm rounded-full font-['Roboto'] border border-purple-200"
+                      className="inline-flex items-center px-3 py-1.5 bg-purple-50 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 text-sm rounded-full font-['Roboto'] border border-purple-200 dark:border-purple-700 transition-colors duration-300"
                     >
                       {qual}
                       <button
                         type="button"
                         onClick={() => removeQualification(jobData.qualification.indexOf(qual))}
-                        className="ml-2 text-purple-600 hover:text-purple-800"
+                        className="ml-2 text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300"
                       >
                         ×
                       </button>
@@ -775,146 +777,111 @@ const HREditJob = () => {
           </div>
 
           {/* Compensation & Details */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-gray-900 font-['Open_Sans'] mb-6">Compensation & Details</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-6 transition-colors duration-300">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white font-['Open_Sans'] mb-6 transition-colors duration-300">Compensation & Details</h2>
             
             {/* Salary Format Selection */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">
                 Salary Input Format
               </label>
               <div className="flex items-center space-x-6">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="salaryRange.format"
-                    value="absolute"
-                    checked={jobData.salaryRange.format === 'absolute'}
-                    onChange={handleInputChange}
-                    className="rounded border-gray-300 text-gray-600 focus:ring-gray-500 focus:ring-offset-0"
-                  />
-                  <span className="ml-2 text-sm text-gray-900 font-['Roboto']">
-                    Absolute Amount (e.g., 500000 for ₹5,00,000)
-                  </span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="salaryRange.format"
-                    value="lpa"
-                    checked={jobData.salaryRange.format === 'lpa'}
-                    onChange={handleInputChange}
-                    className="rounded border-gray-300 text-gray-600 focus:ring-gray-500 focus:ring-offset-0"
-                  />
-                  <span className="ml-2 text-sm text-gray-900 font-['Roboto']">
-                    Lakhs Per Annum (e.g., 5 for ₹5 LPA)
-                  </span>
-                </label>
+                {['absolute', 'lpa'].map(format => (
+                  <label key={format} className="flex items-center">
+                    <input
+                      type="radio"
+                      name="salaryRange.format"
+                      value={format}
+                      checked={jobData.salaryRange.format === format}
+                      onChange={handleInputChange}
+                      className="rounded border-gray-300 dark:border-gray-600 text-gray-600 dark:text-white focus:ring-black dark:focus:ring-white focus:ring-offset-0 bg-white dark:bg-gray-800"
+                    />
+                    <span className="ml-2 text-sm text-gray-900 dark:text-white font-['Roboto']">
+                      {format === 'lpa' ? 'Lakhs Per Annum' : 'Absolute Amount'}
+                    </span>
+                  </label>
+                ))}
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Salary Range */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
-                  Minimum Salary
-                  {jobData.salaryRange.format === 'lpa' && (
-                    <span className="text-xs text-blue-600 ml-1">(in Lakhs)</span>
-                  )}
-                </label>
-                <div className="flex">
-                  <select
-                    name="salaryRange.currency"
-                    value={jobData.salaryRange.currency}
-                    onChange={handleInputChange}
-                    className="px-3 py-3 border border-gray-300 border-r-0 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 bg-gray-50"
-                  >
-                    <option value="INR">₹</option>
-                    <option value="USD">$</option>
-                    <option value="EUR">€</option>
-                  </select>
-                  <input
-                    type="number"
-                    name="salaryRange.min"
-                    value={jobData.salaryRange.min}
-                    onChange={handleInputChange}
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
-                    placeholder={jobData.salaryRange.format === 'lpa' ? '5' : '500000'}
-                    step={jobData.salaryRange.format === 'lpa' ? '0.1' : '1000'}
-                  />
+              <div className="lg:col-span-3 grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Minimum Salary</label>
+                  <div className="flex">
+                    <select
+                      name="salaryRange.currency"
+                      value={jobData.salaryRange.currency}
+                      onChange={handleInputChange}
+                      className="px-3 py-3 border border-gray-300 dark:border-gray-600 border-r-0 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700 bg-gray-50 dark:bg-gray-750 transition-colors duration-300"
+                    >
+                      <option value="INR">₹</option>
+                      <option value="USD">$</option>
+                      <option value="EUR">€</option>
+                    </select>
+                    <input
+                      type="number"
+                      name="salaryRange.min"
+                      value={jobData.salaryRange.min}
+                      onChange={handleInputChange}
+                      className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700"
+                      placeholder={jobData.salaryRange.format === 'lpa' ? '5' : '500000'}
+                      step={jobData.salaryRange.format === 'lpa' ? '0.1' : '1000'}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-['Roboto']">
+                    {jobData.salaryRange.format === 'lpa' ? 'Amount in Lakhs' : 'Full Amount'}
+                  </p>
                 </div>
-                {jobData.salaryRange.format === 'lpa' && (
-                  <p className="text-xs text-gray-500 mt-1 font-['Roboto']">
-                    Enter amount in lakhs (e.g., 5 for ₹5 LPA)
-                  </p>
-                )}
-                {jobData.salaryRange.format === 'absolute' && (
-                  <p className="text-xs text-gray-500 mt-1 font-['Roboto']">
-                    Enter full amount (e.g., 500000 for ₹5,00,000)
-                  </p>
-                )}
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
-                  Maximum Salary
-                  {jobData.salaryRange.format === 'lpa' && (
-                    <span className="text-xs text-blue-600 ml-1">(in Lakhs)</span>
-                  )}
-                </label>
-                <div className="flex">
-                  <select
-                    name="salaryRange.currency"
-                    value={jobData.salaryRange.currency}
-                    onChange={handleInputChange}
-                    className="px-3 py-3 border border-gray-300 border-r-0 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 bg-gray-50"
-                  >
-                    <option value="INR">₹</option>
-                    <option value="USD">$</option>
-                    <option value="EUR">€</option>
-                  </select>
-                  <input
-                    type="number"
-                    name="salaryRange.max"
-                    value={jobData.salaryRange.max}
-                    onChange={handleInputChange}
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
-                    placeholder={jobData.salaryRange.format === 'lpa' ? '8' : '800000'}
-                    step={jobData.salaryRange.format === 'lpa' ? '0.1' : '1000'}
-                  />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Maximum Salary</label>
+                  <div className="flex">
+                    <select
+                      name="salaryRange.currency"
+                      value={jobData.salaryRange.currency}
+                      onChange={handleInputChange}
+                      className="px-3 py-3 border border-gray-300 dark:border-gray-600 border-r-0 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700 bg-gray-50 dark:bg-gray-700 transition-colors duration-300"
+                    >
+                      <option value="INR">₹</option>
+                      <option value="USD">$</option>
+                      <option value="EUR">€</option>
+                    </select>
+                    <input
+                      type="number"
+                      name="salaryRange.max"
+                      value={jobData.salaryRange.max}
+                      onChange={handleInputChange}
+                      className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700"
+                      placeholder={jobData.salaryRange.format === 'lpa' ? '8' : '800000'}
+                      step={jobData.salaryRange.format === 'lpa' ? '0.1' : '1000'}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-['Roboto']">
+                    {jobData.salaryRange.format === 'lpa' ? 'Amount in Lakhs' : 'Full Amount'}
+                  </p>
                 </div>
-                {jobData.salaryRange.format === 'lpa' && (
-                  <p className="text-xs text-gray-500 mt-1 font-['Roboto']">
-                    Enter amount in lakhs (e.g., 8 for ₹8 LPA)
-                  </p>
-                )}
-                {jobData.salaryRange.format === 'absolute' && (
-                  <p className="text-xs text-gray-500 mt-1 font-['Roboto']">
-                    Enter full amount (e.g., 800000 for ₹8,00,000)
-                  </p>
-                )}
-              </div>
 
-              <div>
-                <label htmlFor="salaryRange.period" className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
-                  Period
-                </label>
-                <select
-                  id="salaryRange.period"
-                  name="salaryRange.period"
-                  value={jobData.salaryRange.period}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
-                >
-                  <option value="year">Per Year</option>
-                  <option value="month">Per Month</option>
-                  <option value="hour">Per Hour</option>
-                </select>
+                <div>
+                  <label htmlFor="salaryRange.period" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Period</label>
+                  <select
+                    id="salaryRange.period"
+                    name="salaryRange.period"
+                    value={jobData.salaryRange.period}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700 transition-colors duration-300"
+                  >
+                    <option value="year">Per Year</option>
+                    <option value="month">Per Month</option>
+                    <option value="hour">Per Hour</option>
+                  </select>
+                </div>
               </div>
 
               {/* Application Deadline */}
               <div>
-                <label htmlFor="applicationDeadline" className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+                <label htmlFor="applicationDeadline" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">
                   Application Deadline
                 </label>
                 <input
@@ -923,13 +890,13 @@ const HREditJob = () => {
                   name="applicationDeadline"
                   value={jobData.applicationDeadline}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700 transition-colors duration-300"
                 />
               </div>
 
               {/* Max Applicants */}
               <div>
-                <label htmlFor="maxApplicants" className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+                <label htmlFor="maxApplicants" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">
                   Maximum Applicants
                 </label>
                 <input
@@ -938,7 +905,7 @@ const HREditJob = () => {
                   name="maxApplicants"
                   value={jobData.maxApplicants}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-300"
                   placeholder="e.g., 100"
                 />
               </div>
@@ -946,44 +913,44 @@ const HREditJob = () => {
 
             {/* Application Settings */}
             <div className="mt-6 space-y-4">
-              <div className="flex items-center">
+              <div className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                <label htmlFor="resumeRequired" className="flex-1 text-sm font-medium text-gray-900 dark:text-white font-['Roboto']">
+                  Resume/CV required for application
+                </label>
                 <input
                   type="checkbox"
                   id="resumeRequired"
                   name="resumeRequired"
                   checked={jobData.resumeRequired}
                   onChange={handleInputChange}
-                  className="rounded border-gray-300 text-gray-600 focus:ring-gray-500 focus:ring-offset-0"
+                  className="rounded border-gray-300 dark:border-gray-600 text-black dark:text-white focus:ring-black dark:focus:ring-white focus:ring-offset-0 bg-white dark:bg-gray-800"
                 />
-                <label htmlFor="resumeRequired" className="ml-2 text-sm text-gray-900 font-['Roboto']">
-                  Resume/CV required for application
-                </label>
               </div>
 
-              <div className="flex items-center">
+              <div className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                <label htmlFor="allowMultipleApplications" className="flex-1 text-sm font-medium text-gray-900 dark:text-white font-['Roboto']">
+                  Allow multiple applications from same candidate
+                </label>
                 <input
                   type="checkbox"
                   id="allowMultipleApplications"
                   name="allowMultipleApplications"
                   checked={jobData.allowMultipleApplications}
                   onChange={handleInputChange}
-                  className="rounded border-gray-300 text-gray-600 focus:ring-gray-500 focus:ring-offset-0"
+                  className="rounded border-gray-300 dark:border-gray-600 text-black dark:text-white focus:ring-black dark:focus:ring-white focus:ring-offset-0 bg-white dark:bg-gray-800"
                 />
-                <label htmlFor="allowMultipleApplications" className="ml-2 text-sm text-gray-900 font-['Roboto']">
-                  Allow multiple applications from same candidate
-                </label>
               </div>
             </div>
           </div>
 
           {/* Interview Process */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-gray-900 font-['Open_Sans'] mb-6">Interview Process (Optional)</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-6 transition-colors duration-300">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white font-['Open_Sans'] mb-6 transition-colors duration-300">Interview Process (Optional)</h2>
             
             <div className="space-y-6">
               {/* Default Interview Rounds */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-3">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-3">
                   Default Interview Rounds
                 </label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -993,9 +960,9 @@ const HREditJob = () => {
                         type="checkbox"
                         checked={jobData.defaultInterviewRounds.includes(round)}
                         onChange={() => handleInterviewRoundChange(round)}
-                        className="rounded border-gray-300 text-gray-600 focus:ring-gray-500 focus:ring-offset-0"
+                        className="rounded border-gray-300 dark:border-gray-600 text-black dark:text-white focus:ring-black dark:focus:ring-white focus:ring-offset-0 bg-white dark:bg-gray-800"
                       />
-                      <span className="ml-2 text-sm text-gray-900 font-['Roboto']">{round}</span>
+                      <span className="ml-2 text-sm text-gray-900 dark:text-white font-['Roboto']">{round}</span>
                     </label>
                   ))}
                 </div>
@@ -1003,7 +970,7 @@ const HREditJob = () => {
 
               {/* Default Interviewer */}
               <div>
-                <label htmlFor="defaultInterviewer" className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
+                <label htmlFor="defaultInterviewer" className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">
                   Default Interviewer Email
                 </label>
                 <input
@@ -1012,7 +979,7 @@ const HREditJob = () => {
                   name="defaultInterviewer"
                   value={jobData.defaultInterviewer}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-300"
                   placeholder="interviewer@company.com"
                 />
               </div>
@@ -1020,11 +987,11 @@ const HREditJob = () => {
           </div>
 
           {/* Form Actions */}
-          <div className="flex items-center justify-between pt-6 border-t border-gray-200">
+          <div className="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
               onClick={() => navigate('/hr/jobs')}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium font-['Roboto'] hover:bg-gray-50 transition-colors"
+              className="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium font-['Roboto'] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               Cancel
             </button>
@@ -1033,7 +1000,7 @@ const HREditJob = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium font-['Roboto'] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                className="px-6 py-3 bg-gray-600 dark:bg-gray-700 hover:bg-gray-700 dark:hover:bg-gray-600 text-white rounded-lg font-medium font-['Roboto'] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
                 {isSubmitting ? (
                   <>
@@ -1049,8 +1016,8 @@ const HREditJob = () => {
                 <button
                   type="button"
                   onClick={(e) => handleSubmit(e, 'publish')}
-                  disabled={isSubmitting}
-                  className="px-6 py-3 bg-black hover:bg-gray-800 text-white rounded-lg font-medium font-['Roboto'] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isSubmitting || !validateForm().length === 0}
+                  className="px-6 py-3 bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-black rounded-lg font-medium font-['Roboto'] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Update & Publish
                 </button>

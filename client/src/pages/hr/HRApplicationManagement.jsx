@@ -333,15 +333,15 @@ const HRApplicationManagement = () => {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 font-['Open_Sans']">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white font-['Open_Sans'] transition-colors duration-300">
                 {pageType === 'filtered' ? 'Job Applications' : 'Application Management'}
               </h1>
               {pageType === 'filtered' && currentJobTitle && (
-                <h2 className="text-xl font-semibold text-gray-700 mt-1 font-['Open_Sans']">
+                <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mt-1 font-['Open_Sans'] transition-colors duration-300">
                   {currentJobTitle}
                 </h2>
               )}
-              <p className="mt-2 text-gray-600 font-['Roboto']">
+              <p className="mt-2 text-gray-600 dark:text-gray-400 font-['Roboto'] transition-colors duration-300">
                 {pageType === 'filtered' 
                   ? 'Applications for the selected job position' 
                   : 'Review and manage candidate applications'
@@ -352,7 +352,7 @@ const HRApplicationManagement = () => {
                   <Link 
                     // Corrected route path to show all applications
                     to="/hr/applications"
-                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium transition-colors duration-300"
                   >
                     ← View all applications
                   </Link>
@@ -363,7 +363,7 @@ const HRApplicationManagement = () => {
               <button
                 onClick={handleExportRequest}
                 disabled={loading || applications.length === 0}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors duration-300 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -374,13 +374,13 @@ const HRApplicationManagement = () => {
           </div>
         </div>
         {/* Filters and Search */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 mb-6 transition-colors duration-300">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Search */}
             <div className="md:col-span-2">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </div>
@@ -397,7 +397,7 @@ const HRApplicationManagement = () => {
                     const length = e.target.value.length;
                     e.target.setSelectionRange(length, length);
                   }}
-                  className="block w-full pl-10 pr-12 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 disabled:opacity-50"
+                  className="block w-full pl-10 pr-12 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 disabled:opacity-50 transition-colors duration-300"
                   placeholder="Search candidates, jobs, or skills... (Ctrl+F to focus)"
                   disabled={false} // Never disable the search input to maintain interactivity
                   autoComplete="off"
@@ -405,13 +405,13 @@ const HRApplicationManagement = () => {
                 {/* Enhanced search status indicator */}
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                   {searchInput !== searchTerm && searchInput.length > 0 ? (
-                    <div className="flex items-center text-xs text-gray-600">
-                      <div className="animate-spin rounded-full h-3 w-3 border-b border-gray-400 mr-1"></div>
+                    <div className="flex items-center text-xs text-gray-600 dark:text-gray-400">
+                      <div className="animate-spin rounded-full h-3 w-3 border-b border-gray-400 dark:border-gray-500 mr-1"></div>
                       <span className="font-medium">Typing...</span>
                     </div>
                   ) : isSearching ? (
-                    <div className="flex items-center text-xs text-gray-600">
-                      <div className="animate-spin rounded-full h-3 w-3 border-b border-gray-600 mr-1"></div>
+                    <div className="flex items-center text-xs text-gray-600 dark:text-gray-400">
+                      <div className="animate-spin rounded-full h-3 w-3 border-b border-gray-600 dark:border-gray-400 mr-1"></div>
                       <span className="font-medium">Searching...</span>
                     </div>
                   ): null}
@@ -425,8 +425,8 @@ const HRApplicationManagement = () => {
                 value={selectedJob}
                 onChange={(e) => setSelectedJob(e.target.value)}
                 disabled={loading || loadingJobs || pageType === 'filtered'}
-                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed ${
-                  pageType === 'filtered' ? 'bg-blue-50 border-blue-300' : ''
+                className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-300 ${
+                  pageType === 'filtered' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700' : ''
                 }`}
               >
                 <option value="all">All Jobs</option>
@@ -435,7 +435,7 @@ const HRApplicationManagement = () => {
                 ))}
               </select>
               {pageType === 'filtered' && (
-                <p className="text-xs text-blue-600 mt-1">Filter set from job selection</p>
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 transition-colors duration-300">Filter set from job selection</p>
               )}
             </div>
 
@@ -445,7 +445,7 @@ const HRApplicationManagement = () => {
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 disabled={loading}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-300"
               >
                 <option value="all">All Status</option>
                 <option value="submitted">Submitted</option>
@@ -459,12 +459,12 @@ const HRApplicationManagement = () => {
 
           {/* Sort Options */}
           <div className="flex items-center space-x-4 mt-4">
-            <span className="text-sm font-medium text-gray-700 font-['Roboto']">Sort by:</span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] transition-colors duration-300">Sort by:</span>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
               disabled={loading}
-              className="px-3 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-300"
             >
               <option value="appliedDate">Applied Date</option>
               <option value="resumeScore">Resume Score</option>
@@ -473,7 +473,7 @@ const HRApplicationManagement = () => {
             <button
               onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
               disabled={loading}
-              className="text-gray-600 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className={`w-4 h-4 transform ${sortOrder === 'asc' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -484,16 +484,16 @@ const HRApplicationManagement = () => {
 
         {/* Error Display */}
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 transition-colors duration-300">
             <div className="flex">
               <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-5 w-5 text-red-400 dark:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800 font-['Roboto']">Error</h3>
-                <div className="mt-2 text-sm text-red-700 font-['Roboto']">{error}</div>
+                <h3 className="text-sm font-medium text-red-800 dark:text-red-400 font-['Roboto'] transition-colors duration-300">Error</h3>
+                <div className="mt-2 text-sm text-red-700 dark:text-red-300 font-['Roboto'] transition-colors duration-300">{error}</div>
                 <div className="mt-4">
                   <button
                     onClick={() => {
@@ -532,60 +532,60 @@ const HRApplicationManagement = () => {
         {loading ? (
           <SkeletonTable rows={10} columns={7} />
         ) : (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors duration-300">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-['Roboto']">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider font-['Roboto'] transition-colors duration-300">
                     Candidate
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-['Roboto']">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider font-['Roboto'] transition-colors duration-300">
                     Job Position
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-['Roboto']">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider font-['Roboto'] transition-colors duration-300">
                     Applied Date
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-['Roboto']">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider font-['Roboto'] transition-colors duration-300">
                     Resume Score
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-['Roboto']">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider font-['Roboto'] transition-colors duration-300">
                     Skills
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-['Roboto']">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider font-['Roboto'] transition-colors duration-300">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider font-['Roboto']">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider font-['Roboto'] transition-colors duration-300">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 transition-colors duration-300">
                 {applications.map((application) => (
-                  <tr key={application.id} className="hover:bg-gray-50">
+                  <tr key={application.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-300">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                          <span className="text-sm font-medium text-gray-600 font-['Open_Sans']">
+                        <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center transition-colors duration-300">
+                          <span className="text-sm font-medium text-gray-600 dark:text-gray-300 font-['Open_Sans'] transition-colors duration-300">
                             {application.candidate.name.split(' ').map(n => n[0]).join('')}
                           </span>
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900 font-['Open_Sans']">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white font-['Open_Sans'] transition-colors duration-300">
                             {application.candidate.name}
                           </div>
-                          <div className="text-sm text-gray-500 font-['Roboto']">
+                          <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto'] transition-colors duration-300">
                             {application.experience}
                           </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 font-['Roboto']">{application.job.title}</div>
-                      <div className="text-sm text-gray-500 font-['Roboto']">{application.job.department}</div>
+                      <div className="text-sm text-gray-900 dark:text-white font-['Roboto'] transition-colors duration-300">{application.job.title}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto'] transition-colors duration-300">{application.job.department}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500 font-['Roboto']">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto'] transition-colors duration-300">
                         {new Date(application.appliedDate).toLocaleDateString()}
                       </div>
                     </td>
@@ -597,12 +597,12 @@ const HRApplicationManagement = () => {
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap gap-1 max-w-xs">
                         {application.skills.slice(0, 3).map((skill, index) => (
-                          <span key={index} className="inline-flex px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-full">
+                          <span key={index} className="inline-flex px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full transition-colors duration-300">
                             {skill}
                           </span>
                         ))}
                         {application.skills.length > 3 && (
-                          <span className="inline-flex px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
+                          <span className="inline-flex px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full transition-colors duration-300">
                             +{application.skills.length - 3}
                           </span>
                         )}
@@ -617,7 +617,7 @@ const HRApplicationManagement = () => {
                       <div className="flex items-center justify-end space-x-2">
                         <button
                           onClick={() => handleApplicationAction('view', application.id)}
-                          className="text-gray-600 hover:text-gray-900 transition-colors"
+                          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors duration-300"
                           title="View Details"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -629,7 +629,7 @@ const HRApplicationManagement = () => {
                           <>
                             <button
                               onClick={() => handleApplicationAction('shortlist', application.id)}
-                              className="text-gray-600 hover:text-gray-900 transition-colors"
+                              className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors duration-300"
                               title="Shortlist"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -638,7 +638,7 @@ const HRApplicationManagement = () => {
                             </button>
                             <button
                               onClick={() => handleApplicationAction('reject', application.id)}
-                              className="text-gray-600 hover:text-gray-900 transition-colors"
+                              className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors duration-300"
                               title="Reject"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -650,7 +650,7 @@ const HRApplicationManagement = () => {
                         {application.status === 'shortlisted' && (
                           <button
                             onClick={() => handleApplicationAction('schedule', application.id)}
-                            className="text-gray-600 hover:text-gray-900 transition-colors"
+                            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors duration-300"
                             title="Schedule Interview"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -668,26 +668,26 @@ const HRApplicationManagement = () => {
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
-            <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+            <div className="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6 transition-colors duration-300">
               <div className="flex-1 flex justify-between sm:hidden">
                 <button
                   onClick={() => setCurrentPage(currentPage - 1)}
                   disabled={!pagination.hasPrevPage || loading}
-                  className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-300"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => setCurrentPage(currentPage + 1)}
                   disabled={!pagination.hasNextPage || loading}
-                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-300"
                 >
                   Next
                 </button>
               </div>
               <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm text-gray-700 font-['Roboto']">
+                  <p className="text-sm text-gray-700 dark:text-gray-300 font-['Roboto'] transition-colors duration-300">
                     Showing <span className="font-medium">{((currentPage - 1) * 20) + 1}</span> to{' '}
                     <span className="font-medium">
                       {Math.min(currentPage * 20, pagination.totalApplications)}
@@ -700,7 +700,7 @@ const HRApplicationManagement = () => {
                     <button
                       onClick={() => setCurrentPage(currentPage - 1)}
                       disabled={!pagination.hasPrevPage || loading}
-                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-300"
                     >
                       <span className="sr-only">Previous</span>
                       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -726,10 +726,10 @@ const HRApplicationManagement = () => {
                           key={page}
                           onClick={() => setCurrentPage(page)}
                           disabled={loading}
-                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium transition-colors duration-300 ${
                             page === currentPage
-                              ? 'z-10 bg-black border-black text-white'
-                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                              ? 'z-10 bg-black dark:bg-white border-black dark:border-white text-white dark:text-black'
+                              : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600'
                           } ${loading ? 'disabled:opacity-50 disabled:cursor-not-allowed' : ''}`}
                         >
                           {page}
@@ -740,7 +740,7 @@ const HRApplicationManagement = () => {
                     <button
                       onClick={() => setCurrentPage(currentPage + 1)}
                       disabled={!pagination.hasNextPage || loading}
-                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-300"
                     >
                       <span className="sr-only">Next</span>
                       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -771,26 +771,26 @@ const HRApplicationManagement = () => {
 
       {/* Application Details Modal */}
       {showApplicationModal && selectedApplication && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-3/4 max-w-4xl shadow-lg rounded-lg bg-white">
+          <div className="fixed inset-0 bg-gray-600 dark:bg-black/70 bg-opacity-50 overflow-y-auto h-full w-full z-50 transition-colors duration-300">
+            <div className="relative top-20 mx-auto p-5 border border-gray-200 dark:border-gray-700 w-3/4 max-w-4xl shadow-lg rounded-lg bg-white dark:bg-gray-800 transition-colors duration-300">
             <div className="mt-3">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h3 className="text-2xl font-semibold text-gray-900 font-['Open_Sans']">
+                  <h3 className="text-2xl font-semibold text-gray-900 dark:text-white font-['Open_Sans'] transition-colors duration-300">
                     {selectedApplication.candidate.name}
                   </h3>
                   <div className="flex items-center mt-2">
                     <span className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${getStatusColor(selectedApplication.status)}`}>
                       {formatStatus(selectedApplication.status)}
                     </span>
-                    <span className="ml-3 text-sm text-gray-500 font-['Roboto']">
+                    <span className="ml-3 text-sm text-gray-500 dark:text-gray-400 font-['Roboto'] transition-colors duration-300">
                       Applied on {new Date(selectedApplication.appliedDate || selectedApplication.createdAt).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowApplicationModal(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-300"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -800,23 +800,23 @@ const HRApplicationManagement = () => {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 font-['Roboto'] mb-2">Contact Information</h4>
-                  <p className="text-gray-900 font-['Roboto']">{selectedApplication.candidate.email}</p>
-                  <p className="text-gray-900 font-['Roboto']">
+                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 font-['Roboto'] mb-2 transition-colors duration-300">Contact Information</h4>
+                  <p className="text-gray-900 dark:text-white font-['Roboto'] transition-colors duration-300">{selectedApplication.candidate.email}</p>
+                  <p className="text-gray-900 dark:text-white font-['Roboto'] transition-colors duration-300">
                     {selectedApplication.candidate.phone || 'Phone not provided'}
                   </p>
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 font-['Roboto'] mb-2">Job Applied For</h4>
-                  <p className="text-gray-900 font-['Roboto']">{selectedApplication.job.title}</p>
-                  <p className="text-gray-600 font-['Roboto']">{selectedApplication.job.department}</p>
+                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 font-['Roboto'] mb-2 transition-colors duration-300">Job Applied For</h4>
+                  <p className="text-gray-900 dark:text-white font-['Roboto'] transition-colors duration-300">{selectedApplication.job.title}</p>
+                  <p className="text-gray-600 dark:text-gray-400 font-['Roboto'] transition-colors duration-300">{selectedApplication.job.department}</p>
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 font-['Roboto'] mb-2">Experience</h4>
-                  <p className="text-gray-900 font-['Roboto']">{selectedApplication.experience}</p>
+                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 font-['Roboto'] mb-2 transition-colors duration-300">Experience</h4>
+                  <p className="text-gray-900 dark:text-white font-['Roboto'] transition-colors duration-300">{selectedApplication.experience}</p>
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 font-['Roboto'] mb-2">Resume Score</h4>
+                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 font-['Roboto'] mb-2 transition-colors duration-300">Resume Score</h4>
                   <p className={`text-lg font-['Roboto'] ${getScoreColor(selectedApplication.resumeScore)}`}>
                     {selectedApplication.resumeScore}/10
                   </p>
@@ -824,28 +824,28 @@ const HRApplicationManagement = () => {
               </div>
 
               <div className="mb-6">
-                <h4 className="text-sm font-medium text-gray-500 font-['Roboto'] mb-2">Skills</h4>
+                <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 font-['Roboto'] mb-2 transition-colors duration-300">Skills</h4>
                 <div className="flex flex-wrap gap-2">
                   {selectedApplication.skills && selectedApplication.skills.length > 0 ? (
                     selectedApplication.skills.map((skill, index) => (
-                      <span key={index} className="inline-flex px-3 py-1 text-sm bg-gray-100 text-gray-800 rounded-full">
+                      <span key={index} className="inline-flex px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full transition-colors duration-300">
                         {skill}
                       </span>
                     ))
                   ) : (
-                    <span className="text-gray-500 font-['Roboto'] text-sm">No skills information available</span>
+                    <span className="text-gray-500 dark:text-gray-400 font-['Roboto'] text-sm transition-colors duration-300">No skills information available</span>
                   )}
                 </div>
               </div>
 
               <div className="mb-6">
-                <h4 className="text-sm font-medium text-gray-500 font-['Roboto'] mb-4">AI Analysis</h4>
+                <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 font-['Roboto'] mb-4 transition-colors duration-300">AI Analysis</h4>
                 <div className="grid grid-cols-3 gap-4 mb-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900 font-['Open_Sans']">
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white font-['Open_Sans'] transition-colors duration-300">
                       {selectedApplication.aiAnalysis.skillsMatch}%
                     </div>
-                    <div className="text-sm text-gray-500 font-['Roboto']">Skills Match</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto'] transition-colors duration-300">Skills Match</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-gray-900 font-['Open_Sans']">

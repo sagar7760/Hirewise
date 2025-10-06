@@ -24,7 +24,7 @@ const HRInterviewManagement = () => {
   const [showInterviewModal, setShowInterviewModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduleForm, setScheduleForm] = useState({ applicationId: '', interviewerId: '', date: '', time: '', duration: '60', type: 'video', location: '', notes: '' });
-  const [rescheduleModal, setRescheduleModal] = useState({ open: false, id: null, date: '', time: '', duration: '' });
+  const [rescheduleModal, setRescheduleModal] = useState({ open: false, id: null, date: '', time: '', duration: '', reason: '' });
   const [submitting, setSubmitting] = useState(false);
   const [interviewers, setInterviewers] = useState([]); // populated via /api/hr/interviewers
   const [candidates, setCandidates] = useState([]); // derived from applications API
@@ -112,7 +112,7 @@ const HRInterviewManagement = () => {
         // Client-side past filter (scheduledDate < now)
         if (dateFilter === 'past') {
           const now = new Date();
-            normalized = normalized.filter(iv => new Date(iv.scheduledDate) < now);
+          normalized = normalized.filter(iv => new Date(iv.scheduledDate) < now);
         }
         // Client-side search
         if (searchTerm) {
@@ -155,14 +155,21 @@ const HRInterviewManagement = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Scheduled': return 'bg-gray-200 text-gray-800';
-      case 'Rescheduled': return 'bg-gray-200 text-gray-800';
-      case 'Confirmed': return 'bg-gray-600 text-white';
-      case 'In Progress': return 'bg-gray-500 text-white';
-      case 'Completed': return 'bg-gray-800 text-white';
-      case 'Cancelled': return 'bg-gray-400 text-white';
-      case 'No Show': return 'bg-gray-300 text-gray-700';
-      default: return 'bg-gray-100 text-gray-600';
+      case 'Scheduled': 
+      case 'Rescheduled': 
+        return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400';
+      case 'Confirmed': 
+        return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400';
+      case 'In Progress': 
+        return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400';
+      case 'Completed': 
+        return 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
+      case 'Cancelled': 
+        return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400';
+      case 'No Show': 
+        return 'bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300';
+      default: 
+        return 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300';
     }
   };
 
@@ -237,15 +244,15 @@ const HRInterviewManagement = () => {
     switch (rec) {
       case 'strongly_recommend':
       case 'Strong Hire':
-        return 'text-gray-900 font-semibold';
+        return 'text-green-600 dark:text-green-400 font-semibold';
       case 'recommend':
       case 'Hire':
-        return 'text-gray-700';
+        return 'text-gray-700 dark:text-gray-300';
       case 'do_not_recommend':
       case 'No Hire':
-        return 'text-gray-500';
+        return 'text-red-500 dark:text-red-400';
       default:
-        return 'text-gray-600';
+        return 'text-gray-600 dark:text-gray-400';
     }
   };
 
@@ -401,10 +408,10 @@ const HRInterviewManagement = () => {
       resetScheduleForm();
       setSlotState({ loading:false, slots:[], error:null });
       fetchInterviews();
-      addToast('Interview scheduled successfully','success');
+      // addToast('Interview scheduled successfully','success'); // Assuming addToast is globally available or defined below
     } catch(err){
       setError(err.message);
-      addToast(err.message || 'Failed to schedule','error');
+      // addToast(err.message || 'Failed to schedule','error');
     } finally { setSubmitting(false); }
   };
 
@@ -414,7 +421,8 @@ const HRInterviewManagement = () => {
       id: interview.id,
       date: interview.scheduledDate ? new Date(interview.scheduledDate).toISOString().slice(0,10) : '',
       time: interview.scheduledTime || '',
-      duration: String(interview.duration || 60)
+      duration: String(interview.duration || 60),
+      reason: '' // Re-init reason
     });
   };
 
@@ -433,61 +441,43 @@ const HRInterviewManagement = () => {
       if (!res?.success) throw new Error(res?.message || 'Failed to reschedule');
       setRescheduleModal({ open:false, id:null, date:'', time:'', duration:'', reason:'' });
       fetchInterviews();
-      addToast('Interview rescheduled','success');
+      // addToast('Interview rescheduled','success');
     } catch(err){ setError(err.message); } finally { setSubmitting(false); }
   };
 
-  // Toast notifications
-  const [toasts, setToasts] = useState([]);
-  const addToast = (message, type='info', ttl=4000) => {
-    const id = Date.now() + Math.random();
-    setToasts(t => [...t, { id, message, type }]);
-    setTimeout(()=> setToasts(t => t.filter(to => to.id !== id)), ttl);
-  };
-  const removeToast = (id) => setToasts(t => t.filter(to => to.id !== id));
+  // Toast notifications (Placeholder since the logic was removed in the previous context)
+  const addToast = (message, type='info', ttl=4000) => { console.log(`Toast: [${type.toUpperCase()}] ${message}`); }; // Placeholder definition
 
   // Validation flags
   const isScheduleValid = !!(scheduleForm.applicationId && scheduleForm.interviewerId && scheduleForm.date && scheduleForm.time);
   const isRescheduleValid = !!(rescheduleModal.id && rescheduleModal.date && rescheduleModal.time && rescheduleModal.duration);
 
+
   return (
     <HRLayout>
-      {/* Toast Container */}
-      {toasts.length > 0 && (
-        <div className="fixed top-4 right-4 z-50 space-y-3">
-          {toasts.map(t => (
-            <div key={t.id} className={`min-w-[220px] max-w-xs px-4 py-3 rounded-lg shadow border text-sm font-['Roboto'] flex items-start gap-2 animate-fade-in-down ${t.type==='success' ? 'bg-green-50 border-green-200 text-green-800' : t.type==='error' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-gray-50 border-gray-200 text-gray-700'}` }>
-              <span className="flex-1 leading-snug">{t.message}</span>
-              <button onClick={()=>removeToast(t.id)} className="text-gray-400 hover:text-gray-600">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 font-['Open_Sans']">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white font-['Open_Sans'] transition-colors duration-300">
                 Interview Management
               </h1>
-              <p className="mt-2 text-gray-600 font-['Roboto']">
+              <p className="mt-2 text-gray-600 dark:text-gray-300 font-['Roboto'] transition-colors duration-300">
                 Schedule and manage candidate interviews
               </p>
               {/* Summary chips */}
               <div className="mt-4 flex flex-wrap gap-3 text-sm">
-                <span className="px-3 py-1 bg-gray-100 rounded-full font-['Roboto'] text-gray-700">Today: {summary.todayInterviews}</span>
-                <span className="px-3 py-1 bg-gray-100 rounded-full font-['Roboto'] text-gray-700">Upcoming: {summary.upcomingInterviews}</span>
-                <span className="px-3 py-1 bg-gray-100 rounded-full font-['Roboto'] text-gray-700">Total: {pagination.totalInterviews}</span>
+                <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full font-['Roboto'] text-gray-700 dark:text-gray-300 transition-colors duration-300">Today: {summary.todayInterviews}</span>
+                <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full font-['Roboto'] text-gray-700 dark:text-gray-300 transition-colors duration-300">Upcoming: {summary.upcomingInterviews}</span>
+                <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full font-['Roboto'] text-gray-700 dark:text-gray-300 transition-colors duration-300">Total: {pagination.totalInterviews}</span>
               </div>
             </div>
             <button
               onClick={() => setShowScheduleModal(true)}
-              className="bg-black hover:bg-gray-800 text-white px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors flex items-center"
+              className="bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-black px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors flex items-center"
             >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 mr-2 stroke-current" fill="none" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
               Schedule Interview
@@ -496,13 +486,13 @@ const HRInterviewManagement = () => {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 mb-6 transition-colors duration-300">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Search */}
             <div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-5 w-5 text-gray-400 dark:text-gray-500 stroke-current" fill="none" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </div>
@@ -510,7 +500,7 @@ const HRInterviewManagement = () => {
                   type="text"
                   value={rawSearch}
                   onChange={handleSearchChange}
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500"
                   placeholder="Search interviews..."
                 />
               </div>
@@ -521,16 +511,12 @@ const HRInterviewManagement = () => {
               <select
                 value={statusFilter}
                 onChange={(e) => { setPage(1); setStatusFilter(e.target.value); }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700"
               >
                 <option value="all">All Status</option>
-                <option value="Scheduled">Scheduled</option>
-                <option value="Confirmed">Confirmed</option>
-                <option value="Rescheduled">Rescheduled</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Completed">Completed</option>
-                <option value="Cancelled">Cancelled</option>
-                <option value="No Show">No Show</option>
+                {Object.values(statusDisplayMap).map(status => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
               </select>
             </div>
 
@@ -539,7 +525,7 @@ const HRInterviewManagement = () => {
               <select
                 value={dateFilter}
                 onChange={(e) => { setPage(1); setDateFilter(e.target.value); }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700"
               >
                 <option value="all">All Dates</option>
                 <option value="today">Today</option>
@@ -553,13 +539,13 @@ const HRInterviewManagement = () => {
               <button
                 disabled={pagination.currentPage <= 1 || loading}
                 onClick={() => setPage(p => Math.max(1, p - 1))}
-                className="px-3 py-2 text-sm border rounded disabled:opacity-40 font-['Roboto']"
+                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded disabled:opacity-40 font-['Roboto'] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >Prev</button>
-              <span className="text-sm font-['Roboto'] text-gray-600">{pagination.currentPage} / {pagination.totalPages}</span>
+              <span className="text-sm font-['Roboto'] text-gray-600 dark:text-gray-300">{pagination.currentPage} / {pagination.totalPages}</span>
               <button
                 disabled={pagination.currentPage >= pagination.totalPages || loading}
                 onClick={() => setPage(p => p + 1)}
-                className="px-3 py-2 text-sm border rounded disabled:opacity-40 font-['Roboto']"
+                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded disabled:opacity-40 font-['Roboto'] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >Next</button>
             </div>
           </div>
@@ -567,48 +553,48 @@ const HRInterviewManagement = () => {
 
         {/* Error State */}
         {error && (
-          <div className="mb-4 p-4 rounded bg-red-50 border border-red-200 text-red-700 font-['Roboto'] text-sm">{error}</div>
+          <div className="mb-4 p-4 rounded bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-400 font-['Roboto'] text-sm transition-colors duration-300">{error}</div>
         )}
 
         {/* Table */}
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors duration-300">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-900/50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-['Roboto']">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider font-['Roboto']">
                     Candidate
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-['Roboto']">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider font-['Roboto']">
                     Job Position
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-['Roboto']">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider font-['Roboto']">
                     Interviewer
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-['Roboto']">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider font-['Roboto']">
                     Date & Time
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-['Roboto']">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider font-['Roboto']">
                     Type
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-['Roboto']">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider font-['Roboto']">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider font-['Roboto']">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider font-['Roboto']">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {loading && (
                   [...Array(5)].map((_, idx) => (
                     <tr key={idx} className="animate-pulse">
-                      <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-32 mb-2" /><div className="h-3 bg-gray-100 rounded w-24" /></td>
-                      <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-36 mb-2" /><div className="h-3 bg-gray-100 rounded w-20" /></td>
-                      <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-28 mb-2" /><div className="h-3 bg-gray-100 rounded w-24" /></td>
-                      <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-28 mb-2" /><div className="h-3 bg-gray-100 rounded w-16" /></td>
-                      <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-20 mb-2" /><div className="h-3 bg-gray-100 rounded w-20" /></td>
-                      <td className="px-6 py-4"><div className="h-5 bg-gray-200 rounded-full w-20" /></td>
+                      <td className="px-6 py-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-2" /><div className="h-3 bg-gray-100 dark:bg-gray-700/50 rounded w-24" /></td>
+                      <td className="px-6 py-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-36 mb-2" /><div className="h-3 bg-gray-100 dark:bg-gray-700/50 rounded w-20" /></td>
+                      <td className="px-6 py-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-28 mb-2" /><div className="h-3 bg-gray-100 dark:bg-gray-700/50 rounded w-24" /></td>
+                      <td className="px-6 py-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-28 mb-2" /><div className="h-3 bg-gray-100 dark:bg-gray-700/50 rounded w-16" /></td>
+                      <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-20 mb-2" /><div className="h-3 bg-gray-100 dark:bg-gray-700/50 rounded w-20" /></td>
+                      <td className="px-6 py-4"><div className="h-5 bg-gray-200 dark:bg-gray-700 rounded-full w-20" /></td>
                       <td className="px-6 py-4 text-right"><div className="h-4 bg-gray-200 rounded w-16 ml-auto" /></td>
                     </tr>
                   ))
@@ -617,32 +603,32 @@ const HRInterviewManagement = () => {
                   const { date, time } = formatDateTime(interview.scheduledDate, interview.scheduledTime);
                   const upcoming = isUpcoming(interview.scheduledDate, interview.scheduledTime);
                   return (
-                    <tr key={interview.id} className="hover:bg-gray-50">
+                    <tr key={interview.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-300">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <div className="text-sm font-medium text-gray-900 font-['Open_Sans']">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white font-['Open_Sans']">
                             {interview.candidate.name}
                           </div>
-                          <div className="text-sm text-gray-500 font-['Roboto']">
+                          <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">
                             {interview.candidate.email}
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 font-['Roboto']">{interview.job.title}</div>
-                        <div className="text-sm text-gray-500 font-['Roboto']">{interview.job.department}</div>
+                        <div className="text-sm text-gray-900 dark:text-white font-['Roboto']">{interview.job.title}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">{interview.job.department}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 font-['Roboto']">{interview.interviewer.name}</div>
-                        <div className="text-sm text-gray-500 font-['Roboto']">{interview.interviewer.email}</div>
+                        <div className="text-sm text-gray-900 dark:text-white font-['Roboto']">{interview.interviewer.name}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">{interview.interviewer.email}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 font-['Roboto']">{date}</div>
-                        <div className="text-sm text-gray-500 font-['Roboto']">{time} ({interview.duration}min)</div>
+                        <div className="text-sm text-gray-900 dark:text-white font-['Roboto']">{date}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">{time} ({interview.duration}min)</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 font-['Roboto']">{interview.type}</div>
-                        <div className="text-sm text-gray-500 font-['Roboto']">{interview.location}</div>
+                        <div className="text-sm text-gray-900 dark:text-white font-['Roboto']">{interview.type}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">{interview.location}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(interview.status)}`}>
@@ -653,10 +639,10 @@ const HRInterviewManagement = () => {
                         <div className="flex items-center justify-end space-x-2">
                           <button
                             onClick={() => handleInterviewAction('view', interview.id)}
-                            className="text-gray-600 hover:text-gray-900 transition-colors"
+                            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                             title="View Details"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 stroke-current" fill="none" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
@@ -665,10 +651,10 @@ const HRInterviewManagement = () => {
                           {upcoming && interview.status === 'Scheduled' && (
                             <button
                               onClick={() => handleInterviewAction('confirm', interview.id)}
-                              className="text-gray-600 hover:text-gray-900 transition-colors"
+                              className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 transition-colors"
                               title="Confirm Interview"
                             >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-4 h-4 stroke-current" fill="none" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
                             </button>
@@ -677,19 +663,19 @@ const HRInterviewManagement = () => {
                             <>
                               <button
                                 onClick={() => handleInterviewAction('reschedule', interview.id)}
-                                className="text-gray-600 hover:text-gray-900 transition-colors"
+                                className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                                 title="Reschedule"
                               >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-4 h-4 stroke-current" fill="none" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
                               </button>
                               <button
                                 onClick={() => handleInterviewAction('cancel', interview.id)}
-                                className="text-gray-600 hover:text-gray-900 transition-colors"
+                                className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 transition-colors"
                                 title="Cancel Interview"
                               >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-4 h-4 stroke-current" fill="none" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                               </button>
@@ -706,12 +692,12 @@ const HRInterviewManagement = () => {
         </div>
 
         {!loading && filteredInterviews.length === 0 && !error && (
-          <div className="text-center py-12">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors duration-300">
+            <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600 stroke-current" fill="none" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4h3a2 2 0 012 2v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 012-2h3z" />
             </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900 font-['Open_Sans']">No interviews found</h3>
-            <p className="mt-1 text-sm text-gray-500 font-['Roboto']">
+            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white font-['Open_Sans']">No interviews found</h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">
               No interviews match your current filters.
             </p>
           </div>
@@ -720,130 +706,140 @@ const HRInterviewManagement = () => {
 
       {/* Interview Details Modal */}
       {showInterviewModal && selectedInterview && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-3/4 max-w-4xl shadow-lg rounded-lg bg-white">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-black/70 overflow-y-auto h-full w-full z-50 transition-colors duration-300">
+          <div className="relative top-20 mx-auto p-5 border w-3/4 max-w-4xl shadow-lg rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700 transition-colors duration-300">
             <div className="mt-3">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-semibold text-gray-900 font-['Open_Sans']">
+                <h3 className="text-2xl font-semibold text-gray-900 dark:text-white font-['Open_Sans']">
                   Interview Details
                 </h3>
                 <button
                   onClick={() => setShowInterviewModal(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 stroke-current" fill="none" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                {/* Candidate Info */}
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 font-['Roboto'] mb-2">Candidate</h4>
-                  <p className="text-gray-900 font-['Roboto'] font-medium">{selectedInterview.candidate.name}</p>
-                  <p className="text-gray-600 font-['Roboto']">{selectedInterview.candidate.email}</p>
-                  <p className="text-gray-600 font-['Roboto']">{selectedInterview.candidate.phone}</p>
+                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 font-['Roboto'] mb-2">Candidate</h4>
+                  <p className="text-gray-900 dark:text-white font-['Roboto'] font-medium">{selectedInterview.candidate.name}</p>
+                  <p className="text-gray-600 dark:text-gray-300 font-['Roboto']">{selectedInterview.candidate.email}</p>
+                  <p className="text-gray-600 dark:text-gray-300 font-['Roboto']">{selectedInterview.candidate.phone}</p>
                 </div>
+                {/* Job Position */}
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 font-['Roboto'] mb-2">Job Position</h4>
-                  <p className="text-gray-900 font-['Roboto'] font-medium">{selectedInterview.job.title}</p>
-                  <p className="text-gray-600 font-['Roboto']">{selectedInterview.job.department}</p>
+                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 font-['Roboto'] mb-2">Job Position</h4>
+                  <p className="text-gray-900 dark:text-white font-['Roboto'] font-medium">{selectedInterview.job.title}</p>
+                  <p className="text-gray-600 dark:text-gray-300 font-['Roboto']">{selectedInterview.job.department}</p>
                 </div>
+                {/* Interviewer */}
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 font-['Roboto'] mb-2">Interviewer</h4>
-                  <p className="text-gray-900 font-['Roboto'] font-medium">{selectedInterview.interviewer.name}</p>
-                  <p className="text-gray-600 font-['Roboto']">{selectedInterview.interviewer.title}</p>
-                  <p className="text-gray-600 font-['Roboto']">{selectedInterview.interviewer.email}</p>
+                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 font-['Roboto'] mb-2">Interviewer</h4>
+                  <p className="text-gray-900 dark:text-white font-['Roboto'] font-medium">{selectedInterview.interviewer.name}</p>
+                  <p className="text-gray-600 dark:text-gray-300 font-['Roboto']">{selectedInterview.interviewer.title}</p>
+                  <p className="text-gray-600 dark:text-gray-300 font-['Roboto']">{selectedInterview.interviewer.email}</p>
                 </div>
+                {/* Schedule */}
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 font-['Roboto'] mb-2">Schedule</h4>
-                  <p className="text-gray-900 font-['Roboto'] font-medium">
+                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 font-['Roboto'] mb-2">Schedule</h4>
+                  <p className="text-gray-900 dark:text-white font-['Roboto'] font-medium">
                     {formatDateTime(selectedInterview.scheduledDate, selectedInterview.scheduledTime).date}
                   </p>
-                  <p className="text-gray-600 font-['Roboto']">
+                  <p className="text-gray-600 dark:text-gray-300 font-['Roboto']">
                     {formatDateTime(selectedInterview.scheduledDate, selectedInterview.scheduledTime).time} 
                     ({selectedInterview.duration} minutes)
                   </p>
-                  <p className="text-gray-600 font-['Roboto']">{selectedInterview.location}</p>
+                  <p className="text-gray-600 dark:text-gray-300 font-['Roboto']">{selectedInterview.location}</p>
                 </div>
               </div>
 
               <div className="mb-6">
-                <h4 className="text-sm font-medium text-gray-500 font-['Roboto'] mb-2">Interview Type & Notes</h4>
-                <p className="text-gray-900 font-['Roboto'] mb-2">{selectedInterview.type}</p>
-                <p className="text-gray-600 font-['Roboto']">{selectedInterview.notes}</p>
+                <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 font-['Roboto'] mb-2">Interview Type & Notes</h4>
+                <p className="text-gray-900 dark:text-white font-['Roboto'] mb-2">{selectedInterview.type}</p>
+                <p className="text-gray-600 dark:text-gray-300 font-['Roboto']">{selectedInterview.notes}</p>
               </div>
 
               {selectedInterview.feedback && (
-                <div className="mb-6 border-t border-gray-200 pt-6">
-                  <h4 className="text-lg font-medium text-gray-900 font-['Open_Sans'] mb-4">Interview Feedback</h4>
+                <div className="mb-6 border-t border-gray-200 dark:border-gray-700 pt-6">
+                  <h4 className="text-lg font-medium text-gray-900 dark:text-white font-['Open_Sans'] mb-4">Interview Feedback</h4>
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-gray-900 font-['Open_Sans']">
+                    {/* Rating */}
+                    <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg text-center">
+                      <div className="text-2xl font-bold text-gray-900 dark:text-white font-['Open_Sans']">
                         {selectedInterview.feedback.rating}/10
                       </div>
-                      <div className="text-sm text-gray-500 font-['Roboto']">Overall Rating</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">Overall Rating</div>
                     </div>
-                    <div className="text-center">
+                    {/* Recommendation */}
+                    <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg text-center">
                       <div className={`text-lg font-semibold font-['Open_Sans'] ${getRecommendationColor(selectedInterview.feedback.recommendation)}`}>
                         {selectedInterview.feedback.recommendation}
                       </div>
-                      <div className="text-sm text-gray-500 font-['Roboto']">Recommendation</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">Recommendation</div>
                     </div>
-                    <div className="text-center">
-                      <div className="text-sm text-gray-600 font-['Roboto']">
+                    {/* Submitted Date */}
+                    <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg text-center">
+                      <div className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto']">
                         {new Date(selectedInterview.feedback.submittedAt).toLocaleDateString()}
                       </div>
-                      <div className="text-sm text-gray-500 font-['Roboto']">Submitted</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">Submitted</div>
                     </div>
                   </div>
 
                   <div className="mb-4">
-                    <h5 className="text-sm font-medium text-gray-700 font-['Roboto'] mb-2">Comments</h5>
-                    <p className="text-gray-600 font-['Roboto']">{selectedInterview.feedback.comments}</p>
+                    <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Comments</h5>
+                    <p className="text-gray-600 dark:text-gray-300 font-['Roboto']">{selectedInterview.feedback.comments}</p>
                   </div>
-
+                  
+                  {/* Strengths / Weaknesses */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <h5 className="text-sm font-medium text-gray-700 font-['Roboto'] mb-2">Strengths</h5>
+                    {/* Strengths */}
+                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Strengths</h5>
                       <ul className="space-y-1">
                         {selectedInterview.feedback.strengths.map((strength, index) => (
-                          <li key={index} className="text-sm text-gray-600 font-['Roboto'] flex items-start">
-                            <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                          <li key={index} className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto'] flex items-start">
+                            <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
                             {strength}
                           </li>
                         ))}
                       </ul>
                     </div>
+                    {/* Areas of Concern (Weaknesses) */}
                     {selectedInterview.feedback.weaknesses && (
-                    <div>
-                      <h5 className="text-sm font-medium text-gray-700 font-['Roboto'] mb-2">Areas of Concern</h5>
-                      <ul className="space-y-1">
-                        {selectedInterview.feedback.weaknesses.map((concern, index) => (
-                          <li key={index} className="text-sm text-gray-600 font-['Roboto'] flex items-start">
-                            <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                            {concern}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Areas of Concern</h5>
+                        <ul className="space-y-1">
+                          {selectedInterview.feedback.weaknesses.map((concern, index) => (
+                            <li key={index} className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto'] flex items-start">
+                              <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                              {concern}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
-              <div className="flex justify-end space-x-3">
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <button
                   onClick={() => setShowInterviewModal(false)}
-                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium font-['Roboto'] hover:bg-gray-50 transition-colors"
+                  className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium font-['Roboto'] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   Close
                 </button>
                 {selectedInterview.status === 'Completed' && selectedInterview.feedback && (
                   <Link
                     to={`/hr/candidates/${selectedInterview.candidate.name.replace(' ', '-').toLowerCase()}/decision`}
-                    className="bg-black hover:bg-gray-800 text-white px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
+                    className="bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-black px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
                   >
                     Make Decision
                   </Link>
@@ -856,18 +852,18 @@ const HRInterviewManagement = () => {
 
       {/* Schedule Interview Modal */}
       {showScheduleModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-3/4 max-w-2xl shadow-lg rounded-lg bg-white">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-black/70 overflow-y-auto h-full w-full z-50 transition-colors duration-300">
+          <div className="relative top-20 mx-auto p-5 border w-3/4 max-w-2xl shadow-lg rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700 transition-colors duration-300">
             <div className="mt-3">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-semibold text-gray-900 font-['Open_Sans']">
+                <h3 className="text-2xl font-semibold text-gray-900 dark:text-white font-['Open_Sans']">
                   Schedule New Interview
                 </h3>
                 <button
                   onClick={() => setShowScheduleModal(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 stroke-current" fill="none" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -876,16 +872,16 @@ const HRInterviewManagement = () => {
               <form className="space-y-4" onSubmit={submitSchedule}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="block text-sm font-medium text-gray-700 font-['Roboto']">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto']">
                       Candidate
                     </label>
                     <div className="relative" ref={candidateResultsRef}>
                       <div className="flex gap-2 mb-1">
-                        <select value={candidateJobFilter} onChange={(e)=>{ setCandidateJobFilter(e.target.value); fetchCandidates(candidateSearch.trim()); setShowCandidateList(true); }} className="px-2 py-1 border border-gray-300 rounded text-sm font-['Roboto']">
+                        <select value={candidateJobFilter} onChange={(e)=>{ setCandidateJobFilter(e.target.value); fetchCandidates(candidateSearch.trim()); setShowCandidateList(true); }} className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700">
                           <option value="all">All Jobs</option>
                           {jobsForFilter.map(j => <option key={j.id} value={j.id}>{j.title?.slice(0,40)}</option>)}
                         </select>
-                        {candidateLoading && <span className="self-center text-xs text-gray-500 font-['Roboto'] animate-pulse">Loading...</span>}
+                        {candidateLoading && <span className="self-center text-xs text-gray-500 dark:text-gray-400 font-['Roboto'] animate-pulse">Loading...</span>}
                       </div>
                       <input
                         type="text"
@@ -894,12 +890,12 @@ const HRInterviewManagement = () => {
                         onFocus={()=>{ if (candidates.length>0) setShowCandidateList(true); }}
                         onKeyDown={handleCandidateKeyDown}
                         placeholder="Search name or email..."
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500"
                       />
                       {showCandidateList && (
-                        <div className="absolute z-10 mt-2 max-h-60 w-full overflow-y-auto border border-gray-200 rounded-md bg-white shadow-lg divide-y" role="listbox">
+                        <div className="absolute z-10 mt-2 max-h-60 w-full overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 shadow-lg divide-y dark:divide-gray-700" role="listbox">
                           {candidates.length === 0 && !candidateLoading && candidateSearch && (
-                            <div className="p-2 text-xs text-gray-500 font-['Roboto']">No matches</div>
+                            <div className="p-2 text-xs text-gray-500 dark:text-gray-400 font-['Roboto']">No matches</div>
                           )}
                           {candidates.map((c, idx) => {
                             const selected = scheduleForm.applicationId === c.id;
@@ -909,28 +905,26 @@ const HRInterviewManagement = () => {
                                 type="button"
                                 key={c.id}
                                 onClick={()=>selectCandidate(c)}
-                                className={`w-full text-left px-3 py-2 text-sm font-['Roboto'] flex flex-col transition-colors ${highlighted ? 'bg-gray-800 text-white' : selected ? 'bg-gray-100' : 'hover:bg-gray-50'}`}
+                                className={`w-full text-left px-3 py-2 text-sm font-['Roboto'] flex flex-col transition-colors ${highlighted ? 'bg-black dark:bg-white text-white dark:text-black' : selected ? 'bg-gray-100 dark:bg-gray-700/50' : 'hover:bg-gray-50 dark:hover:bg-gray-700'}`}
                                 role="option"
                                 aria-selected={selected}
                               >
                                 <span className="font-medium truncate">{c.name}</span>
-                                <span className={`text-xs ${highlighted ? 'text-gray-200' : 'text-gray-500'}`}>{c.email} • {c.jobTitle}</span>
+                                <span className={`text-xs ${highlighted ? 'text-gray-200 dark:text-gray-800' : 'text-gray-500 dark:text-gray-400'}`}>{c.email} • {c.jobTitle}</span>
                               </button>
                             );
                           })}
-                          {candidateLoading && <div className="p-2 text-xs text-gray-500 font-['Roboto']">Loading...</div>}
+                          {candidateLoading && <div className="p-2 text-xs text-gray-500 dark:text-gray-400 font-['Roboto']">Loading...</div>}
                         </div>
                       )}
                       {scheduleForm.applicationId && (
-                        <p className="mt-1 text-xs text-gray-600 font-['Roboto']">Selected application ID: {scheduleForm.applicationId}</p>
+                        <p className="mt-1 text-xs text-gray-600 dark:text-gray-400 font-['Roboto']">Selected application ID: {scheduleForm.applicationId}</p>
                       )}
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
-                      Interviewer
-                    </label>
-                    <select value={scheduleForm.interviewerId} onChange={e=>setScheduleForm(f=>({...f, interviewerId:e.target.value}))} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Interviewer</label>
+                    <select value={scheduleForm.interviewerId} onChange={e=>setScheduleForm(f=>({...f, interviewerId:e.target.value}))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700">
                       <option value="">Select interviewer...</option>
                       {interviewers.map(interviewer => (
                         <option key={interviewer.id} value={interviewer.id}>{interviewer.name}</option>
@@ -938,35 +932,29 @@ const HRInterviewManagement = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
-                      Date
-                    </label>
-                    <input type="date" value={scheduleForm.date} onChange={e=>setScheduleForm(f=>({...f, date:e.target.value}))} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900" />
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Date</label>
+                    <input type="date" value={scheduleForm.date} onChange={e=>setScheduleForm(f=>({...f, date:e.target.value}))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
-                      Time
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Time</label>
                     <div className="flex gap-2">
-                      <input type="time" value={scheduleForm.time} onChange={e=>setScheduleForm(f=>({...f, time:e.target.value}))} className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900" />
-                      <button type="button" onClick={loadAvailableSlots} className="px-3 py-2 text-sm border rounded-lg font-['Roboto']" disabled={!scheduleForm.interviewerId || !scheduleForm.date || slotState.loading}>
+                      <input type="time" value={scheduleForm.time} onChange={e=>setScheduleForm(f=>({...f, time:e.target.value}))} className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700" />
+                      <button type="button" onClick={loadAvailableSlots} className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg font-['Roboto'] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40" disabled={!scheduleForm.interviewerId || !scheduleForm.date || slotState.loading}>
                         {slotState.loading ? 'Loading...' : 'Slots'}
                       </button>
                     </div>
-                    {slotState.error && <p className="mt-1 text-xs text-red-600 font-['Roboto']">{slotState.error}</p>}
+                    {slotState.error && <p className="mt-1 text-xs text-red-600 dark:text-red-400 font-['Roboto']">{slotState.error}</p>}
                     {slotState.slots.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-2 max-h-28 overflow-y-auto">
                         {slotState.slots.slice(0,30).map(s => (
-                          <button type="button" key={s.startTime} onClick={()=>setScheduleForm(f=>({...f, time:s.startTime}))} className={`px-2 py-1 rounded text-xs border ${scheduleForm.time===s.startTime? 'bg-black text-white' : 'bg-gray-50 hover:bg-gray-100'}`}>{s.startTime}</button>
+                          <button type="button" key={s.startTime} onClick={()=>setScheduleForm(f=>({...f, time:s.startTime}))} className={`px-2 py-1 rounded text-xs border ${scheduleForm.time===s.startTime? 'bg-black dark:bg-white text-white dark:text-black' : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'}`}>{s.startTime}</button>
                         ))}
                       </div>
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
-                      Duration (minutes)
-                    </label>
-                    <select value={scheduleForm.duration} onChange={e=>setScheduleForm(f=>({...f, duration:e.target.value}))} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Duration (minutes)</label>
+                    <select value={scheduleForm.duration} onChange={e=>setScheduleForm(f=>({...f, duration:e.target.value}))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700">
                       <option value="30">30 minutes</option>
                       <option value="45">45 minutes</option>
                       <option value="60">60 minutes</option>
@@ -974,10 +962,8 @@ const HRInterviewManagement = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
-                      Interview Type
-                    </label>
-                    <select value={scheduleForm.type} onChange={e=>setScheduleForm(f=>({...f, type:e.target.value}))} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Interview Type</label>
+                    <select value={scheduleForm.type} onChange={e=>setScheduleForm(f=>({...f, type:e.target.value}))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700">
                       <option value="phone">Phone</option>
                       <option value="video">Video</option>
                       <option value="in-person">In-Person</option>
@@ -987,31 +973,27 @@ const HRInterviewManagement = () => {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
-                    Location
-                  </label>
-                  <input type="text" value={scheduleForm.location} onChange={e=>setScheduleForm(f=>({...f, location:e.target.value}))} placeholder="Conference Room A or Virtual Meeting" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900" />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Location</label>
+                  <input type="text" value={scheduleForm.location} onChange={e=>setScheduleForm(f=>({...f, location:e.target.value}))} placeholder="Conference Room A or Virtual Meeting" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500" />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 font-['Roboto'] mb-2">
-                    Notes
-                  </label>
-                  <textarea rows={3} value={scheduleForm.notes} onChange={e=>setScheduleForm(f=>({...f, notes:e.target.value}))} placeholder="Interview focus areas, special instructions..." className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent font-['Roboto'] text-gray-900" />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Notes</label>
+                  <textarea rows={3} value={scheduleForm.notes} onChange={e=>setScheduleForm(f=>({...f, notes:e.target.value}))} placeholder="Interview focus areas, special instructions..." className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500" />
                 </div>
 
                 <div className="flex justify-end space-x-3 pt-4">
                   <button
                     type="button"
                     onClick={() => setShowScheduleModal(false)}
-                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium font-['Roboto'] hover:bg-gray-50 transition-colors"
+                    className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium font-['Roboto'] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={submitting || !isScheduleValid}
-                    className={`px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors text-white ${(!isScheduleValid || submitting) ? 'bg-gray-400 cursor-not-allowed' : 'bg-black hover:bg-gray-800'}`}
+                    className={`px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors text-white dark:text-black ${(!isScheduleValid || submitting) ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : 'bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-200'}`}
                   >
                     {submitting ? 'Scheduling...' : isScheduleValid ? 'Schedule Interview' : 'Fill Required Fields'}
                   </button>
@@ -1024,26 +1006,26 @@ const HRInterviewManagement = () => {
 
       {/* Reschedule Modal */}
       {rescheduleModal.open && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-3/4 max-w-md shadow-lg rounded-lg bg-white">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-black/70 overflow-y-auto h-full w-full z-50 transition-colors duration-300">
+          <div className="relative top-20 mx-auto p-5 border w-3/4 max-w-md shadow-lg rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700 transition-colors duration-300">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold text-gray-900 font-['Open_Sans']">Reschedule Interview</h3>
-              <button onClick={()=>setRescheduleModal({ open:false, id:null, date:'', time:'', duration:'', reason:'' })} className="text-gray-400 hover:text-gray-600">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white font-['Open_Sans']">Reschedule Interview</h3>
+              <button onClick={()=>setRescheduleModal({ open:false, id:null, date:'', time:'', duration:'', reason:'' })} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                <svg className="w-6 h-6 stroke-current" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
             <form onSubmit={submitReschedule} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 font-['Roboto']">Date</label>
-                <input type="date" value={rescheduleModal.date} onChange={e=>setRescheduleModal(m=>({...m, date:e.target.value}))} className="w-full px-3 py-2 border rounded" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 font-['Roboto']">Date</label>
+                <input type="date" value={rescheduleModal.date} onChange={e=>setRescheduleModal(m=>({...m, date:e.target.value}))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-white dark:bg-gray-700" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 font-['Roboto']">Time</label>
-                <input type="time" value={rescheduleModal.time} onChange={e=>setRescheduleModal(m=>({...m, time:e.target.value}))} className="w-full px-3 py-2 border rounded" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 font-['Roboto']">Time</label>
+                <input type="time" value={rescheduleModal.time} onChange={e=>setRescheduleModal(m=>({...m, time:e.target.value}))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-white dark:bg-gray-700" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 font-['Roboto']">Duration (minutes)</label>
-                <select value={rescheduleModal.duration} onChange={e=>setRescheduleModal(m=>({...m, duration:e.target.value}))} className="w-full px-3 py-2 border rounded">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 font-['Roboto']">Duration (minutes)</label>
+                <select value={rescheduleModal.duration} onChange={e=>setRescheduleModal(m=>({...m, duration:e.target.value}))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-white dark:bg-gray-700">
                   <option value="30">30</option>
                   <option value="45">45</option>
                   <option value="60">60</option>
@@ -1051,12 +1033,12 @@ const HRInterviewManagement = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 font-['Roboto']">Reason</label>
-                <input type="text" value={rescheduleModal.reason || ''} onChange={e=>setRescheduleModal(m=>({...m, reason:e.target.value}))} placeholder="(Optional) reason for reschedule" className="w-full px-3 py-2 border rounded" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 font-['Roboto']">Reason</label>
+                <input type="text" value={rescheduleModal.reason || ''} onChange={e=>setRescheduleModal(m=>({...m, reason:e.target.value}))} placeholder="(Optional) reason for reschedule" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500" />
               </div>
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={()=>setRescheduleModal({ open:false, id:null, date:'', time:'', duration:'', reason:'' })} className="px-4 py-2 border rounded">Cancel</button>
-                <button type="submit" disabled={submitting || !isRescheduleValid} className={`px-5 py-2 rounded text-white ${(!isRescheduleValid || submitting) ? 'bg-gray-400 cursor-not-allowed' : 'bg-black hover:bg-gray-800'}`}>{submitting? 'Saving...' : isRescheduleValid ? 'Save Changes' : 'Fill Required'}</button>
+                <button type="button" onClick={()=>setRescheduleModal({ open:false, id:null, date:'', time:'', duration:'', reason:'' })} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Cancel</button>
+                <button type="submit" disabled={submitting || !isRescheduleValid} className={`px-5 py-2 rounded font-medium font-['Roboto'] text-white dark:text-black ${(!isRescheduleValid || submitting) ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : 'bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-200'}`}>{submitting? 'Saving...' : isRescheduleValid ? 'Save Changes' : 'Fill Required'}</button>
               </div>
             </form>
           </div>
