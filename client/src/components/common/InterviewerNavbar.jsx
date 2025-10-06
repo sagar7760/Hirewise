@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import hirewiseLogo from '../../assets/hirewise.svg';
+import { useAuth } from '../../contexts/AuthContext';
 
 const InterviewerNavbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isNotificationDropdownOpen, setIsNotificationDropdownOpen] = useState(false);
+  // Auth
+  const { user, logout } = useAuth();
+
   const [isNotificationHovered, setIsNotificationHovered] = useState(false);
   const [isNotificationClicked, setIsNotificationClicked] = useState(false);
   const [isProfileHovered, setIsProfileHovered] = useState(false);
@@ -138,14 +142,17 @@ const InterviewerNavbar = () => {
   };
 
   const handleProfileMenuClick = (action) => {
-    console.log('Profile action:', action);
     setIsProfileDropdownOpen(false);
     setIsProfileClicked(false);
 
     if (action === 'Profile') {
       navigate('/interviewer/profile');
     } else if (action === 'Logout') {
-      // Handle logout logic
+      try {
+        logout?.();
+      } catch (e) {
+        console.warn('Logout encountered an issue but will continue:', e.message);
+      }
       navigate('/login');
     }
   };
@@ -333,10 +340,21 @@ const InterviewerNavbar = () => {
                   isProfileDropdownOpen ? 'ring-2 ring-gray-400' : ''
                 }`}
               >
-                <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
+                <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden text-xs font-medium text-gray-700">
+                  {user?.avatar || user?.profilePicture ? (
+                    <img
+                      src={user.avatar || user.profilePicture}
+                      alt={(user?.firstName || 'User')}
+                      className="h-full w-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : user ? (
+                    <span>{`${(user?.firstName||'').charAt(0)}${(user?.lastName||'').charAt(0)}`.toUpperCase()}</span>
+                  ) : (
+                    <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  )}
                 </div>
               </button>
 
@@ -347,8 +365,12 @@ const InterviewerNavbar = () => {
                   : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
               }`}>
                 <div className="px-4 py-3 border-b border-gray-100">
-                  <p className="text-sm font-medium text-gray-900 font-['Open_Sans']">Interviewer</p>
-                  <p className="text-xs text-gray-500 font-['Roboto']">interviewer@hirewise.com</p>
+                  <p className="text-sm font-medium text-gray-900 font-['Open_Sans']">
+                    {user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || (user.fullName) || 'Interviewer' : 'Loading...'}
+                  </p>
+                  <p className="text-xs text-gray-500 font-['Roboto'] truncate" title={user?.email || ''}>
+                    {user?.email || '...'}
+                  </p>
                 </div>
                 <button
                   onClick={() => handleProfileMenuClick('Profile')}

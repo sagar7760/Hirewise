@@ -1,72 +1,52 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import InterviewerLayout from '../../components/layout/InterviewerLayout';
+import { useApiRequest } from '../../hooks/useApiRequest';
+import { useToast } from '../../contexts/ToastContext';
 
 const PendingFeedback = () => {
   const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const [pending, setPending] = useState({ loading: true, error: null, items: [], page: 1, totalPages: 1, total: 0 });
+  const [submitting, setSubmitting] = useState(false);
+  const { makeJsonRequest } = useApiRequest();
+  const toast = useToast();
   const [feedbackForm, setFeedbackForm] = useState({
     overallRating: 0,
     technicalSkills: 0,
     communication: 0,
     problemSolving: 0,
     culturalFit: 0,
-    experience: 0,
     strengths: '',
     improvements: '',
     recommendation: '',
-    detailedFeedback: '',
-    nextSteps: ''
+    detailedFeedback: ''
   });
+  const [sort, setSort] = useState({ field: 'daysPending', dir: 'desc' });
+  const [priorityFilter, setPriorityFilter] = useState('all');
 
-  const [pendingInterviews] = useState([
-    {
-      id: 1,
-      candidateName: 'John Smith',
-      jobTitle: 'Senior Frontend Developer',
-      interviewDate: '2024-01-10',
-      interviewTime: '10:00 AM',
-      duration: '60 min',
-      interviewType: 'Technical',
-      department: 'Engineering',
-      daysPending: 3,
-      priority: 'high'
-    },
-    {
-      id: 2,
-      candidateName: 'Lisa Anderson',
-      jobTitle: 'Product Designer',
-      interviewDate: '2024-01-09',
-      interviewTime: '2:30 PM',
-      duration: '45 min',
-      interviewType: 'Portfolio Review',
-      department: 'Design',
-      daysPending: 4,
-      priority: 'high'
-    },
-    {
-      id: 3,
-      candidateName: 'Michael Brown',
-      jobTitle: 'Backend Developer',
-      interviewDate: '2024-01-11',
-      interviewTime: '11:15 AM',
-      duration: '90 min',
-      interviewType: 'Technical',
-      department: 'Engineering',
-      daysPending: 2,
-      priority: 'medium'
-    },
-    {
-      id: 4,
-      candidateName: 'Emma Wilson',
-      jobTitle: 'Marketing Manager',
-      interviewDate: '2024-01-12',
-      interviewTime: '3:00 PM',
-      duration: '45 min',
-      interviewType: 'Behavioral',
-      department: 'Marketing',
-      daysPending: 1,
-      priority: 'low'
+  const fetchPending = useCallback(async (page = 1) => {
+    setPending(prev => ({ ...prev, loading: true, error: null }));
+    try {
+      const res = await makeJsonRequest(`/api/interviewer/feedback/pending?page=${page}&limit=10`);
+      if (res?.success) {
+        setPending({
+          loading: false,
+            error: null,
+            items: res.data.interviews,
+            page: res.data.pagination.currentPage,
+            totalPages: res.data.pagination.totalPages,
+            total: res.data.pagination.total
+        });
+      } else {
+        throw new Error(res?.message || 'Failed to load pending feedback');
+      }
+    } catch (err) {
+      console.error('Fetch pending feedback error', err);
+      toast.error(err.message || 'Failed to load pending feedback');
+      setPending(prev => ({ ...prev, loading: false, error: err.message }));
     }
-  ]);
+  }, [makeJsonRequest, toast]);
+
+  useEffect(() => { fetchPending(1); }, [fetchPending]);
 
   const handleRatingChange = (category, rating) => {
     setFeedbackForm(prev => ({
@@ -82,28 +62,103 @@ const PendingFeedback = () => {
     }));
   };
 
-  const handleSubmitFeedback = () => {
-    console.log('Submitting feedback for:', selectedCandidate?.candidateName);
-    console.log('Feedback:', feedbackForm);
-    
-    // Reset form and close modal
-    setSelectedCandidate(null);
-    setFeedbackForm({
-      overallRating: 0,
-      technicalSkills: 0,
-      communication: 0,
-      problemSolving: 0,
-      culturalFit: 0,
-      experience: 0,
-      strengths: '',
-      improvements: '',
-      recommendation: '',
-      detailedFeedback: '',
-      nextSteps: ''
-    });
+  const resetForm = () => setFeedbackForm({
+    overallRating: 0,
+    technicalSkills: 0,
+    communication: 0,
+    problemSolving: 0,
+    culturalFit: 0,
+    strengths: '',
+    improvements: '',
+    recommendation: '',
+    detailedFeedback: ''
+  });
+
+  const mapRecommendation = (val) => ({
+    'strong-hire': 'strongly_recommend',
+    'hire': 'recommend',
+    'maybe': 'neutral',
+    'no-hire': 'do_not_recommend',
+    'strong-no-hire': 'strongly_do_not_recommend'
+  })[val] || null;
+
+  const parseList = (text) => {
+    if (!text) return [];
+    // Split on newlines or semicolons or commas, trim & dedupe empties
+    return text.split(/\r?\n|;|,/).map(s => s.trim()).filter(Boolean);
+  };
+
+  const handleSubmitFeedback = async () => {
+    if (!selectedCandidate) return;
+    const id = selectedCandidate.id;
+    setSubmitting(true);
+    try {
+      const payload = {
+        overallRating: feedbackForm.overallRating,
+        technicalSkills: feedbackForm.technicalSkills,
+        communicationSkills: feedbackForm.communication, // map field name
+        problemSolving: feedbackForm.problemSolving,
+        culturalFit: feedbackForm.culturalFit,
+        strengths: parseList(feedbackForm.strengths),
+        weaknesses: parseList(feedbackForm.improvements),
+        recommendation: mapRecommendation(feedbackForm.recommendation),
+        additionalNotes: feedbackForm.detailedFeedback || undefined
+      };
+
+      // Optimistic removal from list
+      setPending(prev => ({ ...prev, items: prev.items.filter(it => it.id !== id) }));
+
+      const res = await makeJsonRequest(`/api/interviewer/interviews/${id}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res?.success) {
+        toast.success('Feedback submitted');
+      } else {
+        throw new Error(res?.message || 'Failed to submit feedback');
+      }
+      setSelectedCandidate(null);
+      resetForm();
+      // If list became empty but more pages exist, refetch next page
+      if (pending.items.length === 1 && pending.page < pending.totalPages) {
+        fetchPending(pending.page + 1);
+      }
+    } catch (err) {
+      toast.error(err.message || 'Submission failed');
+      // Rollback (refetch current page)
+      fetchPending(pending.page);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const openFeedbackForm = (interview) => {
+    // Pre-fill if editable existing feedback present
+    if (interview.existingFeedback) {
+      setFeedbackForm({
+        overallRating: interview.existingFeedback.overallRating || 0,
+        technicalSkills: interview.existingFeedback.technicalSkills || 0,
+        communication: interview.existingFeedback.communicationSkills || 0,
+        problemSolving: interview.existingFeedback.problemSolving || 0,
+        culturalFit: interview.existingFeedback.culturalFit || 0,
+        strengths: (interview.existingFeedback.strengths || []).join('\n'),
+        improvements: (interview.existingFeedback.weaknesses || []).join('\n'),
+        recommendation: {
+          strongly_recommend: 'strong-hire',
+          recommend: 'hire',
+          neutral: 'maybe',
+          do_not_recommend: 'no-hire',
+          strongly_do_not_recommend: 'strong-no-hire'
+        }[interview.existingFeedback.recommendation] || '',
+        detailedFeedback: interview.existingFeedback.additionalNotes || ''
+      });
+    } else {
+      resetForm();
+    }
+    if (interview.hoursRemaining && interview.hoursRemaining <= 6) {
+      toast.warning(`Edit window closes in ${interview.hoursRemaining.toFixed(1)}h`);
+    }
     setSelectedCandidate(interview);
   };
 
@@ -125,6 +180,31 @@ const PendingFeedback = () => {
     if (days >= 2 || priority === 'medium') return 'bg-orange-100 text-orange-800';
     return 'bg-yellow-100 text-yellow-800';
   };
+
+  const filteredSorted = useMemo(() => {
+    let items = [...pending.items];
+    if (priorityFilter !== 'all') {
+      items = items.filter(i => i.priority === priorityFilter);
+    }
+    items.sort((a,b) => {
+      const dir = sort.dir === 'asc' ? 1 : -1;
+      if (sort.field === 'candidate') return a.candidateName.localeCompare(b.candidateName) * dir;
+      if (sort.field === 'priority') return a.priority.localeCompare(b.priority) * dir;
+      if (sort.field === 'daysPending') return (a.daysPending - b.daysPending) * dir;
+      return 0;
+    });
+    return items;
+  }, [pending.items, sort, priorityFilter]);
+
+  const stats = useMemo(() => {
+    const items = filteredSorted;
+    return {
+      total: pending.total,
+      high: items.filter(i => i.priority === 'high' || i.daysPending >= 4).length,
+      overdue: items.filter(i => i.daysPending >= 3).length,
+      avgResponse: items.length ? (items.reduce((a,i)=>a+i.daysPending,0)/items.length).toFixed(1) + 'd' : '—'
+    };
+  }, [filteredSorted, pending.total]);
 
   const StarRating = ({ rating, onRatingChange, label }) => {
     return (
@@ -171,7 +251,7 @@ const PendingFeedback = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600 font-['Roboto']">Total Pending</p>
-                <p className="text-2xl font-bold text-black font-['Open_Sans']">{pendingInterviews.length}</p>
+                <p className="text-2xl font-bold text-black font-['Open_Sans']">{stats.total}</p>
               </div>
             </div>
           </div>
@@ -186,7 +266,7 @@ const PendingFeedback = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600 font-['Roboto']">High Priority</p>
                 <p className="text-2xl font-bold text-black font-['Open_Sans']">
-                  {pendingInterviews.filter(i => i.priority === 'high' || i.daysPending >= 4).length}
+                  {stats.high}
                 </p>
               </div>
             </div>
@@ -202,7 +282,7 @@ const PendingFeedback = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600 font-['Roboto']">Overdue (3+ days)</p>
                 <p className="text-2xl font-bold text-black font-['Open_Sans']">
-                  {pendingInterviews.filter(i => i.daysPending >= 3).length}
+                  {stats.overdue}
                 </p>
               </div>
             </div>
@@ -217,9 +297,33 @@ const PendingFeedback = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600 font-['Roboto']">Avg. Response Time</p>
-                <p className="text-2xl font-bold text-black font-['Open_Sans']">2.5d</p>
+                <p className="text-2xl font-bold text-black font-['Open_Sans']">{stats.avgResponse}</p>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+          <div className="flex gap-2 items-center">
+            <label className="text-sm text-gray-600 font-['Roboto']">Priority:</label>
+            <select value={priorityFilter} onChange={e=>setPriorityFilter(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg text-sm font-['Roboto'] bg-white">
+              <option value="all">All</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+          <div className="flex gap-2 items-center">
+            <label className="text-sm text-gray-600 font-['Roboto']">Sort By:</label>
+            <select value={sort.field} onChange={e=>setSort(s=>({...s, field:e.target.value}))} className="px-3 py-2 border border-gray-300 rounded-lg text-sm font-['Roboto'] bg-white">
+              <option value="daysPending">Days Pending</option>
+              <option value="candidate">Candidate</option>
+              <option value="priority">Priority</option>
+            </select>
+            <button onClick={()=>setSort(s=>({...s, dir: s.dir==='asc'?'desc':'asc'}))} className="px-3 py-2 border border-gray-300 rounded-lg text-sm font-['Roboto'] bg-white">
+              {sort.dir==='asc' ? 'Asc' : 'Desc'}
+            </button>
           </div>
         </div>
 
@@ -255,7 +359,20 @@ const PendingFeedback = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {pendingInterviews.map((interview) => (
+                {pending.loading && (
+                  <PendingTableSkeleton rows={4} />
+                )}
+                {!pending.loading && pending.error && (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-6">
+                      <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg flex items-center justify-between">
+                        <span className="text-sm font-['Roboto']">{pending.error}</span>
+                        <button onClick={() => fetchPending(pending.page)} className="text-xs bg-red-600 text-white px-3 py-1 rounded">Retry</button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                {!pending.loading && !pending.error && filteredSorted.map((interview) => (
                   <tr key={interview.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -281,7 +398,7 @@ const PendingFeedback = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-black font-['Roboto']">
                       <div>{formatDate(interview.interviewDate)}</div>
-                      <div className="text-gray-500 text-xs">{interview.interviewTime}</div>
+                      <div className="text-gray-500 text-xs">{interview.interviewTime || '—'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-black font-['Roboto']">
                       {interview.interviewType}
@@ -296,11 +413,13 @@ const PendingFeedback = () => {
                         onClick={() => openFeedbackForm(interview)}
                         className="bg-black text-white px-4 py-2 rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors font-['Roboto']"
                       >
-                        Submit Feedback
+                        {interview.hasFeedback ? (interview.editable ? 'Edit Feedback' : 'View Feedback') : 'Submit Feedback'}
                       </button>
-                      <button className="bg-white text-black border border-gray-300 px-4 py-2 rounded-lg text-xs font-medium hover:bg-gray-50 transition-colors font-['Roboto']">
-                        View Notes
-                      </button>
+                      {interview.hasFeedback && (
+                        <span className={`inline-flex items-center px-2 py-1 rounded text-[10px] font-['Roboto'] font-medium border ${interview.editable ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                          {interview.editable ? `${interview.hoursRemaining.toFixed(1)}h left` : 'Locked'}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -308,7 +427,7 @@ const PendingFeedback = () => {
             </table>
           </div>
 
-          {pendingInterviews.length === 0 && (
+          {!pending.loading && !pending.error && filteredSorted.length === 0 && (
             <div className="text-center py-12">
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -320,6 +439,23 @@ const PendingFeedback = () => {
             </div>
           )}
         </div>
+
+        {/* Pagination */}
+  {!pending.loading && pending.totalPages > 1 && (
+          <div className="flex items-center justify-between mt-6">
+            <button
+              disabled={pending.page <= 1}
+              onClick={() => pending.page > 1 && fetchPending(pending.page - 1)}
+              className={`px-4 py-2 rounded-lg text-sm font-['Roboto'] border ${pending.page <=1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-black hover:bg-gray-50'}`}
+            >Previous</button>
+            <span className="text-sm font-['Roboto'] text-gray-600">Page {pending.page} of {pending.totalPages}</span>
+            <button
+              disabled={pending.page >= pending.totalPages}
+              onClick={() => pending.page < pending.totalPages && fetchPending(pending.page + 1)}
+              className={`px-4 py-2 rounded-lg text-sm font-['Roboto'] border ${pending.page >= pending.totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-black hover:bg-gray-50'}`}
+            >Next</button>
+          </div>
+        )}
 
         {/* Feedback Modal */}
         {selectedCandidate && (
@@ -461,16 +597,14 @@ const PendingFeedback = () => {
               <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3 sticky bottom-0 bg-white">
                 <button
                   onClick={closeFeedbackForm}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors font-['Roboto']"
-                >
-                  Cancel
-                </button>
+                  disabled={submitting}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors font-['Roboto'] disabled:opacity-50 disabled:cursor-not-allowed"
+                >Cancel</button>
                 <button
                   onClick={handleSubmitFeedback}
-                  className="bg-black text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors font-['Roboto']"
-                >
-                  Submit Feedback
-                </button>
+                  disabled={submitting || !feedbackForm.overallRating || !feedbackForm.recommendation}
+                  className="bg-black text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors font-['Roboto'] disabled:opacity-50 disabled:cursor-not-allowed"
+                >{submitting ? 'Submitting...' : 'Submit Feedback'}</button>
               </div>
             </div>
           </div>
@@ -479,5 +613,29 @@ const PendingFeedback = () => {
     </InterviewerLayout>
   );
 };
+
+// Table skeleton rows
+const PendingTableSkeleton = ({ rows = 4 }) => (
+  <>
+    {Array.from({ length: rows }).map((_, i) => (
+      <tr key={i} className="animate-pulse">
+        <td className="px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 bg-gray-200 rounded-full" />
+            <div>
+              <div className="h-3 bg-gray-200 rounded w-32 mb-2" />
+              <div className="h-3 bg-gray-200 rounded w-20" />
+            </div>
+          </div>
+        </td>
+        <td className="px-6 py-4"><div className="h-3 bg-gray-200 rounded w-40" /></td>
+        <td className="px-6 py-4"><div className="space-y-2"><div className="h-3 bg-gray-200 rounded w-24" /><div className="h-3 bg-gray-200 rounded w-16" /></div></td>
+        <td className="px-6 py-4"><div className="h-3 bg-gray-200 rounded w-20" /></td>
+        <td className="px-6 py-4"><div className="h-5 bg-gray-200 rounded w-16" /></td>
+        <td className="px-6 py-4"><div className="flex gap-2"><div className="h-8 w-20 bg-gray-200 rounded" /><div className="h-8 w-20 bg-gray-200 rounded" /></div></td>
+      </tr>
+    ))}
+  </>
+);
 
 export default PendingFeedback;

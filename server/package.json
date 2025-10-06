@@ -37,7 +37,13 @@
     "axios": "^1.12.2",
     "form-data": "^4.0.4",
     "jest": "^29.6.2",
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.0.1",
+    "supertest": "^6.3.4"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "verbose": false,
+    "testMatch": ["**/tests/**/*.test.js"]
   },
   "engines": {
     "node": ">=16.0.0"

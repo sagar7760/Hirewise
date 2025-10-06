@@ -149,6 +149,15 @@ router.post('/:id/feedback', [
       return res.status(400).json({ success:false, message:'Cannot submit feedback before interview takes place' });
     }
 
+    const nowUtc = new Date();
+    const existingSubmittedAt = interview.feedback?.submittedAt;
+    if (existingSubmittedAt) {
+      const hoursSince = (nowUtc.getTime() - new Date(existingSubmittedAt).getTime()) / 3600000;
+      if (hoursSince > 48) {
+        return res.status(400).json({ success:false, message:'Feedback edit window (48h) has expired' });
+      }
+    }
+
     interview.feedback = {
       overallRating: req.body.overallRating,
       technicalSkills: req.body.technicalSkills,
@@ -159,7 +168,8 @@ router.post('/:id/feedback', [
       weaknesses: req.body.weaknesses || [],
       recommendation: req.body.recommendation,
       additionalNotes: req.body.additionalNotes,
-      submittedAt: new Date()
+      submittedAt: existingSubmittedAt || nowUtc,
+      updatedAt: existingSubmittedAt ? nowUtc : undefined
     };
 
     if (interview.status === 'scheduled' || interview.status === 'confirmed' || interview.status === 'in_progress') {
