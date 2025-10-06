@@ -268,6 +268,23 @@ const userSchema = new mongoose.Schema({
       sunday: { available: Boolean, timeSlots: [String] }
     }
   },
+  // Additional interviewer settings (notification prefs & specialization mapping)
+  interviewerSettings: {
+    specialization: { type: String, trim: true },
+    notificationPreferences: {
+      interviewReminders: { type: Boolean, default: true },
+      candidateUpdates: { type: Boolean, default: true },
+      feedbackDeadlines: { type: Boolean, default: true },
+      scheduleChanges: { type: Boolean, default: true },
+      weeklyReports: { type: Boolean, default: false },
+      emailDigests: { type: Boolean, default: true }
+    }
+  },
+  // Metadata for who created the interviewer account (admin/HR)
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
 
   isActive: {
     type: Boolean,

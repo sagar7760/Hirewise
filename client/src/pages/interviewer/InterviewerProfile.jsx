@@ -1,37 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import InterviewerLayout from '../../components/layout/InterviewerLayout';
+import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 
 const InterviewerProfile = () => {
+  const { apiRequest, user, updateUser } = useAuth();
+  const toast = useToast();
+  const notifDebounceRef = useRef(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
-  const [profileData, setProfileData] = useState({
-    fullName: 'Michael Chen',
-    email: 'michael.chen@hirewise.com',
-    phone: '+1 (555) 987-6543',
-    role: 'Senior Technical Interviewer',
-    status: 'Active',
-    profilePicture: null,
-    department: 'Engineering',
-    specialization: 'Frontend & Full-Stack',
-    joinedOn: '2024-05-20',
-    addedBy: 'HR Manager Sarah',
-    organizationName: 'TechCorp Solutions',
-    organizationLogo: '/api/placeholder/100/40',
-    interviewStats: {
-      totalInterviews: 156,
-      averageRating: 4.2,
-      responseTime: '2.1 days'
-    },
-    notifications: {
-      interviewReminders: true,
-      candidateUpdates: true,
-      feedbackDeadlines: true,
-      scheduleChanges: true,
-      weeklyReports: false,
-      emailDigests: true
-    }
-  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [profileData, setProfileData] = useState(null);
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -39,58 +21,246 @@ const InterviewerProfile = () => {
     confirmPassword: ''
   });
 
-  const [phoneData, setPhoneData] = useState({
-    newPhone: profileData.phone
-  });
+  const [phoneData, setPhoneData] = useState({ newPhone: '' });
+
+  const loadProfile = useCallback(async () => {
+    try {
+      setLoading(true);
+      const resp = await apiRequest('/api/interviewer/profile');
+      const data = await resp.json();
+      if (data.success) {
+        const pd = {
+          fullName: `${data.data.firstName || ''} ${data.data.lastName || ''}`.trim(),
+          email: data.data.email,
+          phone: data.data.phone || '',
+          role: 'Interviewer',
+          status: data.data.status || 'Active',
+          profilePicture: data.data.profilePicture || null,
+          department: data.data.department || '',
+          specialization: data.data.interviewerSettings?.specialization || data.data.specialization || '',
+          joinedOn: data.data.joinedOn || user?.createdAt || '',
+          addedOn: data.data.addedOn || data.data.joinedOn || user?.createdAt || '',
+          addedBy: data.data.addedBy || null,
+          organizationName: data.data.company?.name || user?.company?.name || '',
+          organizationLogo: data.data.company?.logo || user?.company?.logo || null,
+          interviewStats: data.data.interviewStats || { totalInterviews: 0, averageRating: null, responseTime: null },
+          notifications: {
+            ...data.data.interviewerSettings?.notificationPreferences
+          }
+        };
+        setProfileData(pd);
+        setPhoneData({ newPhone: pd.phone });
+      } else {
+        setError(data.message || 'Failed to load profile');
+      }
+    } catch (e) {
+      setError(e.message || 'Failed to load profile');
+    } finally {
+      setLoading(false);
+    }
+  }, [apiRequest, user]);
+
+  useEffect(() => { loadProfile(); }, [loadProfile]);
 
   const handleProfileUpdate = (field, value) => {
-    setProfileData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setProfileData(prev => prev ? { ...prev, [field]: value } : prev);
   };
 
   const handleNotificationUpdate = (field, value) => {
-    setProfileData(prev => ({
+    setProfileData(prev => prev ? ({
       ...prev,
       notifications: {
         ...prev.notifications,
         [field]: value
       }
-    }));
+    }) : prev);
   };
 
-  const handlePasswordChange = (e) => {
+  const handlePasswordChange = async (e) => {
     e.preventDefault();
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       alert('Passwords do not match');
       return;
     }
-    // Handle password change logic here
-    console.log('Password change requested');
-    setShowPasswordModal(false);
-    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-  };
-
-  const handlePhoneChange = (e) => {
-    e.preventDefault();
-    setProfileData(prev => ({ ...prev, phone: phoneData.newPhone }));
-    setShowPhoneModal(false);
-  };
-
-  const handleProfilePictureChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setProfileData(prev => ({ ...prev, profilePicture: e.target.result }));
-      };
-      reader.readAsDataURL(file);
+    try {
+      const resp = await apiRequest('/api/interviewer/profile/password', {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword: passwordData.currentPassword, newPassword: passwordData.newPassword })
+      });
+      const data = await resp.json();
+      if (!data.success) {
+        alert(data.message || 'Password change failed');
+        return;
+      }
+  toast.success('Password updated');
+      setShowPasswordModal(false);
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (e2) {
+      alert(e2.message || 'Error updating password');
     }
   };
 
+  const handlePhoneChange = async (e) => {
+    e.preventDefault();
+    try {
+      const resp = await apiRequest('/api/interviewer/profile', {
+        method: 'PATCH',
+        body: JSON.stringify({ phone: phoneData.newPhone })
+      });
+      const data = await resp.json();
+      if (!data.success) {
+        alert(data.message || 'Failed to update phone');
+        return;
+      }
+      setProfileData(prev => prev ? ({ ...prev, phone: phoneData.newPhone }) : prev);
+      setShowPhoneModal(false);
+      // reflect in global user
+      if (user) updateUser({ ...user, phone: phoneData.newPhone });
+    } catch (e2) {
+      alert(e2.message || 'Phone update failed');
+    }
+  };
+
+  const handleProfilePictureChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Only image files allowed');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Image must be under 2MB');
+      return;
+    }
+    // optimistic preview
+    const localUrl = URL.createObjectURL(file);
+    setProfileData(prev => prev ? ({ ...prev, profilePicture: localUrl }) : prev);
+    const form = new FormData();
+    form.append('avatar', file);
+    try {
+      const resp = await apiRequest('/api/interviewer/profile/avatar', { method: 'POST', body: form });
+      const data = await resp.json();
+      if (!data.success) {
+        toast.error(data.message || 'Failed to upload avatar');
+      } else if (data.avatar) {
+        setProfileData(prev => prev ? ({ ...prev, profilePicture: data.avatar }) : prev);
+        if (user) updateUser({ ...user, avatar: data.avatar, profilePicture: data.avatar });
+        toast.success('Avatar updated');
+      }
+    } catch (e2) {
+      toast.error(e2.message || 'Avatar upload failed');
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!profileData) return;
+    setSaving(true);
+    try {
+      const payload = {
+        phone: profileData.phone,
+        specialization: profileData.specialization,
+        notificationPreferences: profileData.notifications
+      };
+      const resp = await apiRequest('/api/interviewer/profile', { method: 'PATCH', body: JSON.stringify(payload) });
+      const data = await resp.json();
+      if (!data.success) {
+        toast.error(data.message || 'Failed to save');
+        return;
+      }
+      // sync global user specialization and phone
+      if (user) updateUser({ ...user, phone: profileData.phone, interviewerSettings: { ...(user.interviewerSettings||{}), specialization: profileData.specialization } });
+      setIsEditing(false);
+      toast.success('Profile saved');
+    } catch (e2) {
+      toast.error(e2.message || 'Save failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Debounced notification preference syncing
+  useEffect(() => {
+    if (!profileData) return;
+    if (!profileData.notifications) return;
+    if (notifDebounceRef.current) clearTimeout(notifDebounceRef.current);
+    notifDebounceRef.current = setTimeout(async () => {
+      try {
+        await apiRequest('/api/interviewer/profile/notifications', {
+          method: 'PATCH',
+          body: JSON.stringify({ notificationPreferences: profileData.notifications })
+        });
+      } catch (e) {
+        toast.error('Failed to sync notification settings');
+      }
+    }, 800);
+    return () => {
+      if (notifDebounceRef.current) clearTimeout(notifDebounceRef.current);
+    };
+  }, [profileData?.notifications, apiRequest, toast]);
+
   return (
     <InterviewerLayout>
+      {loading && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
+          <div className="h-8 w-64 bg-gray-200 rounded mb-8" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="space-y-6">
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="h-5 w-40 bg-gray-200 rounded mb-6" />
+                <div className="w-32 h-32 rounded-full bg-gray-200 mx-auto mb-4" />
+                <div className="h-8 w-28 bg-gray-100 rounded mx-auto" />
+              </div>
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="h-5 w-32 bg-gray-200 rounded mb-4" />
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-lg bg-gray-200" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-32 bg-gray-200 rounded" />
+                    <div className="h-3 w-20 bg-gray-100 rounded" />
+                  </div>
+                </div>
+                <div className="mt-6 space-y-3">
+                  <div className="h-4 w-40 bg-gray-100 rounded" />
+                  <div className="h-4 w-32 bg-gray-100 rounded" />
+                  <div className="h-4 w-36 bg-gray-100 rounded" />
+                </div>
+              </div>
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="h-5 w-48 bg-gray-200 rounded mb-4" />
+                <div className="space-y-4">
+                  <div className="h-4 w-full bg-gray-100 rounded" />
+                  <div className="h-4 w-full bg-gray-100 rounded" />
+                  <div className="h-4 w-2/3 bg-gray-100 rounded" />
+                </div>
+              </div>
+            </div>
+            <div className="lg:col-span-2 space-y-6">
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="h-5 w-44 bg-gray-200 rounded mb-6" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {Array.from({length:6}).map((_,i)=>(<div key={i} className="space-y-2"><div className="h-4 w-24 bg-gray-200 rounded" /><div className="h-9 w-full bg-gray-100 rounded" /></div>))}
+                </div>
+              </div>
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="h-5 w-48 bg-gray-200 rounded mb-6" />
+                <div className="space-y-4">
+                  <div className="h-12 w-full bg-gray-100 rounded" />
+                </div>
+              </div>
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="h-5 w-56 bg-gray-200 rounded mb-6" />
+                <div className="space-y-4">
+                  {Array.from({length:6}).map((_,i)=>(<div key={i} className="flex items-center justify-between"><div className="space-y-1"><div className="h-4 w-40 bg-gray-200 rounded" /><div className="h-3 w-28 bg-gray-100 rounded" /></div><div className="h-6 w-11 bg-gray-200 rounded-full" /></div>))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {error && !loading && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-red-600">{error}</div>
+      )}
+      {!loading && !error && profileData && (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -167,11 +337,17 @@ const InterviewerProfile = () => {
               </h3>
               <div className="space-y-4">
                 <div className="flex items-center">
-                  <img 
-                    src={profileData.organizationLogo} 
-                    alt="Organization Logo" 
-                    className="w-12 h-12 rounded-lg bg-gray-100 mr-3"
-                  />
+                  {profileData.organizationLogo ? (
+                    <img 
+                      src={profileData.organizationLogo}
+                      alt="Organization Logo" 
+                      className="w-12 h-12 rounded-lg bg-gray-100 mr-3 object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg bg-gray-100 mr-3 flex items-center justify-center text-[10px] text-gray-500">
+                      No Logo
+                    </div>
+                  )}
                   <div>
                     <p className="font-medium text-black font-['Open_Sans']">
                       {profileData.organizationName}
@@ -192,8 +368,12 @@ const InterviewerProfile = () => {
                       <p className="text-black font-['Open_Sans']">{profileData.specialization}</p>
                     </div>
                     <div>
+                      <label className="text-sm font-medium text-gray-500 font-['Roboto']">Added On</label>
+                      <p className="text-black font-['Open_Sans']">{profileData.addedOn ? new Date(profileData.addedOn).toLocaleDateString() : '-'}</p>
+                    </div>
+                    <div>
                       <label className="text-sm font-medium text-gray-500 font-['Roboto']">Joined On</label>
-                      <p className="text-black font-['Open_Sans']">{new Date(profileData.joinedOn).toLocaleDateString()}</p>
+                      <p className="text-black font-['Open_Sans']">{profileData.joinedOn ? new Date(profileData.joinedOn).toLocaleDateString() : '-'}</p>
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-500 font-['Roboto']">Added By</label>
@@ -251,9 +431,9 @@ const InterviewerProfile = () => {
                   {isEditing ? (
                     <input
                       type="text"
+                      disabled
                       value={profileData.fullName}
-                      onChange={(e) => handleProfileUpdate('fullName', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-black"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 font-['Roboto'] text-gray-600 cursor-not-allowed"
                     />
                   ) : (
                     <p className="text-black py-2 font-['Open_Sans']">{profileData.fullName}</p>
@@ -339,7 +519,7 @@ const InterviewerProfile = () => {
                       Password
                     </h4>
                     <p className="text-xs text-gray-500 font-['Roboto']">
-                      Last changed 3 weeks ago
+                      Last changed {profileData?.lastPasswordChange ? new Date(profileData.lastPasswordChange).toLocaleDateString() : '—'}
                     </p>
                   </div>
                   <button
@@ -482,18 +662,27 @@ const InterviewerProfile = () => {
 
             {/* Save Changes Button */}
             {isEditing && (
-              <div className="mt-6 flex justify-end">
+              <div className="mt-6 flex justify-end space-x-3">
                 <button
                   onClick={() => setIsEditing(false)}
-                  className="bg-black hover:bg-gray-800 text-white px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors"
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors"
+                  disabled={saving}
                 >
-                  Save Changes
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveProfile}
+                  className="bg-black hover:bg-gray-800 text-white px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors disabled:opacity-60"
+                  disabled={saving}
+                >
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             )}
           </div>
         </div>
       </div>
+      )}
 
       {/* Password Change Modal */}
       {showPasswordModal && (

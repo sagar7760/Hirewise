@@ -38,6 +38,8 @@ const adminDashboardRoutes = require('./routes/admin/dashboard');
 // HR routes
 const hrProfileRoutes = require('./routes/hr/profile');
 const interviewerInterviewRoutes = require('./routes/interviewer/interviews');
+const interviewerProfileRoutes = require('./routes/interviewer/profile');
+const interviewerFeedbackRoutes = require('./routes/interviewer/feedback');
 
 const app = express();
 
@@ -111,6 +113,8 @@ app.use('/api/admin/dashboard', adminDashboardRoutes);
 
 // Interviewer API Routes
 app.use('/api/interviewer/interviews', interviewerInterviewRoutes);
+app.use('/api/interviewer/profile', interviewerProfileRoutes);
+app.use('/api/interviewer/feedback', interviewerFeedbackRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
