@@ -3,6 +3,7 @@ import InterviewerLayout from '../../components/layout/InterviewerLayout';
 import { SkeletonCard } from '../../components/common/Skeleton';
 import { useApiRequest } from '../../hooks/useApiRequest';
 import { useToast } from '../../contexts/ToastContext';
+import FeedbackForm from '../../components/interviewer/FeedbackForm';
 
 /**
  * Interview Management Page (Interviewer role)
@@ -42,27 +43,59 @@ const InterviewManagement = () => {
     }
   }, [makeJsonRequest, toast]);
 
+  // Helper to normalize feedback shape across variants
+  const normalizeInterview = useCallback((obj) => {
+    if (!obj) return obj;
+    const fb = obj.feedback 
+      || obj.existingFeedback 
+      || obj?.details?.feedback 
+      || obj?.details?.existingFeedback 
+      || obj?.interview?.feedback 
+      || obj?.interview?.existingFeedback 
+      || null;
+    return { ...obj, feedback: fb };
+  }, []);
+
   // Open details modal (attempt to fetch richer details if endpoint available)
   const openInterviewDetails = useCallback(async (interview) => {
     if (!interview) return;
-    const interviewId = interview.id || interview._id;
-    setDetail({ open: true, loading: true, error: null, interview });
+  const interviewId = interview.id || interview._id || interview.interviewId || interview.interviewID;
+    // Eagerly normalize local object so previously submitted feedback shows immediately
+    const initial = normalizeInterview(interview);
+    setDetail({ open: true, loading: true, error: null, interview: initial });
     // Attempt network fetch for full detail (non-blocking fallback to existing data on failure)
     try {
       if (interviewId) {
         const res = await makeJsonRequest(`/api/interviewer/interviews/${interviewId}`);
-        if (res?.success && res.data?.interview) {
-          setDetail({ open: true, loading: false, error: null, interview: { ...interview, ...res.data.interview } });
-          return;
+        if (res?.success) {
+          // Support multiple possible shapes: { interview }, direct interview object, or { feedback } alongside
+          const payload = res.data;
+          let fetched = null;
+          if (payload?.interview) fetched = payload.interview;
+          else if (payload?.data?.interview) fetched = payload.data.interview;
+          else if (payload && (payload._id || payload.id || payload.scheduledDate || payload.feedback || payload.existingFeedback)) fetched = payload;
+
+          if (fetched) {
+            const merged = normalizeInterview({ ...initial, ...fetched });
+            setDetail({ open: true, loading: false, error: null, interview: merged });
+            return;
+          }
+          // Fallback: handle payloads that return only feedback
+          const fbOnly = payload?.feedback || payload?.existingFeedback || payload?.data?.feedback || payload?.data?.existingFeedback;
+          if (fbOnly) {
+            const merged = normalizeInterview({ ...initial, feedback: fbOnly });
+            setDetail({ open: true, loading: false, error: null, interview: merged });
+            return;
+          }
         }
       }
-      // If no id or no success just use existing object
+      // If no id or unable to parse response, keep initial normalized object
       setDetail(prev => ({ ...prev, loading: false }));
     } catch (err) {
       console.warn('Interview detail fetch failed; using cached item', err);
       setDetail(prev => ({ ...prev, loading: false, error: 'Some details may be unavailable.' }));
     }
-  }, [makeJsonRequest]);
+  }, [makeJsonRequest, normalizeInterview]);
 
   const closeInterviewDetails = useCallback(() => setDetail({ open: false, loading: false, error: null, interview: null }), []);
 
@@ -81,7 +114,7 @@ const InterviewManagement = () => {
       if (s === 'confirmed') return 'confirmed';
       return s; // keep others
     };
-    const decorate = arr => arr.map(i => ({ ...i, uiStatus: mapStatus(i.status) }));
+    const decorate = arr => arr.map(i => ({ ...i, uiStatus: mapStatus(i.status), feedback: i.feedback || i.existingFeedback || i?.details?.feedback || null }));
     const todayItems = decorate(data.today.items);
     const upcomingItems = decorate(data.upcoming.items);
     const pastItems = decorate(data.past.items);
@@ -451,7 +484,7 @@ const PastInterviewsContent = ({ section, rawState, onRetry, onOpenDetails }) =>
                           </span>
                         </div>
                         {/* Job title inversion */}
-                        <p className="text-gray-600 dark:text-gray-300 font-['Roboto'] mb-3">{interview.job}</p>
+                        <p className="text-gray-600 dark:text-gray-300 font-['Roboto'] mb-3">{typeof interview.job === 'object' ? (interview.job?.title || '—') : (interview.job || '—')}</p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm mb-4">
                           <div>
                             {/* Detail label/value inversion */}
@@ -559,7 +592,7 @@ const InterviewRow = ({ interview, getStatusColor, getStatusText, onViewDetails 
               <span className={`px-2 py-1 text-xs font-medium rounded-full font-['Roboto'] ${getStatusColor(interview.uiStatus)}`}>{getStatusText(interview.uiStatus)}</span>
             </div>
             {/* Job title inversion */}
-            <p className="text-gray-600 dark:text-gray-300 font-['Roboto'] mb-2">{interview.job}</p>
+            <p className="text-gray-600 dark:text-gray-300 font-['Roboto'] mb-2">{typeof interview.job === 'object' ? (interview.job?.title || '—') : (interview.job || '—')}</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
               <div>
                 {/* Detail label/value inversion */}
@@ -685,8 +718,19 @@ const formatDisplayTime = (dateString, timeStr) => {
 
 // ------------------------- Detail Modal -------------------------
 const InterviewDetailModal = ({ detail, onClose }) => {
+  const { makeJsonRequest } = useApiRequest();
   const { interview, loading, error } = detail;
   if (!interview) return null;
+
+  // Formatters to avoid rendering raw objects in JSX
+  const formatJob = (job) => {
+    if (!job) return '—';
+    if (typeof job === 'string') return job;
+    if (typeof job === 'object') {
+      return job.title || job.name || (job._id ? `Job ${job._id}` : '—');
+    }
+    return String(job);
+  };
 
   const uiStatus = interview.uiStatus || (interview.status === 'scheduled' ? 'pending' : interview.status);
   const rec = interview.feedback?.recommendation;
@@ -697,6 +741,25 @@ const InterviewDetailModal = ({ detail, onClose }) => {
     do_not_recommend: 'No Hire',
     strongly_do_not_recommend: 'Strong No Hire'
   };
+
+  const [feedbackVersion, setFeedbackVersion] = useState(0); // bump to trigger rerender after save
+  const [showFbForm, setShowFbForm] = useState(false);
+
+  const canSubmitFeedback = (() => {
+    try {
+      if (!interview?.scheduledDate) return false;
+      const now = new Date();
+      const sched = new Date(interview.scheduledDate);
+      return now >= sched; // backend allows submit when now >= scheduledDate
+    } catch { return false; }
+  })();
+
+  // Edit window logic: allow edit within 48h after first submission
+  const editWindowHours = 48;
+  const submittedAt = interview.feedback?.submittedAt ? new Date(interview.feedback.submittedAt) : null;
+  const now = new Date();
+  const canEditFeedback = !!submittedAt && (submittedAt.getTime() + editWindowHours * 3600_000 > now.getTime());
+  const hoursRemaining = submittedAt ? Math.max(0, ((submittedAt.getTime() + editWindowHours * 3600_000) - now.getTime()) / 3600_000) : null;
 
   return (
     // Backdrop overlay is kept dark
@@ -739,7 +802,7 @@ const InterviewDetailModal = ({ detail, onClose }) => {
                   <span className={`px-2 py-0.5 rounded-full text-xs font-['Roboto'] capitalize ${uiStatus === 'confirmed' ? 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200' : uiStatus === 'pending' ? 'bg-orange-100 text-orange-800 dark:bg-orange-800 dark:text-orange-100' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200'}`}>{uiStatus}</span>
                 </h3>
                 {/* Job title inversion */}
-                <p className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto'] mt-1">{interview.job}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto'] mt-1">{formatJob(interview.job)}</p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* DetailField inversion */}
@@ -754,7 +817,7 @@ const InterviewDetailModal = ({ detail, onClose }) => {
               <div className="space-y-2">
                 {/* Section header inversion */}
                 <h4 className="text-sm font-semibold text-black dark:text-white font-['Open_Sans']">Feedback</h4>
-                {interview.feedback ? (
+                {interview.feedback && !showFbForm ? (
                   // Feedback card inversion
                   <div className="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-2">
                     <div className="flex flex-wrap gap-4 text-sm">
@@ -766,24 +829,82 @@ const InterviewDetailModal = ({ detail, onClose }) => {
                     {interview.feedback.additionalNotes && (
                       <p className="text-xs text-gray-700 dark:text-gray-200 font-['Roboto']"><span className="font-semibold">Notes: </span>{interview.feedback.additionalNotes}</p>
                     )}
+                    {/* Strengths / Weaknesses */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs font-medium text-gray-600 dark:text-gray-300 font-['Roboto'] mb-1">Strengths</p>
+                        {Array.isArray(interview.feedback.strengths) && interview.feedback.strengths.length > 0 ? (
+                          <ul className="space-y-1">
+                            {interview.feedback.strengths.map((s, i) => (
+                              <li key={i} className="text-xs text-gray-700 dark:text-gray-200 font-['Roboto'] flex items-start">
+                                <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
+                                {s}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 font-['Roboto']">—</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-gray-600 dark:text-gray-300 font-['Roboto'] mb-1">Areas for Improvement</p>
+                        {Array.isArray(interview.feedback.weaknesses) && interview.feedback.weaknesses.length > 0 ? (
+                          <ul className="space-y-1">
+                            {interview.feedback.weaknesses.map((w, i) => (
+                              <li key={i} className="text-xs text-gray-700 dark:text-gray-200 font-['Roboto'] flex items-start">
+                                <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
+                                {w}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 font-['Roboto']">—</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2">
+                      {canEditFeedback ? (
+                        <button
+                          onClick={() => setShowFbForm(true)}
+                          className="px-3 py-1.5 rounded text-xs bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+                        >Edit Feedback</button>
+                      ) : (
+                        <button disabled className="px-3 py-1.5 rounded text-xs bg-gray-300 text-gray-600 dark:bg-gray-600 dark:text-gray-400 cursor-not-allowed">Edit window expired</button>
+                      )}
+                      {hoursRemaining != null && canEditFeedback && (
+                        <span className="text-[11px] text-gray-500 dark:text-gray-400 self-center">{hoursRemaining.toFixed(1)}h left to edit</span>
+                      )}
+                    </div>
                   </div>
                 ) : (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 font-['Roboto']">No feedback submitted yet.</p>
+                  <>
+                    {showFbForm && canSubmitFeedback ? (
+                      <div className="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                        <FeedbackForm
+                          interviewId={interview.id || interview._id}
+                          defaultValues={interview.feedback}
+                          onCancel={() => setShowFbForm(false)}
+                          onSuccess={(apiFeedback) => {
+                            interview.feedback = { ...(interview.feedback || {}), ...apiFeedback };
+                            setFeedbackVersion(v => v + 1);
+                            setShowFbForm(false);
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                        <p className="text-xs text-gray-600 dark:text-gray-300 font-['Roboto']">No feedback submitted yet. You can add feedback once the scheduled time has passed.</p>
+                        <button
+                          disabled={!canSubmitFeedback}
+                          onClick={() => setShowFbForm(true)}
+                          className={`px-3 py-1.5 rounded text-xs ${canSubmitFeedback ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200' : 'bg-gray-300 text-gray-600 dark:bg-gray-600 dark:text-gray-400 cursor-not-allowed'}`}
+                        >Add Feedback</button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
-              {interview.application && (
-                <div className="space-y-2">
-                  {/* Section header inversion */}
-                  <h4 className="text-sm font-semibold text-black dark:text-white font-['Open_Sans']">Application Snapshot</h4>
-                  {/* Application card inversion */}
-                  <div className="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-xs space-y-1 font-['Roboto']">
-                    {/* Snapshot text inversion */}
-                    <p className="dark:text-gray-300"><span className="font-medium">Job ID:</span> {interview.application.job || '—'}</p>
-                    <p className="dark:text-gray-300"><span className="font-medium">Stage:</span> {interview.application.stage || '—'}</p>
-                    {interview.application.resumeScore && <p className="dark:text-gray-300"><span className="font-medium">Resume Score:</span> {interview.application.resumeScore}</p>}
-                  </div>
-                </div>
-              )}
+              {/* Application Snapshot removed as requested */}
             </>
           )}
         </div>

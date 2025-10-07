@@ -40,6 +40,22 @@ const HRApplicationManagement = () => {
   const [initialLoad, setInitialLoad] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [searchInputRef, setSearchInputRef] = useState(null);
+  // Schedule Interview modal state (reusing Interview Management modal pattern)
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [scheduleForm, setScheduleForm] = useState({
+    applicationId: '',
+    interviewerId: '',
+    date: '',
+    time: '',
+    duration: '60',
+    type: 'video',
+    location: '',
+    notes: ''
+  });
+  const [interviewers, setInterviewers] = useState([]);
+  const [slotState, setSlotState] = useState({ loading: false, slots: [], error: null });
+  const [submittingSchedule, setSubmittingSchedule] = useState(false);
+  const [scheduleError, setScheduleError] = useState(null);
 
   // Handle URL parameter for job filtering
   useEffect(() => {
@@ -255,8 +271,107 @@ const HRApplicationManagement = () => {
         await handleStatusChange(applicationId, 'rejected');
         break;
       case 'schedule':
-        await handleStatusChange(applicationId, 'interview_scheduled');
+        // Open schedule modal instead of directly changing status
+        const app = applications.find(a => a.id === applicationId);
+        if (app) setSelectedApplication(app);
+        setScheduleForm(prev => ({
+          ...prev,
+          applicationId,
+          interviewerId: '',
+          date: '',
+          time: '',
+          duration: '60',
+          type: 'video',
+          location: '',
+          notes: ''
+        }));
+        setScheduleError(null);
+        setSlotState({ loading: false, slots: [], error: null });
+        setShowScheduleModal(true);
         break;
+    }
+  };
+
+  // Fetch interviewers for dropdown
+  useEffect(() => {
+    const fetchInterviewers = async () => {
+      try {
+        const res = await makeJsonRequest('/api/hr/interviewers');
+        if (res?.success && Array.isArray(res.data)) {
+          setInterviewers(res.data.map(i => ({ id: i.id || i._id, name: i.name, email: i.email })));
+        }
+      } catch (e) {
+        // silent fail
+      }
+    };
+    fetchInterviewers();
+  }, [makeJsonRequest]);
+
+  const loadAvailableSlots = async () => {
+    const { interviewerId, date, duration } = scheduleForm;
+    if (!interviewerId || !date) return;
+    setSlotState(s => ({ ...s, loading: true, error: null }));
+    try {
+      const res = await makeJsonRequest(`/api/hr/interviews/available-slots/${interviewerId}?date=${date}&duration=${duration}`);
+      if (res?.success) {
+        setSlotState({ loading: false, slots: res.data?.availableSlots || [], error: null });
+      } else {
+        setSlotState({ loading: false, slots: [], error: res?.message || 'Failed to load slots' });
+      }
+    } catch (err) {
+      setSlotState({ loading: false, slots: [], error: err.message || 'Failed to load slots' });
+    }
+  };
+
+  const resetScheduleForm = () => setScheduleForm({ applicationId: '', interviewerId: '', date: '', time: '', duration: '60', type: 'video', location: '', notes: '' });
+
+  const submitSchedule = async (e) => {
+    e.preventDefault();
+    if (submittingSchedule) return;
+    setSubmittingSchedule(true);
+    setScheduleError(null);
+    try {
+      const { applicationId, interviewerId, date, time, duration, type, location, notes } = scheduleForm;
+      if (!applicationId || !interviewerId || !date || !time) {
+        throw new Error('Please fill required fields');
+      }
+      // Backend requires future date (not today)
+      const today = new Date();
+      const selected = new Date(date);
+      const todayYMD = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      if (selected <= todayYMD) {
+        throw new Error('Please select a date after today');
+      }
+      const payload = {
+        applicationId,
+        interviewerId,
+        scheduledDate: date,
+        scheduledTime: time,
+        duration: parseInt(duration, 10),
+        type,
+        location: location || undefined,
+        notes: notes || undefined
+      };
+      const res = await makeJsonRequest('/api/hr/interviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res?.success) throw new Error(res?.message || 'Failed to schedule');
+      setShowScheduleModal(false);
+      resetScheduleForm();
+      setSlotState({ loading: false, slots: [], error: null });
+      // Update application status locally/backend
+      await handleStatusChange(applicationId, 'interview_scheduled');
+    } catch (err) {
+      const apiErrors = err?.response?.data?.errors;
+      if (Array.isArray(apiErrors) && apiErrors.length) {
+        setScheduleError(apiErrors.map(e => e.message).join(', '));
+      } else {
+        setScheduleError(err.message || 'Failed to schedule interview');
+      }
+    } finally {
+      setSubmittingSchedule(false);
     }
   };
 
@@ -848,22 +963,22 @@ const HRApplicationManagement = () => {
                     <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto'] transition-colors duration-300">Skills Match</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900 font-['Open_Sans']">
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white font-['Open_Sans'] transition-colors duration-300">
                       {selectedApplication.aiAnalysis.experienceMatch}%
                     </div>
-                    <div className="text-sm text-gray-500 font-['Roboto']">Experience Match</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto'] transition-colors duration-300">Experience Match</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900 font-['Open_Sans']">
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white font-['Open_Sans'] transition-colors duration-300">
                       {selectedApplication.aiAnalysis.overallFit}%
                     </div>
-                    <div className="text-sm text-gray-500 font-['Roboto']">Overall Fit</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto'] transition-colors duration-300">Overall Fit</div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <h5 className="text-sm font-medium text-gray-700 font-['Roboto'] mb-2">Strengths</h5>
+                    <h5 className="text-sm font-medium text-gray-500 dark:text-gray-400 font-['Roboto'] transition-colors duration-300 mb-2">Strengths</h5>
                     <ul className="space-y-1">
                       {selectedApplication.aiAnalysis.strengths.map((strength, index) => (
                         <li key={index} className="text-sm text-gray-600 font-['Roboto'] flex items-start">
@@ -874,7 +989,7 @@ const HRApplicationManagement = () => {
                     </ul>
                   </div>
                   <div>
-                    <h5 className="text-sm font-medium text-gray-700 font-['Roboto'] mb-2">Concerns</h5>
+                    <h5 className="text-sm font-medium text-gray-500 dark:text-gray-400 font-['Roboto'] transition-colors duration-300 mb-2">Concerns</h5>
                     <ul className="space-y-1">
                       {selectedApplication.aiAnalysis.concerns.map((concern, index) => (
                         <li key={index} className="text-sm text-gray-600 font-['Roboto'] flex items-start">
@@ -912,7 +1027,7 @@ const HRApplicationManagement = () => {
                       }
                     }}
                     disabled={!selectedApplication.resumeUrl}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium font-['Roboto'] hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium font-['Roboto'] hover:bg-gray-50 dark:bg-white dark:text-black cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     title={!selectedApplication.resumeUrl ? "Resume not available" : "View candidate resume"}
                   >
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -924,7 +1039,7 @@ const HRApplicationManagement = () => {
                 <div className="flex space-x-3">
                   <button
                     onClick={() => setShowApplicationModal(false)}
-                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium font-['Roboto'] hover:bg-gray-50 transition-colors"
+                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium font-['Roboto'] hover:bg-gray-50 dark;bg-black dark:text-white dark:hover:bg-gray-700 transition-colors"
                   >
                     Close
                   </button>
@@ -1009,6 +1124,178 @@ const HRApplicationManagement = () => {
               </div>
             </div>
           </div>
+          </div>
+        )}
+
+        {/* Schedule Interview Modal */}
+        {showScheduleModal && selectedApplication && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-black/70 overflow-y-auto h-full w-full z-50 transition-colors duration-300">
+            <div className="relative top-20 mx-auto p-5 border w-3/4 max-w-2xl shadow-lg rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700 transition-colors duration-300">
+              <div className="mt-3">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-2xl font-semibold text-gray-900 dark:text-white font-['Open_Sans']">
+                    Schedule Interview
+                  </h3>
+                  <button
+                    onClick={() => setShowScheduleModal(false)}
+                    className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  >
+                    <svg className="w-6 h-6 stroke-current" fill="none" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Candidate + Job summary */}
+                <div className="mb-4 p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <div className="text-sm font-medium text-gray-500 dark:text-gray-400 font-['Roboto']">Candidate</div>
+                      <div className="text-gray-900 dark:text-white font-['Open_Sans']">{selectedApplication?.candidate?.name}</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto']">{selectedApplication?.candidate?.email}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-gray-500 dark:text-gray-400 font-['Roboto']">Job</div>
+                      <div className="text-gray-900 dark:text-white font-['Open_Sans']">{selectedApplication?.job?.title}</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto']">{selectedApplication?.job?.department}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {scheduleError && (
+                  <div className="mb-4 p-3 rounded bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-400 font-['Roboto'] text-sm transition-colors duration-300">{scheduleError}</div>
+                )}
+
+                <form className="space-y-4" onSubmit={submitSchedule}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Interviewer</label>
+                      <select
+                        value={scheduleForm.interviewerId}
+                        onChange={e => setScheduleForm(f => ({ ...f, interviewerId: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700"
+                      >
+                        <option value="">Select interviewer...</option>
+                        {interviewers.map(intv => (
+                          <option key={intv.id} value={intv.id}>{intv.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Date</label>
+                      <input
+                        type="date"
+                        min={new Date(Date.now()+24*60*60*1000).toISOString().slice(0,10)}
+                        value={scheduleForm.date}
+                        onChange={e => setScheduleForm(f => ({ ...f, date: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Time</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="time"
+                          value={scheduleForm.time}
+                          onChange={e => setScheduleForm(f => ({ ...f, time: e.target.value }))}
+                          className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700"
+                        />
+                        <button
+                          type="button"
+                          onClick={loadAvailableSlots}
+                          disabled={!scheduleForm.interviewerId || !scheduleForm.date || slotState.loading}
+                          className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg font-['Roboto'] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40"
+                        >
+                          {slotState.loading ? 'Loading...' : 'Slots'}
+                        </button>
+                      </div>
+                      {slotState.error && (
+                        <p className="mt-1 text-xs text-red-600 dark:text-red-400 font-['Roboto']">{slotState.error}</p>
+                      )}
+                      {slotState.slots.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-2 max-h-28 overflow-y-auto">
+                          {slotState.slots.slice(0, 30).map(s => (
+                            <button
+                              type="button"
+                              key={s.startTime}
+                              onClick={() => setScheduleForm(f => ({ ...f, time: s.startTime }))}
+                              className={`px-2 py-1 rounded text-xs border ${scheduleForm.time === s.startTime ? 'bg-black dark:bg-white text-white dark:text-black' : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
+                            >
+                              {s.startTime}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Duration (minutes)</label>
+                      <select
+                        value={scheduleForm.duration}
+                        onChange={e => setScheduleForm(f => ({ ...f, duration: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700"
+                      >
+                        <option value="30">30 minutes</option>
+                        <option value="45">45 minutes</option>
+                        <option value="60">60 minutes</option>
+                        <option value="90">90 minutes</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Interview Type</label>
+                      <select
+                        value={scheduleForm.type}
+                        onChange={e => setScheduleForm(f => ({ ...f, type: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700"
+                      >
+                        <option value="phone">Phone</option>
+                        <option value="video">Video</option>
+                        <option value="in-person">In-Person</option>
+                        <option value="panel">Panel</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Location</label>
+                    <input
+                      type="text"
+                      value={scheduleForm.location}
+                      onChange={e => setScheduleForm(f => ({ ...f, location: e.target.value }))}
+                      placeholder="Conference Room A or Virtual Meeting"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Notes</label>
+                    <textarea
+                      rows={3}
+                      value={scheduleForm.notes}
+                      onChange={e => setScheduleForm(f => ({ ...f, notes: e.target.value }))}
+                      placeholder="Interview focus areas, special instructions..."
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500"
+                    />
+                  </div>
+
+                  <div className="flex justify-end space-x-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowScheduleModal(false)}
+                      className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium font-['Roboto'] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submittingSchedule || !(scheduleForm.applicationId && scheduleForm.interviewerId && scheduleForm.date && scheduleForm.time)}
+                      className={`px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors text-white dark:text-black ${(!(scheduleForm.applicationId && scheduleForm.interviewerId && scheduleForm.date && scheduleForm.time) || submittingSchedule) ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : 'bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-200'}`}
+                    >
+                      {submittingSchedule ? 'Scheduling...' : 'Schedule Interview'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
           </div>
         )}
     </HRLayout>

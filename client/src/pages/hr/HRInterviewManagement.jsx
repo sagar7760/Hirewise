@@ -388,6 +388,13 @@ const HRInterviewManagement = () => {
       if (!applicationId || !interviewerId || !date || !time) {
         throw new Error('Please fill required fields');
       }
+      // Client-side check: backend requires scheduledDate strictly in the future (not today)
+      const today = new Date();
+      const selected = new Date(date);
+      const todayYMD = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      if (selected <= todayYMD) {
+        throw new Error('Please select a date after today');
+      }
       const payload = {
         applicationId,
         interviewerId,
@@ -410,7 +417,13 @@ const HRInterviewManagement = () => {
       fetchInterviews();
       // addToast('Interview scheduled successfully','success'); // Assuming addToast is globally available or defined below
     } catch(err){
-      setError(err.message);
+      // Surface server validation messages when available
+      const apiErrors = err?.response?.data?.errors;
+      if (Array.isArray(apiErrors) && apiErrors.length) {
+        setError(apiErrors.map(e => e.message).join(', '));
+      } else {
+        setError(err.message);
+      }
       // addToast(err.message || 'Failed to schedule','error');
     } finally { setSubmitting(false); }
   };
@@ -451,6 +464,14 @@ const HRInterviewManagement = () => {
   // Validation flags
   const isScheduleValid = !!(scheduleForm.applicationId && scheduleForm.interviewerId && scheduleForm.date && scheduleForm.time);
   const isRescheduleValid = !!(rescheduleModal.id && rescheduleModal.date && rescheduleModal.time && rescheduleModal.duration);
+
+  // Safe feedback lists for the details modal (avoid mapping undefined)
+  const strengthsList = Array.isArray(selectedInterview?.feedback?.strengths)
+    ? selectedInterview.feedback.strengths
+    : [];
+  const weaknessesList = Array.isArray(selectedInterview?.feedback?.weaknesses)
+    ? selectedInterview.feedback.weaknesses
+    : [];
 
 
   return (
@@ -723,11 +744,11 @@ const HRInterviewManagement = () => {
                 </button>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 {/* Candidate Info */}
                 <div>
                   <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 font-['Roboto'] mb-2">Candidate</h4>
-                  <p className="text-gray-900 dark:text-white font-['Roboto'] font-medium">{selectedInterview.candidate.name}</p>
+                        {selectedInterview.feedback.rating}/5
                   <p className="text-gray-600 dark:text-gray-300 font-['Roboto']">{selectedInterview.candidate.email}</p>
                   <p className="text-gray-600 dark:text-gray-300 font-['Roboto']">{selectedInterview.candidate.phone}</p>
                 </div>
@@ -802,21 +823,25 @@ const HRInterviewManagement = () => {
                     {/* Strengths */}
                     <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
                       <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Strengths</h5>
-                      <ul className="space-y-1">
-                        {selectedInterview.feedback.strengths.map((strength, index) => (
-                          <li key={index} className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto'] flex items-start">
-                            <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                            {strength}
-                          </li>
-                        ))}
-                      </ul>
+                      {strengthsList.length > 0 ? (
+                        <ul className="space-y-1">
+                          {strengthsList.map((strength, index) => (
+                            <li key={index} className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto'] flex items-start">
+                              <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                              {strength}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">No strengths provided.</p>
+                      )}
                     </div>
                     {/* Areas of Concern (Weaknesses) */}
-                    {selectedInterview.feedback.weaknesses && (
+                    {weaknessesList.length > 0 && (
                       <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
                         <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Areas of Concern</h5>
                         <ul className="space-y-1">
-                          {selectedInterview.feedback.weaknesses.map((concern, index) => (
+                          {weaknessesList.map((concern, index) => (
                             <li key={index} className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto'] flex items-start">
                               <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
                               {concern}
@@ -933,7 +958,7 @@ const HRInterviewManagement = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Date</label>
-                    <input type="date" value={scheduleForm.date} onChange={e=>setScheduleForm(f=>({...f, date:e.target.value}))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700" />
+                    <input type="date" min={new Date(Date.now()+24*60*60*1000).toISOString().slice(0,10)} value={scheduleForm.date} onChange={e=>setScheduleForm(f=>({...f, date:e.target.value}))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Time</label>
@@ -1017,7 +1042,7 @@ const HRInterviewManagement = () => {
             <form onSubmit={submitReschedule} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 font-['Roboto']">Date</label>
-                <input type="date" value={rescheduleModal.date} onChange={e=>setRescheduleModal(m=>({...m, date:e.target.value}))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-white dark:bg-gray-700" />
+                <input type="date" min={new Date().toISOString().slice(0,10)} value={rescheduleModal.date} onChange={e=>setRescheduleModal(m=>({...m, date:e.target.value}))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-white dark:bg-gray-700" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 font-['Roboto']">Time</label>
