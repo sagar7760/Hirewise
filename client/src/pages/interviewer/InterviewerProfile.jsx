@@ -202,55 +202,55 @@ const InterviewerProfile = () => {
     <InterviewerLayout>
       {loading && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
-          <div className="h-8 w-64 bg-gray-200 rounded mb-8" />
+          <div className="h-8 w-64 bg-gray-200 dark:bg-gray-700 rounded mb-8" />
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="space-y-6">
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <div className="h-5 w-40 bg-gray-200 rounded mb-6" />
-                <div className="w-32 h-32 rounded-full bg-gray-200 mx-auto mb-4" />
-                <div className="h-8 w-28 bg-gray-100 rounded mx-auto" />
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                <div className="h-5 w-40 bg-gray-200 dark:bg-gray-700 rounded mb-6" />
+                <div className="w-32 h-32 rounded-full bg-gray-200 dark:bg-gray-700 mx-auto mb-4" />
+                <div className="h-8 w-28 bg-gray-100 dark:bg-gray-600 rounded mx-auto" />
               </div>
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <div className="h-5 w-32 bg-gray-200 rounded mb-4" />
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                <div className="h-5 w-32 bg-gray-200 dark:bg-gray-700 rounded mb-4" />
                 <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 rounded-lg bg-gray-200" />
+                  <div className="w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-700" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-4 w-32 bg-gray-200 rounded" />
-                    <div className="h-3 w-20 bg-gray-100 rounded" />
+                    <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded" />
+                    <div className="h-3 w-20 bg-gray-100 dark:bg-gray-600 rounded" />
                   </div>
                 </div>
                 <div className="mt-6 space-y-3">
-                  <div className="h-4 w-40 bg-gray-100 rounded" />
-                  <div className="h-4 w-32 bg-gray-100 rounded" />
-                  <div className="h-4 w-36 bg-gray-100 rounded" />
+                  <div className="h-4 w-40 bg-gray-100 dark:bg-gray-600 rounded" />
+                  <div className="h-4 w-32 bg-gray-100 dark:bg-gray-600 rounded" />
+                  <div className="h-4 w-36 bg-gray-100 dark:bg-gray-600 rounded" />
                 </div>
               </div>
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <div className="h-5 w-48 bg-gray-200 rounded mb-4" />
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                <div className="h-5 w-48 bg-gray-200 dark:bg-gray-700 rounded mb-4" />
                 <div className="space-y-4">
-                  <div className="h-4 w-full bg-gray-100 rounded" />
-                  <div className="h-4 w-full bg-gray-100 rounded" />
-                  <div className="h-4 w-2/3 bg-gray-100 rounded" />
+                  <div className="h-4 w-full bg-gray-100 dark:bg-gray-600 rounded" />
+                  <div className="h-4 w-full bg-gray-100 dark:bg-gray-600 rounded" />
+                  <div className="h-4 w-2/3 bg-gray-100 dark:bg-gray-600 rounded" />
                 </div>
               </div>
             </div>
             <div className="lg:col-span-2 space-y-6">
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <div className="h-5 w-44 bg-gray-200 rounded mb-6" />
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                <div className="h-5 w-44 bg-gray-200 dark:bg-gray-700 rounded mb-6" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {Array.from({length:6}).map((_,i)=>(<div key={i} className="space-y-2"><div className="h-4 w-24 bg-gray-200 rounded" /><div className="h-9 w-full bg-gray-100 rounded" /></div>))}
+                  {Array.from({length:6}).map((_,i)=>(<div key={i} className="space-y-2"><div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded" /><div className="h-9 w-full bg-gray-100 dark:bg-gray-600 rounded" /></div>))}
                 </div>
               </div>
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <div className="h-5 w-48 bg-gray-200 rounded mb-6" />
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                <div className="h-5 w-48 bg-gray-200 dark:bg-gray-700 rounded mb-6" />
                 <div className="space-y-4">
-                  <div className="h-12 w-full bg-gray-100 rounded" />
+                  <div className="h-12 w-full bg-gray-100 dark:bg-gray-600 rounded" />
                 </div>
               </div>
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <div className="h-5 w-56 bg-gray-200 rounded mb-6" />
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                <div className="h-5 w-56 bg-gray-200 dark:bg-gray-700 rounded mb-6" />
                 <div className="space-y-4">
-                  {Array.from({length:6}).map((_,i)=>(<div key={i} className="flex items-center justify-between"><div className="space-y-1"><div className="h-4 w-40 bg-gray-200 rounded" /><div className="h-3 w-28 bg-gray-100 rounded" /></div><div className="h-6 w-11 bg-gray-200 rounded-full" /></div>))}
+                  {Array.from({length:6}).map((_,i)=>(<div key={i} className="flex items-center justify-between"><div className="space-y-1"><div className="h-4 w-40 bg-gray-200 dark:bg-gray-700 rounded" /><div className="h-3 w-28 bg-gray-100 dark:bg-gray-600 rounded" /></div><div className="h-6 w-11 bg-gray-200 dark:bg-gray-700 rounded-full" /></div>))}
                 </div>
               </div>
             </div>
@@ -266,10 +266,10 @@ const InterviewerProfile = () => {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-black font-['Open_Sans']">
+              <h1 className="text-3xl font-bold text-black dark:text-white font-['Open_Sans']">
                 Interviewer Profile
               </h1>
-              <p className="mt-2 text-gray-600 font-['Roboto']">
+              <p className="mt-2 text-gray-600 dark:text-gray-400 font-['Roboto']">
                 Manage your profile information and interview preferences
               </p>
             </div>
@@ -277,8 +277,8 @@ const InterviewerProfile = () => {
               onClick={() => setIsEditing(!isEditing)}
               className={`px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors flex items-center ${
                 isEditing 
-                  ? 'bg-gray-100 hover:bg-gray-200 text-gray-800' 
-                  : 'bg-black hover:bg-gray-800 text-white'
+                  ? 'bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200' 
+                  : 'bg-black  text-white dark:bg-white dark:text-black cursor-pointer'
               }`}
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -296,12 +296,12 @@ const InterviewerProfile = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Profile Picture Section */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-black mb-4 font-['Open_Sans']">
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+              <h3 className="text-lg font-semibold text-black dark:text-white mb-4 font-['Open_Sans']">
                 Profile Picture
               </h3>
               <div className="flex flex-col items-center">
-                <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center mb-4 overflow-hidden">
+                <div className="w-32 h-32 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center mb-4 overflow-hidden">
                   {profileData.profilePicture ? (
                     <img 
                       src={profileData.profilePicture} 
@@ -309,14 +309,14 @@ const InterviewerProfile = () => {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-16 h-16 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   )}
                 </div>
                 {isEditing && (
                   <div>
-                    <label className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors cursor-pointer">
+                    <label className="bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors cursor-pointer">
                       Upload Photo
                       <input
                         type="file"
@@ -331,8 +331,8 @@ const InterviewerProfile = () => {
             </div>
 
             {/* Organization Info */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6 mt-6">
-              <h3 className="text-lg font-semibold text-black mb-4 font-['Open_Sans']">
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 mt-6">
+              <h3 className="text-lg font-semibold text-black dark:text-white mb-4 font-['Open_Sans']">
                 Organization
               </h3>
               <div className="space-y-4">
@@ -341,43 +341,43 @@ const InterviewerProfile = () => {
                     <img 
                       src={profileData.organizationLogo}
                       alt="Organization Logo" 
-                      className="w-12 h-12 rounded-lg bg-gray-100 mr-3 object-cover"
+                      className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-700 mr-3 object-cover"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-lg bg-gray-100 mr-3 flex items-center justify-center text-[10px] text-gray-500">
+                    <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-700 mr-3 flex items-center justify-center text-[10px] text-gray-500 dark:text-gray-400">
                       No Logo
                     </div>
                   )}
                   <div>
-                    <p className="font-medium text-black font-['Open_Sans']">
+                    <p className="font-medium text-black dark:text-white font-['Open_Sans']">
                       {profileData.organizationName}
                     </p>
-                    <p className="text-sm text-gray-500 font-['Roboto']">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">
                       Organization
                     </p>
                   </div>
                 </div>
-                <div className="pt-4 border-t border-gray-100">
+                <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
                   <div className="grid grid-cols-1 gap-3">
                     <div>
-                      <label className="text-sm font-medium text-gray-500 font-['Roboto']">Department</label>
-                      <p className="text-black font-['Open_Sans']">{profileData.department}</p>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400 font-['Roboto']">Department</label>
+                      <p className="text-black dark:text-white font-['Open_Sans']">{profileData.department}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-500 font-['Roboto']">Specialization</label>
-                      <p className="text-black font-['Open_Sans']">{profileData.specialization}</p>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400 font-['Roboto']">Specialization</label>
+                      <p className="text-black dark:text-white font-['Open_Sans']">{profileData.specialization}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-500 font-['Roboto']">Added On</label>
-                      <p className="text-black font-['Open_Sans']">{profileData.addedOn ? new Date(profileData.addedOn).toLocaleDateString() : '-'}</p>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400 font-['Roboto']">Added On</label>
+                      <p className="text-black dark:text-white font-['Open_Sans']">{profileData.addedOn ? new Date(profileData.addedOn).toLocaleDateString() : '-'}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-500 font-['Roboto']">Joined On</label>
-                      <p className="text-black font-['Open_Sans']">{profileData.joinedOn ? new Date(profileData.joinedOn).toLocaleDateString() : '-'}</p>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400 font-['Roboto']">Joined On</label>
+                      <p className="text-black dark:text-white font-['Open_Sans']">{profileData.joinedOn ? new Date(profileData.joinedOn).toLocaleDateString() : '-'}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-500 font-['Roboto']">Added By</label>
-                      <p className="text-black font-['Open_Sans']">{profileData.addedBy}</p>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400 font-['Roboto']">Added By</label>
+                      <p className="text-black dark:text-white font-['Open_Sans']">{profileData.addedBy}</p>
                     </div>
                   </div>
                 </div>
@@ -385,31 +385,31 @@ const InterviewerProfile = () => {
             </div>
 
             {/* Interview Stats */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6 mt-6">
-              <h3 className="text-lg font-semibold text-black mb-4 font-['Open_Sans']">
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 mt-6">
+              <h3 className="text-lg font-semibold text-black dark:text-white mb-4 font-['Open_Sans']">
                 Interview Statistics
               </h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600 font-['Roboto']">Total Interviews</span>
-                  <span className="text-lg font-semibold text-black font-['Open_Sans']">
+                  <span className="text-sm text-gray-600 dark:text-gray-400 font-['Roboto']">Total Interviews</span>
+                  <span className="text-lg font-semibold text-black dark:text-white font-['Open_Sans']">
                     {profileData.interviewStats.totalInterviews}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600 font-['Roboto']">Average Rating</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400 font-['Roboto']">Average Rating</span>
                   <div className="flex items-center">
-                    <span className="text-lg font-semibold text-black font-['Open_Sans'] mr-1">
+                    <span className="text-lg font-semibold text-black dark:text-white font-['Open_Sans'] mr-1">
                       {profileData.interviewStats.averageRating}
                     </span>
-                    <svg className="w-4 h-4 text-gray-700" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-4 h-4 text-gray-700 dark:text-gray-300" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                     </svg>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600 font-['Roboto']">Avg. Response Time</span>
-                  <span className="text-lg font-semibold text-black font-['Open_Sans']">
+                  <span className="text-sm text-gray-600 dark:text-gray-400 font-['Roboto']">Avg. Response Time</span>
+                  <span className="text-lg font-semibold text-black dark:text-white font-['Open_Sans']">
                     {profileData.interviewStats.responseTime}
                   </span>
                 </div>
@@ -419,13 +419,13 @@ const InterviewerProfile = () => {
 
           {/* Main Profile Info */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-              <h3 className="text-lg font-semibold text-black mb-6 font-['Open_Sans']">
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 mb-6">
+              <h3 className="text-lg font-semibold text-black dark:text-white mb-6 font-['Open_Sans']">
                 Basic Information
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 font-['Roboto']">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-['Roboto']">
                     Full Name
                   </label>
                   {isEditing ? (
@@ -433,30 +433,30 @@ const InterviewerProfile = () => {
                       type="text"
                       disabled
                       value={profileData.fullName}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 font-['Roboto'] text-gray-600 cursor-not-allowed"
+                      className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 font-['Roboto'] text-gray-600 dark:text-gray-400 cursor-not-allowed"
                     />
                   ) : (
-                    <p className="text-black py-2 font-['Open_Sans']">{profileData.fullName}</p>
+                    <p className="text-black dark:text-white py-2 font-['Open_Sans']">{profileData.fullName}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 font-['Roboto']">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-['Roboto']">
                     Email Address
                   </label>
-                  <p className="text-black py-2 font-['Open_Sans']">{profileData.email}</p>
-                  <p className="text-xs text-gray-500 font-['Roboto']">Email cannot be changed</p>
+                  <p className="text-black dark:text-white py-2 font-['Open_Sans']">{profileData.email}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-['Roboto']">Email cannot be changed</p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 font-['Roboto']">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-['Roboto']">
                     Phone Number
                   </label>
                   <div className="flex items-center space-x-2">
-                    <p className="text-black py-2 font-['Open_Sans'] flex-1">{profileData.phone}</p>
+                    <p className="text-black dark:text-white py-2 font-['Open_Sans'] flex-1">{profileData.phone}</p>
                     <button
                       onClick={() => setShowPhoneModal(true)}
-                      className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1 rounded font-['Roboto'] transition-colors"
+                      className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 px-3 py-1 rounded font-['Roboto'] transition-colors"
                     >
                       Change
                     </button>
@@ -464,18 +464,18 @@ const InterviewerProfile = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 font-['Roboto']">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-['Roboto']">
                     Role
                   </label>
                   <div className="flex items-center">
-                    <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-medium font-['Roboto']">
+                    <span className="bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 px-3 py-1 rounded-full text-sm font-medium font-['Roboto']">
                       {profileData.role}
                     </span>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 font-['Roboto']">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-['Roboto']">
                     Specialization
                   </label>
                   {isEditing ? (
@@ -483,22 +483,22 @@ const InterviewerProfile = () => {
                       type="text"
                       value={profileData.specialization}
                       onChange={(e) => handleProfileUpdate('specialization', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-black"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-black dark:text-white bg-white dark:bg-gray-800"
                     />
                   ) : (
-                    <p className="text-black py-2 font-['Open_Sans']">{profileData.specialization}</p>
+                    <p className="text-black dark:text-white py-2 font-['Open_Sans']">{profileData.specialization}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 font-['Roboto']">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-['Roboto']">
                     Status
                   </label>
                   <div className="flex items-center">
                     <span className={`px-3 py-1 rounded-full text-sm font-medium font-['Roboto'] ${
                       profileData.status === 'Active' 
-                        ? 'bg-gray-100 text-gray-700' 
-                        : 'bg-red-100 text-red-800'
+                        ? 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300' 
+                        : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                     }`}>
                       {profileData.status}
                     </span>
@@ -508,23 +508,23 @@ const InterviewerProfile = () => {
             </div>
 
             {/* Security Settings */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-              <h3 className="text-lg font-semibold text-black mb-6 font-['Open_Sans']">
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 mb-6">
+              <h3 className="text-lg font-semibold text-black dark:text-white mb-6 font-['Open_Sans']">
                 Security Settings
               </h3>
               <div className="space-y-4">
-                <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                <div className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700">
                   <div>
-                    <h4 className="text-sm font-medium text-black font-['Open_Sans']">
+                    <h4 className="text-sm font-medium text-black dark:text-white font-['Open_Sans']">
                       Password
                     </h4>
-                    <p className="text-xs text-gray-500 font-['Roboto']">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-['Roboto']">
                       Last changed {profileData?.lastPasswordChange ? new Date(profileData.lastPasswordChange).toLocaleDateString() : '—'}
                     </p>
                   </div>
                   <button
                     onClick={() => setShowPasswordModal(true)}
-                    className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
                   >
                     Change Password
                   </button>
@@ -533,17 +533,17 @@ const InterviewerProfile = () => {
             </div>
 
             {/* Notification Preferences */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-black mb-6 font-['Open_Sans']">
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+              <h3 className="text-lg font-semibold text-black dark:text-white mb-6 font-['Open_Sans']">
                 Notification Preferences
               </h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-sm font-medium text-black font-['Open_Sans']">
+                    <h4 className="text-sm font-medium text-black dark:text-white font-['Open_Sans']">
                       Interview Reminders
                     </h4>
-                    <p className="text-xs text-gray-500 font-['Roboto']">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-['Roboto']">
                       Get notified 30 minutes before scheduled interviews
                     </p>
                   </div>
@@ -554,16 +554,16 @@ const InterviewerProfile = () => {
                       onChange={(e) => handleNotificationUpdate('interviewReminders', e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                   </label>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-sm font-medium text-black font-['Open_Sans']">
+                    <h4 className="text-sm font-medium text-black dark:text-white font-['Open_Sans']">
                       Candidate Updates
                     </h4>
-                    <p className="text-xs text-gray-500 font-['Roboto']">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-['Roboto']">
                       Notifications when candidates upload new materials
                     </p>
                   </div>
@@ -574,16 +574,16 @@ const InterviewerProfile = () => {
                       onChange={(e) => handleNotificationUpdate('candidateUpdates', e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                   </label>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-sm font-medium text-black font-['Open_Sans']">
+                    <h4 className="text-sm font-medium text-black dark:text-white font-['Open_Sans']">
                       Feedback Deadlines
                     </h4>
-                    <p className="text-xs text-gray-500 font-['Roboto']">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-['Roboto']">
                       Reminders for pending interview feedback
                     </p>
                   </div>
@@ -594,16 +594,16 @@ const InterviewerProfile = () => {
                       onChange={(e) => handleNotificationUpdate('feedbackDeadlines', e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                   </label>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-sm font-medium text-black font-['Open_Sans']">
+                    <h4 className="text-sm font-medium text-black dark:text-white font-['Open_Sans']">
                       Schedule Changes
                     </h4>
-                    <p className="text-xs text-gray-500 font-['Roboto']">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-['Roboto']">
                       Alerts for interview reschedules and cancellations
                     </p>
                   </div>
@@ -614,16 +614,16 @@ const InterviewerProfile = () => {
                       onChange={(e) => handleNotificationUpdate('scheduleChanges', e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                   </label>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-sm font-medium text-black font-['Open_Sans']">
+                    <h4 className="text-sm font-medium text-black dark:text-white font-['Open_Sans']">
                       Email Digests
                     </h4>
-                    <p className="text-xs text-gray-500 font-['Roboto']">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-['Roboto']">
                       Daily summary of interview activities and updates
                     </p>
                   </div>
@@ -634,16 +634,16 @@ const InterviewerProfile = () => {
                       onChange={(e) => handleNotificationUpdate('emailDigests', e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                   </label>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-sm font-medium text-black font-['Open_Sans']">
+                    <h4 className="text-sm font-medium text-black dark:text-white font-['Open_Sans']">
                       Weekly Reports
                     </h4>
-                    <p className="text-xs text-gray-500 font-['Roboto']">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-['Roboto']">
                       Summary of your interview metrics and performance
                     </p>
                   </div>
@@ -654,7 +654,7 @@ const InterviewerProfile = () => {
                       onChange={(e) => handleNotificationUpdate('weeklyReports', e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                   </label>
                 </div>
               </div>
@@ -665,14 +665,14 @@ const InterviewerProfile = () => {
               <div className="mt-6 flex justify-end space-x-3">
                 <button
                   onClick={() => setIsEditing(false)}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors"
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-white dark:text-black px-6 py-3 rounded-lg font-medium font-['Roboto'] cursor-pointer transition-colors"
                   disabled={saving}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveProfile}
-                  className="bg-black hover:bg-gray-800 text-white px-6 py-3 rounded-lg font-medium font-['Roboto'] transition-colors disabled:opacity-60"
+                  className="bg-black hover:bg-gray-800 text-white dark:bg-white dark:text-black dark:hover:bg-gray-200 px-6 py-3 rounded-lg font-medium font-['Roboto'] cursor-pointer transition-colors disabled:opacity-60"
                   disabled={saving}
                 >
                   {saving ? 'Saving...' : 'Save Changes'}
@@ -687,45 +687,45 @@ const InterviewerProfile = () => {
       {/* Password Change Modal */}
       {showPasswordModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-black mb-4 font-['Open_Sans']">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-black dark:text-white mb-4 font-['Open_Sans']">
               Change Password
             </h3>
             <form onSubmit={handlePasswordChange}>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 font-['Roboto']">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-['Roboto']">
                     Current Password
                   </label>
                   <input
                     type="password"
                     value={passwordData.currentPassword}
                     onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-black"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-black dark:text-white bg-white dark:bg-gray-800"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 font-['Roboto']">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-['Roboto']">
                     New Password
                   </label>
                   <input
                     type="password"
                     value={passwordData.newPassword}
                     onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-black"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-black dark:text-white bg-white dark:bg-gray-800"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 font-['Roboto']">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-['Roboto']">
                     Confirm New Password
                   </label>
                   <input
                     type="password"
                     value={passwordData.confirmPassword}
                     onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-black"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-black dark:text-white bg-white dark:bg-gray-800"
                     required
                   />
                 </div>
@@ -734,13 +734,13 @@ const InterviewerProfile = () => {
                 <button
                   type="button"
                   onClick={() => setShowPasswordModal(false)}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
+                  className="bg-black text-white dark:bg-white dark:text-black px-4 py-2 rounded-lg font-medium font-['Roboto'] cursor-pointer transition-colors"
                 >
                   Change Password
                 </button>
@@ -753,21 +753,21 @@ const InterviewerProfile = () => {
       {/* Phone Change Modal */}
       {showPhoneModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-black mb-4 font-['Open_Sans']">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-black dark:text-white mb-4 font-['Open_Sans']">
               Change Phone Number
             </h3>
             <form onSubmit={handlePhoneChange}>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 font-['Roboto']">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-['Roboto']">
                     New Phone Number
                   </label>
                   <input
                     type="tel"
                     value={phoneData.newPhone}
                     onChange={(e) => setPhoneData(prev => ({ ...prev, newPhone: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-black"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-black dark:text-white bg-white dark:bg-gray-800"
                     required
                   />
                 </div>
@@ -776,13 +776,13 @@ const InterviewerProfile = () => {
                 <button
                   type="button"
                   onClick={() => setShowPhoneModal(false)}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
+                  className="bg-black hover:bg-gray-800 text-white dark:bg-blue-600 dark:hover:bg-blue-700 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
                 >
                   Update Phone
                 </button>
