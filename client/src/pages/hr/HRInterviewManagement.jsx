@@ -54,6 +54,7 @@ const HRInterviewManagement = () => {
     const applicant = i.application?.applicant || {};
     const job = i.application?.job || {};
     const interviewer = i.interviewer || {};
+    const hasFeedback = !!(i?.feedback && (i.feedback.submittedAt || i.feedback.overallRating != null || i.feedback.recommendation || (Array.isArray(i.feedback.strengths) && i.feedback.strengths.length)));
     return {
       id: i._id,
       candidate: {
@@ -75,15 +76,21 @@ const HRInterviewManagement = () => {
       scheduledDate: i.scheduledDate,
       scheduledTime: i.scheduledTime,
       duration: i.duration,
-      status: statusDisplayMap[i.status] || i.status,
+  status: hasFeedback ? 'Completed' : (statusDisplayMap[i.status] || i.status),
       type: i.type,
       location: i.location || i.meetingDetails?.location || i.meetingDetails?.meetingLink || '—',
       notes: i.notes || i.agenda || '',
       feedback: i.feedback && i.feedback.submittedAt ? {
-        rating: i.feedback.overallRating,
+        // Canonical fields
+        overallRating: i.feedback.overallRating,
+        technicalSkills: i.feedback.technicalSkills,
+        problemSolving: i.feedback.problemSolving,
+        candidateExperienceRating: i.feedback.candidateExperienceRating,
+        strengths: Array.isArray(i.feedback.strengths) ? i.feedback.strengths : [],
+        weaknesses: Array.isArray(i.feedback.weaknesses) ? i.feedback.weaknesses : [],
         recommendation: i.feedback.recommendation,
-        submittedAt: i.feedback.submittedAt,
-        comments: i.feedback.additionalNotes || ''
+        additionalNotes: i.feedback.additionalNotes || '',
+        submittedAt: i.feedback.submittedAt
       } : null
     };
   };
@@ -108,7 +115,10 @@ const HRInterviewManagement = () => {
       const res = await makeJsonRequest(`/api/hr/interviews?${qs}`);
       if (res?.success) {
         const raw = res.data?.interviews || [];
-        let normalized = raw.map(normalizeInterview);
+        let normalized = raw.map(normalizeInterview).map(iv => {
+          if (iv.feedback) return { ...iv, status: 'Completed' };
+          return iv;
+        });
         // Client-side past filter (scheduledDate < now)
         if (dateFilter === 'past') {
           const now = new Date();
@@ -163,7 +173,7 @@ const HRInterviewManagement = () => {
       case 'In Progress': 
         return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400';
       case 'Completed': 
-        return 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
+        return 'bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
       case 'Cancelled': 
         return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400';
       case 'No Show': 
@@ -748,7 +758,6 @@ const HRInterviewManagement = () => {
                 {/* Candidate Info */}
                 <div>
                   <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 font-['Roboto'] mb-2">Candidate</h4>
-                        {selectedInterview.feedback.rating}/5
                   <p className="text-gray-600 dark:text-gray-300 font-['Roboto']">{selectedInterview.candidate.email}</p>
                   <p className="text-gray-600 dark:text-gray-300 font-['Roboto']">{selectedInterview.candidate.phone}</p>
                 </div>
@@ -793,31 +802,46 @@ const HRInterviewManagement = () => {
                     {/* Rating */}
                     <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg text-center">
                       <div className="text-2xl font-bold text-gray-900 dark:text-white font-['Open_Sans']">
-                        {selectedInterview.feedback.rating}/10
+                        {selectedInterview.feedback.overallRating ?? '—'}/5
                       </div>
                       <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">Overall Rating</div>
                     </div>
                     {/* Recommendation */}
                     <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg text-center">
                       <div className={`text-lg font-semibold font-['Open_Sans'] ${getRecommendationColor(selectedInterview.feedback.recommendation)}`}>
-                        {selectedInterview.feedback.recommendation}
+                        {(() => {
+                          const map = { strongly_recommend: 'Strong Hire', recommend: 'Hire', neutral: 'Maybe', do_not_recommend: 'No Hire', strongly_do_not_recommend: 'Strong No Hire' };
+                          const val = selectedInterview.feedback.recommendation;
+                          return map[val] || val || '—';
+                        })()}
                       </div>
                       <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">Recommendation</div>
                     </div>
                     {/* Submitted Date */}
                     <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg text-center">
-                      <div className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto']">
-                        {new Date(selectedInterview.feedback.submittedAt).toLocaleDateString()}
-                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto']">{selectedInterview.feedback.submittedAt ? new Date(selectedInterview.feedback.submittedAt).toLocaleString() : '—'}</div>
                       <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">Submitted</div>
                     </div>
                   </div>
 
-                  <div className="mb-4">
-                    <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Comments</h5>
-                    <p className="text-gray-600 dark:text-gray-300 font-['Roboto']">{selectedInterview.feedback.comments}</p>
+                  {/* Score Breakdown (no candidate experience) */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Technical Skills</h5>
+                      <div className="flex items-center gap-2">
+                        <StarDisplay rating={selectedInterview.feedback.technicalSkills} />
+                        <span className="text-xs text-gray-700 dark:text-gray-300 font-['Roboto']">{selectedInterview.feedback.technicalSkills ?? '—'}/5</span>
+                      </div>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Problem Solving</h5>
+                      <div className="flex items-center gap-2">
+                        <StarDisplay rating={selectedInterview.feedback.problemSolving} />
+                        <span className="text-xs text-gray-700 dark:text-gray-300 font-['Roboto']">{selectedInterview.feedback.problemSolving ?? '—'}/5</span>
+                      </div>
+                    </div>
                   </div>
-                  
+
                   {/* Strengths / Weaknesses */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Strengths */}
@@ -850,6 +874,12 @@ const HRInterviewManagement = () => {
                         </ul>
                       </div>
                     )}
+                  </div>
+
+                  {/* Comments at bottom */}
+                  <div className="mt-4">
+                    <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Comments</h5>
+                    <p className="text-gray-600 dark:text-gray-300 font-['Roboto']">{selectedInterview.feedback.additionalNotes || '—'}</p>
                   </div>
                 </div>
               )}
@@ -1074,3 +1104,17 @@ const HRInterviewManagement = () => {
 };
 
 export default HRInterviewManagement;
+
+// Small helper to render 1–5 stars
+const StarDisplay = ({ rating }) => {
+  const val = Number.isFinite(Number(rating)) ? Number(rating) : 0;
+  return (
+    <div className="flex items-center">
+      {[1,2,3,4,5].map(star => (
+        <svg key={star} className={`w-4 h-4 ${star <= val ? 'text-yellow-500' : 'text-gray-300 dark:text-gray-600'}`} fill="currentColor" viewBox="0 0 20 20">
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+      ))}
+    </div>
+  );
+};

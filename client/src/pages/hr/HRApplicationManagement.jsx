@@ -56,6 +56,11 @@ const HRApplicationManagement = () => {
   const [slotState, setSlotState] = useState({ loading: false, slots: [], error: null });
   const [submittingSchedule, setSubmittingSchedule] = useState(false);
   const [scheduleError, setScheduleError] = useState(null);
+  // External feedback fetch state for Application Details modal
+  const [externalFeedback, setExternalFeedback] = useState(null);
+  const [fetchingFeedback, setFetchingFeedback] = useState(false);
+  // Background detection for table status override (applicationId -> boolean hasFeedback)
+  const [feedbackByAppId, setFeedbackByAppId] = useState({});
 
   // Handle URL parameter for job filtering
   useEffect(() => {
@@ -239,6 +244,8 @@ const HRApplicationManagement = () => {
         return 'bg-gray-400 text-white';
       case 'interview_scheduled':
         return 'bg-gray-600 text-white';
+      case 'completed':
+        return 'bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
       case 'submitted':
         return 'bg-gray-700 text-white';
       default:
@@ -247,13 +254,92 @@ const HRApplicationManagement = () => {
   };
 
   const formatStatus = (status) => {
-    return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return String(status).replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
   const getScoreColor = (score) => {
     if (score >= 8.5) return 'text-gray-900 font-semibold';
     if (score >= 7.0) return 'text-gray-700';
     return 'text-gray-500';
+  };
+
+  // Map interviewer recommendation to color classes (reuse from HRInterviewManagement)
+  const getRecommendationColor = (rec) => {
+    switch (rec) {
+      case 'strongly_recommend':
+      case 'Strong Hire':
+        return 'text-green-600 dark:text-green-400 font-semibold';
+      case 'recommend':
+      case 'Hire':
+        return 'text-gray-700 dark:text-gray-300';
+      case 'do_not_recommend':
+      case 'No Hire':
+        return 'text-red-500 dark:text-red-400';
+      default:
+        return 'text-gray-600 dark:text-gray-400';
+    }
+  };
+
+  // Normalize feedback from various possible shapes on the application object
+  const normalizeFeedbackFromApplication = (app) => {
+    if (!app) return null;
+    const rawCandidates = [
+      app.feedback,
+      app.existingFeedback,
+      app.interviewerFeedback,
+      app.latestFeedback,
+      app.interview?.feedback,
+      app.interview?.existingFeedback,
+      app.latestInterview?.feedback,
+      app.latestInterview?.existingFeedback,
+      // If applications carry an interviews list, prefer the latest with any feedback fields
+      ...(Array.isArray(app.interviews) ? app.interviews.map(iv => iv?.feedback || iv?.existingFeedback).filter(Boolean) : [])
+    ].filter(Boolean);
+
+    // Score a feedback object by how many meaningful fields it has
+    const scoreFeedback = (f) => {
+      if (!f || typeof f !== 'object') return 0;
+      let score = 0;
+      const fields = [
+        'overallRating', 'technicalSkills', 'problemSolving', 'candidateExperienceRating',
+        'recommendation', 'additionalNotes', 'submittedAt'
+      ];
+      fields.forEach(k => { if (f[k] !== undefined && f[k] !== null && f[k] !== '') score++; });
+      if (Array.isArray(f.strengths) && f.strengths.length) score++;
+      if (Array.isArray(f.weaknesses) && f.weaknesses.length) score++;
+      // Alternate key aliases
+      if (f.technical) score++;
+      if (f.problem_solving) score++;
+      if (f.candidateExperience || f.experienceRating) score++;
+      return score;
+    };
+
+    // Choose the richest feedback object
+    const fb = rawCandidates.sort((a, b) => scoreFeedback(b) - scoreFeedback(a))[0];
+    if (!fb || scoreFeedback(fb) === 0) return null;
+
+    // Map aliases to canonical
+    const overallRating = fb.overallRating ?? fb.overall ?? fb.rating?.overall;
+    const technicalSkills = fb.technicalSkills ?? fb.technical ?? fb.ratings?.technical;
+    const problemSolving = fb.problemSolving ?? fb.problem_solving ?? fb.ratings?.problemSolving;
+    const candidateExperienceRating = fb.candidateExperienceRating ?? fb.candidateExperience ?? fb.experienceRating ?? fb.ratings?.candidateExperience;
+    const strengths = Array.isArray(fb.strengths) ? fb.strengths : (Array.isArray(fb.positives) ? fb.positives : []);
+    const weaknesses = Array.isArray(fb.weaknesses) ? fb.weaknesses : (Array.isArray(fb.concerns) ? fb.concerns : (Array.isArray(fb.areasOfImprovement) ? fb.areasOfImprovement : []));
+    const recommendation = fb.recommendation;
+    const additionalNotes = fb.additionalNotes ?? fb.notes ?? '';
+    const submittedAt = fb.submittedAt ?? fb.createdAt ?? fb.updatedAt;
+
+    return {
+      overallRating,
+      technicalSkills,
+      problemSolving,
+      candidateExperienceRating,
+      strengths,
+      weaknesses,
+      recommendation,
+      additionalNotes,
+      submittedAt
+    };
   };
 
   const handleApplicationAction = async (action, applicationId) => {
@@ -440,6 +526,127 @@ const HRApplicationManagement = () => {
   const handlePageChange = (page) => {
     setCurrentPage(page);
   };
+
+  // Helper: score/validate feedback object
+  const hasMeaningfulFeedback = (f) => {
+    if (!f || typeof f !== 'object') return false;
+    if (f.submittedAt || f.overallRating != null || f.recommendation) return true;
+    if (Array.isArray(f.strengths) && f.strengths.length) return true;
+    if (Array.isArray(f.weaknesses) && f.weaknesses.length) return true;
+    return false;
+  };
+
+  // Background: for visible applications, detect if any interview has feedback to override status to Completed
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      if (!applications || applications.length === 0) return;
+      const targets = applications.filter(a => a && a.status === 'interview_scheduled');
+      if (targets.length === 0) return;
+      // Skip those where inline normalization already finds feedback
+      const needFetch = targets.filter(a => !normalizeFeedbackFromApplication(a));
+      if (needFetch.length === 0) return;
+      const updates = {};
+      await Promise.all(needFetch.map(async (a) => {
+        const id = a.id;
+        const urls = [
+          `/api/hr/interviews?applicationId=${id}&limit=3`,
+          `/api/hr/interviews?application=${id}&limit=3`,
+          `/api/hr/interviews?appId=${id}&limit=3`
+        ];
+        let found = false;
+        for (const u of urls) {
+          try {
+            const res = await makeJsonRequest(u);
+            if (res?.success) {
+              const list = Array.isArray(res.data?.interviews) ? res.data.interviews : (Array.isArray(res.data) ? res.data : []);
+              for (const iv of list) {
+                const f = iv?.feedback || iv?.existingFeedback;
+                if (hasMeaningfulFeedback(f)) { found = true; break; }
+              }
+            }
+          } catch (e) { /* ignore */ }
+          if (found) break;
+        }
+        updates[id] = found;
+      }));
+      if (!cancelled && Object.keys(updates).length) {
+        setFeedbackByAppId(prev => ({ ...prev, ...updates }));
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [applications, makeJsonRequest]);
+
+  // Derive feedback once per render for the currently selected application
+  const inlineFeedback = selectedApplication ? normalizeFeedbackFromApplication(selectedApplication) : null;
+  const appFeedback = externalFeedback || inlineFeedback;
+  const feedbackStrengths = Array.isArray(appFeedback?.strengths) ? appFeedback.strengths : [];
+  const feedbackWeaknesses = Array.isArray(appFeedback?.weaknesses) ? appFeedback.weaknesses : [];
+
+  // When opening the Application Details modal, try to fetch interview feedback if not present inline
+  useEffect(() => {
+    let cancelled = false;
+    const fetchFeedback = async () => {
+      if (!showApplicationModal || !selectedApplication) return;
+      // If we already have inline feedback with data, skip fetch
+      const hasInline = inlineFeedback && (
+        inlineFeedback.overallRating != null || inlineFeedback.recommendation || (inlineFeedback.strengths?.length) || (inlineFeedback.weaknesses?.length)
+      );
+      if (hasInline) { setExternalFeedback(null); return; }
+      setFetchingFeedback(true);
+      setExternalFeedback(null);
+      const candidates = [];
+      const tryUrls = [
+        `/api/hr/interviews?applicationId=${selectedApplication.id}&limit=5`,
+        `/api/hr/interviews?application=${selectedApplication.id}&limit=5`,
+        `/api/hr/interviews?appId=${selectedApplication.id}&limit=5`
+      ];
+      for (const url of tryUrls) {
+        try {
+          const res = await makeJsonRequest(url);
+          if (res?.success) {
+            const list = Array.isArray(res.data?.interviews) ? res.data.interviews : (Array.isArray(res.data) ? res.data : []);
+            if (list.length) candidates.push(...list);
+          }
+        } catch (e) { /* silent */ }
+        if (candidates.length) break;
+      }
+      if (!cancelled && candidates.length) {
+        // Select interview with richest feedback
+        const withFb = candidates.map(iv => iv?.feedback || iv?.existingFeedback).filter(Boolean);
+        if (withFb.length) {
+          const pickRichest = (arr) => arr.sort((a,b)=>{
+            const score = (f)=>{
+              let s=0; ['overallRating','technicalSkills','problemSolving','candidateExperienceRating','recommendation','additionalNotes','submittedAt'].forEach(k=>{ if(f?.[k]!=null && f?.[k]!=='' ) s++; });
+              if (Array.isArray(f?.strengths) && f.strengths.length) s++;
+              if (Array.isArray(f?.weaknesses) && f.weaknesses.length) s++;
+              return s;
+            };
+            return score(b)-score(a);
+          })[0];
+          const fb = pickRichest(withFb);
+          if (!cancelled && fb) {
+            const normalized = {
+              overallRating: fb.overallRating ?? fb.overall ?? fb.rating?.overall,
+              technicalSkills: fb.technicalSkills ?? fb.technical ?? fb.ratings?.technical,
+              problemSolving: fb.problemSolving ?? fb.problem_solving ?? fb.ratings?.problemSolving,
+              candidateExperienceRating: fb.candidateExperienceRating ?? fb.candidateExperience ?? fb.experienceRating ?? fb.ratings?.candidateExperience,
+              strengths: Array.isArray(fb.strengths) ? fb.strengths : (Array.isArray(fb.positives) ? fb.positives : []),
+              weaknesses: Array.isArray(fb.weaknesses) ? fb.weaknesses : (Array.isArray(fb.concerns) ? fb.concerns : (Array.isArray(fb.areasOfImprovement) ? fb.areasOfImprovement : [])),
+              recommendation: fb.recommendation,
+              additionalNotes: fb.additionalNotes ?? fb.notes ?? '',
+              submittedAt: fb.submittedAt ?? fb.createdAt ?? fb.updatedAt
+            };
+            setExternalFeedback(normalized);
+          }
+        }
+      }
+      if (!cancelled) setFetchingFeedback(false);
+    };
+    fetchFeedback();
+    return () => { cancelled = true; };
+  }, [showApplicationModal, selectedApplication]);
 
   return (
     <HRLayout>
@@ -676,7 +883,11 @@ const HRApplicationManagement = () => {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 transition-colors duration-300">
-                {applications.map((application) => (
+                {applications.map((application) => {
+                  // derive completed when any feedback exists inline or from background check
+                  const inlineFb = normalizeFeedbackFromApplication(application);
+                  const derivedStatus = (inlineFb || feedbackByAppId[application.id]) ? 'completed' : application.status;
+                  return (
                   <tr key={application.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-300">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -724,8 +935,8 @@ const HRApplicationManagement = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(application.status)}`}>
-                        {formatStatus(application.status)}
+                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(derivedStatus)}`}>
+                        {formatStatus(derivedStatus)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -776,7 +987,8 @@ const HRApplicationManagement = () => {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -895,8 +1107,8 @@ const HRApplicationManagement = () => {
                     {selectedApplication.candidate.name}
                   </h3>
                   <div className="flex items-center mt-2">
-                    <span className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${getStatusColor(selectedApplication.status)}`}>
-                      {formatStatus(selectedApplication.status)}
+                    <span className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${getStatusColor(appFeedback ? 'completed' : selectedApplication.status)}`}>
+                      {formatStatus(appFeedback ? 'completed' : selectedApplication.status)}
                     </span>
                     <span className="ml-3 text-sm text-gray-500 dark:text-gray-400 font-['Roboto'] transition-colors duration-300">
                       Applied on {new Date(selectedApplication.appliedDate || selectedApplication.createdAt).toLocaleDateString()}
@@ -1002,6 +1214,96 @@ const HRApplicationManagement = () => {
                 </div>
               </div>
 
+              {/* Interview Feedback (if available) */}
+              <div className="mb-6 border-t border-gray-200 dark:border-gray-700 pt-6">
+                <h4 className="text-lg font-medium text-gray-900 dark:text-white font-['Open_Sans'] mb-4">Interview Feedback</h4>
+                {!appFeedback ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">No interviewer feedback submitted yet.</p>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      {/* Overall Rating */}
+                      <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-gray-900 dark:text-white font-['Open_Sans']">{appFeedback.overallRating ?? '—'}/5</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">Overall Rating</div>
+                      </div>
+                      {/* Recommendation */}
+                      <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg text-center">
+                        <div className={`text-lg font-semibold font-['Open_Sans'] ${getRecommendationColor(appFeedback.recommendation)}`}>
+                          {(() => {
+                            const map = { strongly_recommend: 'Strong Hire', recommend: 'Hire', neutral: 'Maybe', do_not_recommend: 'No Hire', strongly_do_not_recommend: 'Strong No Hire' };
+                            const val = appFeedback.recommendation;
+                            return map[val] || val || '—';
+                          })()}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">Recommendation</div>
+                      </div>
+                      {/* Submitted */}
+                      <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg text-center">
+                        <div className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto']">{appFeedback.submittedAt ? new Date(appFeedback.submittedAt).toLocaleString() : '—'}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">Submitted</div>
+                      </div>
+                    </div>
+
+                    {/* Score Breakdown (no candidate experience) */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Technical Skills</h5>
+                        <div className="flex items-center gap-2">
+                          <StarDisplay rating={appFeedback.technicalSkills} />
+                          <span className="text-xs text-gray-700 dark:text-gray-300 font-['Roboto']">{appFeedback.technicalSkills ?? '—'}/5</span>
+                        </div>
+                      </div>
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Problem Solving</h5>
+                        <div className="flex items-center gap-2">
+                          <StarDisplay rating={appFeedback.problemSolving} />
+                          <span className="text-xs text-gray-700 dark:text-gray-300 font-['Roboto']">{appFeedback.problemSolving ?? '—'}/5</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Strengths / Areas of Concern */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Strengths</h5>
+                        {feedbackStrengths.length > 0 ? (
+                          <ul className="space-y-1">
+                            {feedbackStrengths.map((s, idx) => (
+                              <li key={idx} className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto'] flex items-start">
+                                <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                                {s}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">No strengths provided.</p>
+                        )}
+                      </div>
+                      {feedbackWeaknesses.length > 0 && (
+                        <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                          <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Areas of Concern</h5>
+                          <ul className="space-y-1">
+                            {feedbackWeaknesses.map((w, idx) => (
+                              <li key={idx} className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto'] flex items-start">
+                                <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                                {w}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Comments at bottom */}
+                    <div className="mt-4">
+                      <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Comments</h5>
+                      <p className="text-gray-600 dark:text-gray-300 font-['Roboto']">{appFeedback.additionalNotes || '—'}</p>
+                    </div>
+                  </>
+                )}
+              </div>
+
               <div className="flex justify-between items-center">
                 <div>
                   <button
@@ -1103,12 +1405,21 @@ const HRApplicationManagement = () => {
                     </>
                   )}
                   
-                  {selectedApplication.status === 'interview_scheduled' && (
+                  {(selectedApplication.status === 'interview_scheduled' && !appFeedback) && (
                     <div className="flex items-center px-4 py-2 bg-gray-100 text-blue-700 rounded-lg">
                       <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       Interview Scheduled
+                    </div>
+                  )}
+
+                  {(appFeedback) && (
+                    <div className="flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg">
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Completed
                     </div>
                   )}
                   
@@ -1303,3 +1614,17 @@ const HRApplicationManagement = () => {
 };
 
 export default HRApplicationManagement;
+
+// Small helper to render 1–5 stars (mirrors HRInterviewManagement)
+const StarDisplay = ({ rating }) => {
+  const val = Number.isFinite(Number(rating)) ? Number(rating) : 0;
+  return (
+    <div className="flex items-center">
+      {[1,2,3,4,5].map(star => (
+        <svg key={star} className={`w-4 h-4 ${star <= val ? 'text-yellow-500' : 'text-gray-300 dark:text-gray-600'}`} fill="currentColor" viewBox="0 0 20 20">
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+      ))}
+    </div>
+  );
+};

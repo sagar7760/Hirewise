@@ -842,7 +842,7 @@ const HREditJob = () => {
                       name="salaryRange.currency"
                       value={jobData.salaryRange.currency}
                       onChange={handleInputChange}
-                      className="px-3 py-3 border border-gray-300 dark:border-gray-600 border-r-0 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700 bg-gray-50 dark:bg-gray-700 transition-colors duration-300"
+                      className="px-3 py-3 border border-gray-300 dark:border-gray-600 border-r-0 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent font-['Roboto'] text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 transition-colors duration-300"
                     >
                       <option value="INR">₹</option>
                       <option value="USD">$</option>
