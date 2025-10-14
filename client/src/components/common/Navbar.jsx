@@ -19,10 +19,9 @@ const Navbar = () => {
         
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-8">
-          <a href="#how-it-works" className="text-gray-800 dark:text-gray-200 hover:text-black dark:hover:text-white font-['Open_Sans'] transition-colors">How it Works</a>
-          <a href="#features" className="text-gray-800 dark:text-gray-200 hover:text-black dark:hover:text-white font-['Open_Sans'] transition-colors">Features</a>
-          <a href="#pricing" className="text-gray-800 dark:text-gray-200 hover:text-black dark:hover:text-white font-['Open_Sans'] transition-colors">Pricing</a>
-          <a href="#about" className="text-gray-800 dark:text-gray-200 hover:text-black dark:hover:text-white font-['Open_Sans'] transition-colors">About</a>
+          <Link to="/how-it-works" className="text-gray-800 dark:text-gray-200 hover:text-black dark:hover:text-white font-['Open_Sans'] transition-colors">How it Works</Link>
+          <Link to="/features" className="text-gray-800 dark:text-gray-200 hover:text-black dark:hover:text-white font-['Open_Sans'] transition-colors">Features</Link>
+          <Link to="/about" className="text-gray-800 dark:text-gray-200 hover:text-black dark:hover:text-white font-['Open_Sans'] transition-colors">About</Link>
         </nav>
 
         {/* Desktop Auth Buttons and Theme Toggle */}
@@ -63,10 +62,9 @@ const Navbar = () => {
         <div className="md:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 transition-colors duration-300">
           <div className="px-6 py-4 space-y-4">
             <nav className="flex flex-col space-y-4">
-              <a href="#how-it-works" className="text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white font-['Open_Sans'] transition-colors">How it Works</a>
-              <a href="#features" className="text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white font-['Open_Sans'] transition-colors">Features</a>
-              <a href="#pricing" className="text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white font-['Open_Sans'] transition-colors">Pricing</a>
-              <a href="#about" className="text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white font-['Open_Sans'] transition-colors">About</a>
+              <Link to="/how-it-works" className="text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white font-['Open_Sans'] transition-colors" onClick={() => setIsMobileMenuOpen(false)}>How it Works</Link>
+              <Link to="/features" className="text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white font-['Open_Sans'] transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Features</Link>
+              <Link to="/about" className="text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white font-['Open_Sans'] transition-colors" onClick={() => setIsMobileMenuOpen(false)}>About</Link>
             </nav>
             <div className="flex flex-col space-y-2 pt-4 border-t border-gray-200 dark:border-gray-700">
               <div className="flex justify-between items-center mb-2">

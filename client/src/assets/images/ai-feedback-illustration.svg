@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="640" height="360" viewBox="0 0 640 360" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">AI Feedback Analysis Illustration</title>
+  <desc id="desc">A stylized dashboard showing feedback summary, highlights, and charts</desc>
+  <!-- Outer frame -->
+  <rect x="16" y="24" width="608" height="320" rx="16" fill="#F3F4F6"/>
+  <rect x="16" y="24" width="608" height="320" rx="16" stroke="#E5E7EB" stroke-width="2"/>
+
+  <!-- Header bar -->
+  <rect x="16" y="24" width="608" height="44" rx="16" fill="#FFFFFF"/>
+  <circle cx="40" cy="46" r="6" fill="#F87171"/>
+  <circle cx="60" cy="46" r="6" fill="#FBBF24"/>
+  <circle cx="80" cy="46" r="6" fill="#34D399"/>
+  <rect x="110" y="38" width="140" height="16" rx="8" fill="#E5E7EB"/>
+
+  <!-- Left nav -->
+  <rect x="32" y="84" width="120" height="244" rx="10" fill="#FFFFFF" stroke="#E5E7EB"/>
+  <rect x="44" y="98" width="96" height="14" rx="7" fill="#E5E7EB"/>
+  <rect x="44" y="122" width="72" height="12" rx="6" fill="#E5E7EB"/>
+  <rect x="44" y="142" width="88" height="12" rx="6" fill="#E5E7EB"/>
+  <rect x="44" y="162" width="64" height="12" rx="6" fill="#E5E7EB"/>
+  <rect x="44" y="196" width="96" height="12" rx="6" fill="#E5E7EB"/>
+  <rect x="44" y="216" width="84" height="12" rx="6" fill="#E5E7EB"/>
+  <rect x="44" y="236" width="72" height="12" rx="6" fill="#E5E7EB"/>
+  <rect x="44" y="270" width="64" height="28" rx="8" fill="#111827"/>
+  <rect x="46" y="276" width="60" height="16" rx="8" fill="#1F2937"/>
+
+  <!-- Main card: Feedback summary -->
+  <rect x="168" y="84" width="300" height="160" rx="12" fill="#FFFFFF" stroke="#E5E7EB"/>
+  <rect x="184" y="100" width="140" height="14" rx="7" fill="#111827" fill-opacity="0.9"/>
+  <rect x="184" y="124" width="260" height="10" rx="5" fill="#E5E7EB"/>
+  <rect x="184" y="140" width="220" height="10" rx="5" fill="#E5E7EB"/>
+  <rect x="184" y="156" width="240" height="10" rx="5" fill="#E5E7EB"/>
+  <rect x="184" y="172" width="180" height="10" rx="5" fill="#E5E7EB"/>
+  
+  <!-- Bullets with checks -->
+  <circle cx="192" cy="206" r="7" fill="#10B981"/>
+  <path d="M188 206l3 3 6-6" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="204" y="200" width="180" height="12" rx="6" fill="#E5E7EB"/>
+
+  <circle cx="192" cy="226" r="7" fill="#10B981"/>
+  <path d="M188 226l3 3 6-6" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="204" y="220" width="160" height="12" rx="6" fill="#E5E7EB"/>
+
+  <!-- Right card: Chart -->
+  <rect x="480" y="84" width="128" height="160" rx="12" fill="#FFFFFF" stroke="#E5E7EB"/>
+  <rect x="496" y="100" width="90" height="12" rx="6" fill="#E5E7EB"/>
+  <!-- Bars -->
+  <rect x="500" y="124" width="12" height="64" rx="3" fill="#60A5FA"/>
+  <rect x="520" y="144" width="12" height="44" rx="3" fill="#34D399"/>
+  <rect x="540" y="132" width="12" height="56" rx="3" fill="#FBBF24"/>
+  <rect x="560" y="156" width="12" height="32" rx="3" fill="#F87171"/>
+
+  <!-- Bottom chips -->
+  <rect x="168" y="260" width="88" height="28" rx="14" fill="#FFFFFF" stroke="#E5E7EB"/>
+  <rect x="178" y="268" width="60" height="12" rx="6" fill="#6B7280"/>
+  
+  <rect x="264" y="260" width="112" height="28" rx="14" fill="#FFFFFF" stroke="#E5E7EB"/>
+  <rect x="276" y="268" width="86" height="12" rx="6" fill="#6B7280"/>
+
+  <rect x="384" y="260" width="132" height="28" rx="14" fill="#FFFFFF" stroke="#E5E7EB"/>
+  <rect x="398" y="268" width="104" height="12" rx="6" fill="#6B7280"/>
+</svg>

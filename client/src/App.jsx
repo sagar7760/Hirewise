@@ -24,6 +24,9 @@ import CompanySignupPage from './pages/global/CompanySignupPage.jsx'
 import CompanyVerificationPage from './pages/global/CompanyVerificationPage.jsx'
 import NotFoundPage from './pages/global/NotFoundPage.jsx'
 import UnauthorizedPage from './pages/global/UnauthorizedPage.jsx'
+import HowItWorksPage from './pages/global/HowItWorksPage.jsx'
+import FeaturesPage from './pages/global/FeaturesPage.jsx'
+import AboutPage from './pages/global/AboutPage.jsx'
 
 // Applicant Pages
 import ApplicantDashboard from './pages/applicant/ApplicantDashboard.jsx'
@@ -94,6 +97,21 @@ function App() {
           <Route path="/company/verification-sent" element={
             <Layout showFooter={false}>
               <CompanyVerificationPage />
+            </Layout>
+          } />
+          <Route path="/how-it-works" element={
+            <Layout>
+              <HowItWorksPage />
+            </Layout>
+          } />
+          <Route path="/features" element={
+            <Layout>
+              <FeaturesPage />
+            </Layout>
+          } />
+          <Route path="/about" element={
+            <Layout>
+              <AboutPage />
             </Layout>
           } />
 
