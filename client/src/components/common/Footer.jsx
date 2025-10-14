@@ -4,20 +4,20 @@ import hirewiseLogo from '../../assets/hirewise.svg';
 
 const Footer = () => {
   return (
-    <footer className="px-6 py-12 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 transition-colors duration-300">
+    <footer className="px-6 py-10 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 transition-colors duration-300">
       <div className="max-w-7xl mx-auto">
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 items-start">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-12 md:gap-20 mb-10">
           {/* Brand Section */}
-          <div>
+          <div className="md:max-w-sm">
             <div className="flex items-center space-x-2 mb-4">
               <img src={hirewiseLogo} alt="HireWise" className="w-8 h-8" />
               <span className="text-xl font-bold text-gray-900 dark:text-white font-['Open_Sans'] transition-colors duration-300">HireWise</span>
             </div>
-            <p className="text-gray-600 dark:text-gray-300 font-['Roboto'] transition-colors duration-300">Smarter hiring with AI. Faster, fairer, better.</p>
+            <p className="text-gray-600 dark:text-gray-300 font-['Roboto'] leading-relaxed transition-colors duration-300">Smarter hiring with AI. Faster, fairer, better.</p>
           </div>
 
-          {/* Product Links (Only used routes) */}
-          <div>
+          {/* Product Links */}
+          <div className="md:flex-1 md:max-w-xs">
             <h3 className="text-gray-900 dark:text-white font-semibold mb-4 font-['Open_Sans'] transition-colors duration-300">Product</h3>
             <ul className="space-y-2 text-gray-600 dark:text-gray-300 font-['Roboto'] transition-colors duration-300">
               <li><Link to="/how-it-works" className="hover:text-gray-900 dark:hover:text-white transition-colors">How it Works</Link></li>
@@ -25,14 +25,12 @@ const Footer = () => {
               <li><Link to="/about" className="hover:text-gray-900 dark:hover:text-white transition-colors">About</Link></li>
             </ul>
           </div>
-
-          {/* Support links removed per request */}
         </div>
 
         {/* Bottom Section */}
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-gray-600 dark:text-gray-300 font-['Roboto']">© 2025 HireWise. All rights reserved.</p>
-          <div className="flex space-x-6 mt-4 md:mt-0">
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-gray-600 dark:text-gray-300 font-['Roboto'] text-sm">© 2025 HireWise. All rights reserved.</p>
+          <div className="flex space-x-5">
             {/* GitHub */}
             <a href="https://github.com/sagar7760" target="_blank" rel="noreferrer" className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
               <span className="sr-only">GitHub</span>
