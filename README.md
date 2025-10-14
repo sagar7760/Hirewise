@@ -35,7 +35,6 @@
 15. Roadmap & Milestones
 16. Contribution Guidelines
 17. License
-18. Contact
 
 ---
 
@@ -293,14 +292,6 @@ Stretch Ideas:
 
 ## 17. License
 MIT (see `LICENSE` once added). Add license file if absent.
-
-## 18. Contact
-Built by Sagar Soradi – Full‑Stack Developer (MERN / .NET)
-
-Email: sagarsoradi011@gmail.com
-LinkedIn: https://www.linkedin.com/in/sagar-soradi
-GitHub: https://github.com/sagar7760
-
 ---
 If you discover an issue or have a feature idea, open an issue or start a discussion. Feedback is highly appreciated.
 
