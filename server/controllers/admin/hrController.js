@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const User = require('../../models/User');
 const Job = require('../../models/Job');
 const Application = require('../../models/Application');
+const { createAndEmit } = require('../../services/notificationService');
 
 // @desc    Get all HR users for the admin's company
 // @access  Private (Admin only)
@@ -113,6 +114,30 @@ const createHRUser = async (req, res) => {
     });
 
     const savedUser = await newHRUser.save();
+
+    // Send welcome notification to new HR user
+    try {
+      await createAndEmit({
+        toUserId: savedUser._id,
+        toCompanyId: resolvedCompanyId,
+        toRole: 'hr',
+        type: 'account_created',
+        title: 'Welcome to HireWise!',
+        message: `Your HR account has been created by Admin. You can now start posting jobs and managing applications.`,
+        actionUrl: `/hr/dashboard`,
+        entity: { kind: 'User', id: savedUser._id },
+        priority: 'high',
+        metadata: {
+          userName: `${savedUser.firstName} ${savedUser.lastName}`,
+          department: savedUser.department,
+          createdBy: `${req.user.firstName} ${req.user.lastName}`
+        },
+        createdBy: req.user._id
+      });
+    } catch (notifError) {
+      console.error('Failed to send HR account creation notification:', notifError);
+      // Don't fail the user creation if notification fails
+    }
 
     // Return the formatted HR data (without password)
     const responseData = {

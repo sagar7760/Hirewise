@@ -31,7 +31,9 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.8.7",
     "morgan": "^1.10.0",
-    "multer": "^1.4.5-lts.1"
+    "multer": "^1.4.5-lts.1",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
     "axios": "^1.12.2",
@@ -43,7 +45,9 @@
   "jest": {
     "testEnvironment": "node",
     "verbose": false,
-    "testMatch": ["**/tests/**/*.test.js"]
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ]
   },
   "engines": {
     "node": ">=16.0.0"

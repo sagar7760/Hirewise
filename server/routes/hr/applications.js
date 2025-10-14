@@ -6,6 +6,7 @@ const User = require('../../models/User');
 const Interview = require('../../models/Interview');
 const { auth, authorize } = require('../../middleware/auth');
 const mongoose = require('mongoose');
+const { createAndEmit } = require('../../services/notificationService');
 
 const router = express.Router();
 
@@ -465,6 +466,46 @@ router.put('/:id/status', auth, authorize('hr', 'admin'), [
     }
 
     await application.save();
+
+    // Send notification to applicant about status change
+    try {
+      const applicant = await User.findById(application.applicant).select('firstName lastName');
+      const job = await Job.findById(application.job).select('title');
+      
+      if (applicant && job) {
+        const statusMessages = {
+          under_review: 'Your application is now under review',
+          shortlisted: 'Congratulations! You have been shortlisted',
+          rejected: 'Your application status has been updated',
+          interviewed: 'Your interview has been completed',
+          offer_extended: 'Congratulations! You have received a job offer',
+          offer_accepted: 'Your offer acceptance has been confirmed',
+          offer_declined: 'Your offer declination has been recorded',
+          interview_scheduled: 'Your interview has been scheduled'
+        };
+
+        await createAndEmit({
+          toUserId: application.applicant,
+          toRole: 'applicant',
+          type: 'application_status_changed',
+          title: 'Application Status Updated',
+          message: statusMessages[status] || `Your application status has been updated to ${status}`,
+          actionUrl: `/applicant/applications/${application._id}`,
+          entity: { kind: 'Application', id: application._id },
+          priority: status === 'offer_extended' || status === 'shortlisted' ? 'high' : 'medium',
+          metadata: {
+            applicantName: `${applicant.firstName} ${applicant.lastName}`,
+            jobTitle: job.title,
+            oldStatus,
+            newStatus: status
+          },
+          createdBy: req.user?.id
+        });
+      }
+    } catch (notifError) {
+      console.error('Failed to send status change notification:', notifError);
+      // Don't fail the status update if notification fails
+    }
 
     res.json({
       success: true,

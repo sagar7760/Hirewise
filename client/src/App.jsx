@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext.jsx'
 import { ToastProvider } from './contexts/ToastContext.jsx'
 import { ThemeProvider } from './contexts/ThemeContext.jsx'
+import { NotificationsProvider } from './contexts/NotificationsContext.jsx'
 
 // Debug utilities (only in development)
 if (process.env.NODE_ENV === 'development') {
@@ -65,6 +66,7 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
+        <NotificationsProvider>
         <ToastProvider>
         <Router>
         <Routes>
@@ -276,7 +278,8 @@ function App() {
           } />
         </Routes>
       </Router>
-        </ToastProvider>
+    </ToastProvider>
+    </NotificationsProvider>
     </AuthProvider>
     </ThemeProvider>
   )

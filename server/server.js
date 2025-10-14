@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -8,6 +9,8 @@ const path = require('path');
 
 const connectDB = require('./config/database');
 const errorHandler = require('./middleware/errorHandler');
+const { init: initNotificationIo } = require('./services/notificationService');
+const notificationsRoutes = require('./routes/notifications');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -43,6 +46,55 @@ const interviewerFeedbackRoutes = require('./routes/interviewer/feedback');
 const interviewerDashboardRoutes = require('./routes/interviewer/dashboard');
 
 const app = express();
+const server = http.createServer(app);
+
+// Socket.IO setup (optional real-time notifications)
+let io;
+try {
+  const { Server } = require('socket.io');
+  io = new Server(server, {
+    cors: {
+      origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+      credentials: true
+    }
+  });
+
+  // Basic auth via query token (JWT) to join rooms
+  const jwt = require('jsonwebtoken');
+  io.use((socket, next) => {
+    try {
+      const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+      if (!token) return next(); // allow anonymous, but won't join private rooms
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      socket.data.user = { id: decoded.id, role: decoded.role, companyId: decoded.companyId };
+      next();
+    } catch (e) {
+      console.warn('Socket auth failed:', e.message);
+      next();
+    }
+  });
+
+  io.on('connection', (socket) => {
+    const u = socket.data.user;
+    console.log('🔌 Socket connected:', socket.id);
+    if (u?.id) {
+      socket.join(`user:${u.id}`);
+      console.log(`👤 User joined room: user:${u.id}`);
+    }
+    if (u?.companyId && u?.role) {
+      socket.join(`company:${u.companyId}:${u.role}`);
+      console.log(`🏢 User joined room: company:${u.companyId}:${u.role}`);
+    }
+    
+    socket.on('disconnect', () => {
+      console.log('🔌 Socket disconnected:', socket.id);
+    });
+  });
+
+  initNotificationIo(io);
+} catch (e) {
+  console.warn('Socket.IO not initialized:', e.message);
+}
 
 // Configure server to handle larger headers
 app.use((req, res, next) => {
@@ -118,6 +170,9 @@ app.use('/api/interviewer/profile', interviewerProfileRoutes);
 app.use('/api/interviewer/feedback', interviewerFeedbackRoutes);
 app.use('/api/interviewer/dashboard', interviewerDashboardRoutes);
 
+// Notifications API Routes
+app.use('/api/notifications', notificationsRoutes);
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({
@@ -141,7 +196,7 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`🚀 HireWise API Server running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);

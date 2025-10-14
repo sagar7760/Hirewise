@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import ThemeToggle from './ThemeToggle';
 import hirewiseLogo from '../../assets/hirewise.svg';
+import { useNotifications } from '../../contexts/NotificationsContext';
 
 const AdminNavbar = () => {
   const location = useLocation();
@@ -19,6 +20,8 @@ const AdminNavbar = () => {
   const hoverTimeoutRef = useRef(null);
   const notificationHoverTimeoutRef = useRef(null);
   
+  const { items: notifications, unreadCount, markRead } = useNotifications();
+  
   const navItems = [
     { name: 'Dashboard', path: '/admin/dashboard' },
     { name: 'HR Management', path: '/admin/hr-management' },
@@ -26,39 +29,6 @@ const AdminNavbar = () => {
     { name: 'All Jobs', path: '/admin/jobs' },
     { name: 'Organization', path: '/admin/organization' },
   ];
-
-  // Mock notification data
-  const mockNotifications = [
-    {
-      id: 1,
-      type: 'hr_added',
-      title: 'New HR Added',
-      message: 'Sarah Johnson has been added as HR to your organization.',
-      time: '1 hour ago',
-      read: false,
-      icon: 'user'
-    },
-    {
-      id: 2,
-      type: 'job_posted',
-      title: 'Job Posted',
-      message: 'Senior Frontend Developer position posted by Michael Chen.',
-      time: '3 hours ago',
-      read: false,
-      icon: 'briefcase'
-    },
-    {
-      id: 3,
-      type: 'candidate_selected',
-      title: 'Candidates Selected',
-      message: '5 candidates selected for Data Scientist role.',
-      time: '1 day ago',
-      read: true,
-      icon: 'check'
-    }
-  ];
-
-  const unreadNotifications = mockNotifications.filter(n => !n.read);
 
   const isActivePath = (path) => {
     if (path === '/admin/dashboard') {
@@ -154,7 +124,7 @@ const AdminNavbar = () => {
   };
 
   const handleNotificationItemClick = (notificationId) => {
-    console.log(`Clicked notification: ${notificationId}`);
+    markRead(notificationId).catch(() => {});
     setIsNotificationDropdownOpen(false);
     setIsNotificationClicked(false);
   };
@@ -239,9 +209,9 @@ const AdminNavbar = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
                 {/* Notification Badge */}
-                {unreadNotifications.length > 0 && (
+                {unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
-                    {unreadNotifications.length}
+                    {unreadCount}
                   </span>
                 )}
               </button>
@@ -252,23 +222,23 @@ const AdminNavbar = () => {
                 <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-gray-900 dark:text-white font-['Open_Sans']">Admin Notifications</h3>
-                    {unreadNotifications.length > 0 && (
-                      <span className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs px-2 py-1 rounded-full font-medium">{unreadNotifications.length} unread</span>
+                    {unreadCount > 0 && (
+                      <span className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs px-2 py-1 rounded-full font-medium">{unreadCount} unread</span>
                     )}
                   </div>
                 </div>
 
                 {/* Notification Items */}
                 <div className="max-h-96 overflow-y-auto">
-                  {mockNotifications.map((notification) => (
+                  {notifications.map((notification) => (
                     <button
-                      key={notification.id}
-                      onClick={() => handleNotificationItemClick(notification.id)}
+                      key={notification._id}
+                      onClick={() => handleNotificationItemClick(notification._id)}
                       className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-50 dark:border-gray-700 last:border-b-0 ${!notification.read ? 'bg-gray-50 dark:bg-gray-800/60' : ''}`}
                     >
                       <div className="flex items-start space-x-3">
                         <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${!notification.read ? 'bg-white dark:bg-gray-700 shadow-sm' : 'bg-gray-100 dark:bg-gray-600'} text-gray-700 dark:text-gray-200`}>
-                          {getNotificationIcon(notification.icon)}
+                          {getNotificationIcon(notification.icon || (notification.type === 'interview' ? 'calendar' : notification.type === 'feedback' ? 'check' : notification.type === 'job' ? 'briefcase' : 'user'))}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between">
@@ -282,7 +252,7 @@ const AdminNavbar = () => {
                               </p>
                             </div>
                             <p className="text-xs text-gray-500 dark:text-gray-400 font-['Roboto'] flex-shrink-0 ml-2">
-                              {notification.time}
+                              {new Date(notification.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </p>
                           </div>
                         </div>

@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import hirewiseLogo from '../../assets/hirewise.svg';
 import ThemeToggle from './ThemeToggle';
+import { useNotifications } from '../../contexts/NotificationsContext';
 
 const ApplicantNavbar = () => {
   const location = useLocation();
@@ -21,44 +22,13 @@ const ApplicantNavbar = () => {
   const hoverTimeoutRef = useRef(null);
   const notificationHoverTimeoutRef = useRef(null);
   
+  const { items: notifications, unreadCount, markRead } = useNotifications();
+  
   const navItems = [
     { name: 'Dashboard', path: '/dashboard' },
     { name: 'Jobs', path: '/jobs' },
     { name: 'Applications', path: '/applicant/applications' },
   ];
-
-  // Mock notification data
-  const mockNotifications = [
-    {
-      id: 1,
-      type: 'application',
-      title: 'Application Received',
-      message: 'Your application for Senior Software Engineer has been received.',
-      time: '2 hours ago',
-      read: false,
-      icon: 'document'
-    },
-    {
-      id: 2,
-      type: 'interview',
-      title: 'Interview Scheduled',
-      message: 'Interview scheduled for Product Manager position.',
-      time: '1 day ago',
-      read: false,
-      icon: 'calendar'
-    },
-    {
-      id: 3,
-      type: 'message',
-      title: 'New Message',
-      message: 'You have a new message from HR.',
-      time: '2 days ago',
-      read: true,
-      icon: 'mail'
-    }
-  ];
-
-  const unreadNotifications = mockNotifications.filter(n => !n.read);
 
   const isActivePath = (path) => {
     if (path === '/dashboard') {
@@ -155,7 +125,7 @@ const ApplicantNavbar = () => {
   };
 
   const handleNotificationItemClick = (notificationId) => {
-    console.log(`Clicked notification: ${notificationId}`);
+    markRead(notificationId).catch(() => {});
     setIsNotificationDropdownOpen(false);
     setIsNotificationClicked(false);
   };
@@ -255,9 +225,9 @@ const ApplicantNavbar = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
                 {/* Notification Badge */}
-                {unreadNotifications.length > 0 && (
+                {unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
-                    {unreadNotifications.length}
+                    {unreadCount}
                   </span>
                 )}
               </button>
@@ -272,9 +242,9 @@ const ApplicantNavbar = () => {
                 <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-gray-900 dark:text-white font-['Open_Sans']">Notifications</h3>
-                    {unreadNotifications.length > 0 && (
+                    {unreadCount > 0 && (
                       <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-medium">
-                        {unreadNotifications.length} unread
+                        {unreadCount} unread
                       </span>
                     )}
                   </div>
@@ -282,11 +252,11 @@ const ApplicantNavbar = () => {
 
                 {/* Notification Items */}
                 <div className="max-h-96 overflow-y-auto">
-                  {mockNotifications.length > 0 ? (
-                    mockNotifications.slice(0, 4).map((notification) => (
+                  {notifications.length > 0 ? (
+                    notifications.slice(0, 4).map((notification) => (
                       <button
-                        key={notification.id}
-                        onClick={() => handleNotificationItemClick(notification.id)}
+                        key={notification._id}
+                        onClick={() => handleNotificationItemClick(notification._id)}
                         className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-50 dark:border-gray-700 last:border-b-0 ${
                           !notification.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''
                         }`}
@@ -296,8 +266,8 @@ const ApplicantNavbar = () => {
                             !notification.read ? 'bg-white dark:bg-gray-700 shadow-sm' : 'bg-gray-100 dark:bg-gray-600'
                           } ${notification.type === 'application' ? 'text-blue-500' : 
                              notification.type === 'interview' ? 'text-green-500' : 
-                             notification.type === 'message' ? 'text-purple-500' : 'text-gray-500'}`}>
-                            {getNotificationIcon(notification.icon)}
+                             notification.type === 'feedback' ? 'text-purple-500' : 'text-gray-500'}`}>
+                            {getNotificationIcon(notification.icon || (notification.type === 'interview' ? 'calendar' : notification.type === 'application' ? 'document' : 'mail'))}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between">
@@ -317,7 +287,7 @@ const ApplicantNavbar = () => {
                                 </p>
                               </div>
                               <p className="text-xs text-gray-500 dark:text-gray-400 font-['Roboto'] flex-shrink-0 ml-2">
-                                {notification.time}
+                                {new Date(notification.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </p>
                             </div>
                           </div>
@@ -337,7 +307,7 @@ const ApplicantNavbar = () => {
                 </div>
 
                 {/* Footer */}
-                {mockNotifications.length > 0 && (
+                {notifications.length > 0 && (
                   <div className="border-t border-gray-100 dark:border-gray-700 px-4 py-3">
                     <button
                       onClick={handleViewAllNotifications}

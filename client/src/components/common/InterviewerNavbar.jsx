@@ -4,6 +4,7 @@ import hirewiseLogo from '../../assets/hirewise.svg';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import ThemeToggle from './ThemeToggle';
+import { useNotifications } from '../../contexts/NotificationsContext';
 
 const InterviewerNavbar = () => {
   const navigate = useNavigate();
@@ -24,39 +25,7 @@ const InterviewerNavbar = () => {
   const notificationHoverTimeoutRef = useRef(null);
   const profileHoverTimeoutRef = useRef(null);
 
-  // Sample notifications for Interviewer
-  const [notifications] = useState([
-    {
-      id: 1,
-      type: 'reminder',
-      title: 'Interview Starting Soon',
-      message: 'Interview with Sarah Johnson starts in 30 minutes',
-      time: '5 minutes ago',
-      read: false,
-      icon: 'clock'
-    },
-    {
-      id: 2,
-      type: 'feedback',
-      title: 'Feedback Reminder',
-      message: 'You have 3 pending feedback submissions',
-      time: '1 hour ago',
-      read: false,
-      icon: 'document'
-    },
-    {
-      id: 3,
-      type: 'schedule',
-      title: 'Interview Rescheduled',
-      message: 'Interview with Mike Chen moved to tomorrow 2:00 PM',
-      time: '2 hours ago',
-      read: true,
-      icon: 'calendar'
-    }
-  ]);
-
-  const unreadNotifications = notifications.filter(n => !n.read);
-  const unreadCount = unreadNotifications.length;
+  const { items: notifications, unreadCount, markRead } = useNotifications();
 
   // Navigation items for Interviewer (simplified)
   const navigationItems = [
@@ -161,7 +130,7 @@ const InterviewerNavbar = () => {
   };
 
   const handleNotificationItemClick = (notificationId) => {
-    console.log(`Clicked notification: ${notificationId}`);
+    markRead(notificationId).catch(() => {});
     setIsNotificationDropdownOpen(false);
     setIsNotificationClicked(false);
   };
@@ -266,9 +235,9 @@ const InterviewerNavbar = () => {
                 <div className={`px-4 py-3 border-b ${isDark ? 'border-gray-700' : 'border-gray-100'}`}>              
                   <div className="flex items-center justify-between">
                     <h3 className={`text-sm font-medium font-['Open_Sans'] ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>Interviewer Notifications</h3>
-                    {unreadNotifications.length > 0 && (
+                    {unreadCount > 0 && (
                       <span className={`${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-800'} text-xs px-2 py-1 rounded-full font-medium`}>
-                        {unreadNotifications.length} unread
+                        {unreadCount} unread
                       </span>
                     )}
                   </div>
@@ -278,8 +247,8 @@ const InterviewerNavbar = () => {
                 <div className="max-h-96 overflow-y-auto">
                   {notifications.map((notification) => (
                     <button
-                      key={notification.id}
-                      onClick={() => handleNotificationItemClick(notification.id)}
+                      key={notification._id}
+                      onClick={() => handleNotificationItemClick(notification._id)}
                       className={`w-full px-4 py-3 text-left transition-colors border-b last:border-b-0 ${isDark ? 'border-gray-700' : 'border-gray-50'} ${
                         !notification.read
                           ? (isDark ? 'bg-gray-750 bg-gray-700/40' : 'bg-gray-50')
@@ -290,7 +259,7 @@ const InterviewerNavbar = () => {
                         <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
                           !notification.read ? (isDark ? 'bg-gray-700 shadow-sm' : 'bg-white shadow-sm') : (isDark ? 'bg-gray-700/40' : 'bg-gray-100')
                         } ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                          {getNotificationIcon(notification.icon)}
+                          {getNotificationIcon(notification.icon || (notification.type === 'interview' ? 'calendar' : notification.type === 'feedback' ? 'document' : 'clock'))}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between">
@@ -306,7 +275,7 @@ const InterviewerNavbar = () => {
                               </p>
                             </div>
                             <p className={`text-xs font-['Roboto'] flex-shrink-0 ml-2 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-                              {notification.time}
+                              {new Date(notification.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </p>
                           </div>
                         </div>

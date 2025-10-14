@@ -1,188 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import InterviewerLayout from '../../components/layout/InterviewerLayout';
+import { useNotifications } from '../../contexts/NotificationsContext';
 
 const InterviewerNotifications = () => {
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: 'interview_scheduled',
-      title: 'New Interview Scheduled',
-      message: 'Interview with Sarah Johnson for Frontend Developer position scheduled for tomorrow at 10:00 AM',
-      time: '2025-09-14T16:30:00Z',
-      read: false,
-      priority: 'high',
-      actionUrl: '/interviewer/upcoming-interviews',
-      icon: 'calendar-plus',
-      metadata: {
-        candidateName: 'Sarah Johnson',
-        jobTitle: 'Frontend Developer',
-        scheduledTime: '10:00 AM',
-        interviewType: 'Technical'
-      }
-    },
-    {
-      id: 2,
-      type: 'interview_reminder',
-      title: 'Interview Reminder',
-      message: 'You have an interview with Mike Chen in 30 minutes - React Developer position',
-      time: '2025-09-14T15:45:00Z',
-      read: false,
-      priority: 'high',
-      actionUrl: '/interviewer/todays-interviews',
-      icon: 'clock',
-      metadata: {
-        candidateName: 'Mike Chen',
-        jobTitle: 'React Developer',
-        timeRemaining: '30 minutes',
-        meetingLink: 'https://meet.google.com/abc-def-ghi'
-      }
-    },
-    {
-      id: 3,
-      type: 'feedback_pending',
-      title: 'Feedback Overdue',
-      message: 'Feedback for Emily Davis (UI/UX Designer) is now 3 days overdue',
-      time: '2025-09-14T14:00:00Z',
-      read: false,
-      priority: 'high',
-      actionUrl: '/interviewer/pending-feedback',
-      icon: 'exclamation-triangle',
-      metadata: {
-        candidateName: 'Emily Davis',
-        jobTitle: 'UI/UX Designer',
-        daysPending: 3,
-        interviewDate: '2025-09-11'
-      }
-    },
-    {
-      id: 4,
-      type: 'interview_rescheduled',
-      title: 'Interview Rescheduled',
-      message: 'Interview with David Wilson has been rescheduled to September 16, 2:00 PM',
-      time: '2025-09-14T12:15:00Z',
-      read: false,
-      priority: 'medium',
-      actionUrl: '/interviewer/upcoming-interviews',
-      icon: 'calendar-edit',
-      metadata: {
-        candidateName: 'David Wilson',
-        jobTitle: 'Full Stack Developer',
-        newDate: 'September 16, 2:00 PM',
-        reason: 'Candidate request'
-      }
-    },
-    {
-      id: 5,
-      type: 'feedback_submitted',
-      title: 'Feedback Submitted Successfully',
-      message: 'Your feedback for Robert Taylor (DevOps Engineer) has been submitted and shared with HR',
-      time: '2025-09-14T11:30:00Z',
-      read: true,
-      priority: 'low',
-      actionUrl: '/interviewer/past-interviews',
-      icon: 'check-circle',
-      metadata: {
-        candidateName: 'Robert Taylor',
-        jobTitle: 'DevOps Engineer',
-        recommendation: 'hire',
-        overallRating: 4
-      }
-    },
-    {
-      id: 6,
-      type: 'interview_cancelled',
-      title: 'Interview Cancelled',
-      message: 'Interview with Lisa Martinez has been cancelled due to candidate unavailability',
-      time: '2025-09-14T10:00:00Z',
-      read: true,
-      priority: 'medium',
-      actionUrl: '/interviewer/upcoming-interviews',
-      icon: 'x-circle',
-      metadata: {
-        candidateName: 'Lisa Martinez',
-        jobTitle: 'Product Manager',
-        reason: 'Candidate unavailability',
-        originalTime: 'September 15, 3:00 PM'
-      }
-    },
-    {
-      id: 7,
-      type: 'schedule_conflict',
-      title: 'Schedule Conflict Alert',
-      message: 'You have overlapping interview slots on September 17. Please review your schedule.',
-      time: '2025-09-13T18:45:00Z',
-      read: false,
-      priority: 'high',
-      actionUrl: '/interviewer/upcoming-interviews',
-      icon: 'alert-triangle',
-      metadata: {
-        conflictDate: 'September 17',
-        conflictingInterviews: 2,
-        timeSlot: '2:00 PM - 3:00 PM'
-      }
-    },
-    {
-      id: 8,
-      type: 'candidate_materials',
-      title: 'New Candidate Materials',
-      message: 'Updated resume and portfolio uploaded for Jennifer Kim - Product Designer position',
-      time: '2025-09-13T16:20:00Z',
-      read: true,
-      priority: 'low',
-      actionUrl: '/interviewer/upcoming-interviews',
-      icon: 'document-add',
-      metadata: {
-        candidateName: 'Jennifer Kim',
-        jobTitle: 'Product Designer',
-        documentsAdded: ['Resume', 'Portfolio'],
-        interviewDate: 'September 16'
-      }
-    },
-    {
-      id: 9,
-      type: 'evaluation_request',
-      title: 'Evaluation Method Updated',
-      message: 'HR has updated the evaluation criteria for Senior Backend Developer positions',
-      time: '2025-09-13T14:30:00Z',
-      read: true,
-      priority: 'medium',
-      actionUrl: '/interviewer/pending-feedback',
-      icon: 'clipboard-list',
-      metadata: {
-        position: 'Senior Backend Developer',
-        updatedCriteria: ['Technical Skills', 'System Design', 'Code Quality'],
-        effectiveFrom: 'September 15'
-      }
-    },
-    {
-      id: 10,
-      type: 'interview_completed',
-      title: 'Interview Completed',
-      message: 'Interview with Alex Rodriguez for React Developer position completed successfully',
-      time: '2025-09-13T12:00:00Z',
-      read: true,
-      priority: 'low',
-      actionUrl: '/interviewer/pending-feedback',
-      icon: 'check',
-      metadata: {
-        candidateName: 'Alex Rodriguez',
-        jobTitle: 'React Developer',
-        duration: '60 minutes',
-        interviewType: 'Technical',
-        feedbackDue: '3 days'
-      }
-    }
-  ]);
-
-  const [filteredNotifications, setFilteredNotifications] = useState(notifications);
-  const [selectedNotifications, setSelectedNotifications] = useState([]);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-  useEffect(() => {
-    // Sort notifications by time (newest first)
-    const sorted = [...notifications].sort((a, b) => new Date(b.time) - new Date(a.time));
-    setFilteredNotifications(sorted);
-  }, [notifications]);
+  const { items: notifications, unreadCount, markRead, markAllRead } = useNotifications();
+  const [selectedNotifications, setSelectedNotifications] = React.useState([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
   const formatTime = (timeString) => {
     const time = new Date(timeString);
@@ -195,21 +18,7 @@ const InterviewerNotifications = () => {
     return `${Math.floor(diffInMinutes / 1440)}d ago`;
   };
 
-  const markAsRead = (notificationId) => {
-    setNotifications(prev =>
-      prev.map(notification =>
-        notification.id === notificationId
-          ? { ...notification, read: true }
-          : notification
-      )
-    );
-  };
-
-  const markAllAsRead = () => {
-    setNotifications(prev =>
-      prev.map(notification => ({ ...notification, read: true }))
-    );
-  };
+  const markAsRead = (notificationId) => { markRead(notificationId).catch(() => {}); };
 
   const toggleSelectNotification = (notificationId) => {
     setSelectedNotifications(prev =>
@@ -220,24 +29,20 @@ const InterviewerNotifications = () => {
   };
 
   const selectAllNotifications = () => {
-    if (selectedNotifications.length === filteredNotifications.length) {
+    if (selectedNotifications.length === notifications.length) {
       setSelectedNotifications([]);
     } else {
-      setSelectedNotifications(filteredNotifications.map(n => n.id));
+      setSelectedNotifications(notifications.map(n => n._id));
     }
   };
 
-  const deleteSelectedNotifications = () => {
-    setNotifications(prev =>
-      prev.filter(notification => !selectedNotifications.includes(notification.id))
-    );
+  const deleteSelectedNotifications = async () => {
+    await Promise.all(selectedNotifications.map(id => markRead(id).catch(() => {})));
     setSelectedNotifications([]);
     setShowDeleteConfirm(false);
   };
 
-  const getUnreadCount = () => {
-    return notifications.filter(n => !n.read).length;
-  };
+  const getUnreadCount = () => unreadCount;
 
   return (
     <InterviewerLayout>
@@ -256,7 +61,7 @@ const InterviewerNotifications = () => {
             <div className="flex items-center space-x-4">
               {getUnreadCount() > 0 && (
                 <button
-                  onClick={markAllAsRead}
+                  onClick={() => markAllRead().catch(() => {})}
                   className="bg-gray-200 hover:bg-gray-300 text-black dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
                 >
                   Mark All Read
@@ -283,7 +88,7 @@ const InterviewerNotifications = () => {
                 <label className="flex items-center cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={selectedNotifications.length === filteredNotifications.length && filteredNotifications.length > 0}
+                    checked={selectedNotifications.length === notifications.length && notifications.length > 0}
                     onChange={selectAllNotifications}
                     className="h-4 w-4 bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-400 rounded-sm focus:ring-2 focus:ring-gray-300 dark:focus:ring-blue-500 checked:bg-black dark:checked:bg-blue-600 checked:border-black dark:checked:border-blue-600 relative appearance-none"
                   />
@@ -293,14 +98,14 @@ const InterviewerNotifications = () => {
                 </label>
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">
-                {filteredNotifications.length} notifications
+                {notifications.length} notifications
               </p>
             </div>
           </div>
 
           {/* Notifications */}
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {filteredNotifications.length === 0 ? (
+            {notifications.length === 0 ? (
               <div className="p-8 text-center">
                 <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 17h5l-5 5v-5zM9 17H4l5 5v-5zM12 15a3 3 0 01-3-3V4a3 3 0 116 0v8a3 3 0 01-3 3z" />
@@ -311,9 +116,9 @@ const InterviewerNotifications = () => {
                 </p>
               </div>
             ) : (
-              filteredNotifications.map((notification) => (
+              notifications.map((notification) => (
                 <div
-                  key={notification.id}
+                  key={notification._id}
                   className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
                     !notification.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''
                   }`}
@@ -322,8 +127,8 @@ const InterviewerNotifications = () => {
                     <div className="flex-shrink-0 pt-1">
                       <input
                         type="checkbox"
-                        checked={selectedNotifications.includes(notification.id)}
-                        onChange={() => toggleSelectNotification(notification.id)}
+                        checked={selectedNotifications.includes(notification._id)}
+                        onChange={() => toggleSelectNotification(notification._id)}
                         className="h-4 w-4 bg-white dark:bg-gray-800 border-2 border-black dark:border-gray-400 rounded-sm focus:ring-2 focus:ring-gray-300 dark:focus:ring-blue-500 checked:bg-black dark:checked:bg-blue-600 checked:border-black dark:checked:border-blue-600 relative appearance-none cursor-pointer"
                       />
                     </div>
@@ -346,11 +151,11 @@ const InterviewerNotifications = () => {
                           </p>
                           <div className="flex items-center space-x-4">
                             <span className="text-xs text-gray-500 dark:text-gray-500 font-['Roboto']">
-                              {formatTime(notification.time)}
+                              {formatTime(notification.createdAt)}
                             </span>
                             {!notification.read && (
                               <button
-                                onClick={() => markAsRead(notification.id)}
+                                onClick={() => markAsRead(notification._id)}
                                 className="flex items-center justify-center w-auto h-6 px-2 rounded-md bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
                                 title="Mark as read"
                               >

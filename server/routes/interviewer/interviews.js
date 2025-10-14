@@ -6,6 +6,7 @@ const Application = require('../../models/Application');
 const Job = require('../../models/Job');
 
 const router = express.Router();
+const { createAndEmit } = require('../../services/notificationService');
 
 // All interviewer routes require auth & interviewer role
 router.use(auth, authorize('interviewer'));
@@ -178,8 +179,52 @@ router.post('/:id/feedback', [
     }
 
     await interview.save();
-
     res.json({ success:true, message:'Feedback submitted', data:{ id: interview._id, status: interview.status } });
+
+    // Notify HR and Applicant (best-effort)
+    try {
+      const populated = await Interview.findById(interview._id).populate({
+        path: 'application',
+        populate: [ { path: 'job', select: 'title postedBy company' }, { path: 'applicant', select: 'firstName lastName' } ]
+      }).lean();
+      const job = populated?.application?.job;
+      const applicant = populated?.application?.applicant;
+      // Notify HR (job poster)
+      if (job?.postedBy) {
+        await createAndEmit({
+          toUserId: job.postedBy,
+          toCompanyId: job.company,
+          toRole: 'hr',
+          type: 'feedback',
+          title: 'Interview Feedback Submitted',
+          message: `Feedback submitted for ${applicant ? (applicant.firstName + ' ' + applicant.lastName) : 'candidate'} (${job?.title || 'Job'})`,
+          actionUrl: `/hr/interviews`,
+          entity: { kind: 'interview', id: interview._id },
+          priority: 'medium',
+          metadata: { overallRating: req.body.overallRating },
+          createdBy: req.user?.id
+        });
+      }
+      // Notify Applicant
+      const applicantId = populated?.application?.applicant?._id;
+      if (applicantId) {
+        await createAndEmit({
+          toUserId: applicantId,
+          toCompanyId: job?.company,
+          toRole: 'applicant',
+          type: 'feedback',
+          title: 'Interview Feedback Recorded',
+          message: `Your interview feedback has been recorded for ${job?.title || 'the job'}`,
+          actionUrl: `/applicant/applications`,
+          entity: { kind: 'interview', id: interview._id },
+          priority: 'low',
+          metadata: { overallRating: req.body.overallRating },
+          createdBy: req.user?.id
+        });
+      }
+    } catch (e) {
+      console.warn('Failed creating notifications (feedback):', e.message);
+    }
   } catch (error) {
     console.error('Submit feedback error:', error);
     res.status(500).json({ success:false, message:'Server error' });

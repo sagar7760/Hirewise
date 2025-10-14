@@ -1,145 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import HRLayout from '../../components/layout/HRLayout';
+import { useNotifications } from '../../contexts/NotificationsContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 const HRNotifications = () => {
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: 'application',
-      title: 'New Application Received',
-      message: 'John Smith applied for Senior Frontend Developer position',
-      time: '2025-09-10T14:30:00Z',
-      read: false,
-      priority: 'medium',
-      actionUrl: '/hr/applications',
-      icon: 'user-plus',
-      metadata: {
-        applicantName: 'John Smith',
-        jobTitle: 'Senior Frontend Developer',
-        jobId: 1
-      }
-    },
-    {
-      id: 2,
-      type: 'interview',
-      title: 'Interview Scheduled',
-      message: 'Interview with Sarah Johnson scheduled for tomorrow at 2:00 PM',
-      time: '2025-09-10T13:15:00Z',
-      read: false,
-      priority: 'high',
-      actionUrl: '/hr/interviews',
-      icon: 'calendar',
-      metadata: {
-        candidateName: 'Sarah Johnson',
-        interviewTime: '2025-09-11T14:00:00Z',
-        interviewType: 'Technical Interview'
-      }
-    },
-    {
-      id: 3,
-      type: 'deadline',
-      title: 'Application Deadline Approaching',
-      message: 'Product Manager position deadline is in 3 days',
-      time: '2025-09-10T12:00:00Z',
-      read: true,
-      priority: 'medium',
-      actionUrl: '/hr/jobs',
-      icon: 'clock',
-      metadata: {
-        jobTitle: 'Product Manager',
-        deadline: '2025-09-13T23:59:59Z',
-        daysLeft: 3
-      }
-    },
-    {
-      id: 4,
-      type: 'system',
-      title: 'Weekly Report Available',
-      message: 'Your weekly hiring report is ready for download',
-      time: '2025-09-10T09:00:00Z',
-      read: true,
-      priority: 'low',
-      actionUrl: '/hr/reports',
-      icon: 'document-report',
-      metadata: {
-        reportType: 'Weekly Hiring Report',
-        period: 'Sep 2-8, 2025'
-      }
-    },
-    {
-      id: 5,
-      type: 'application',
-      title: 'Application Status Update',
-      message: 'Mike Wilson moved to interview stage for UX Designer position',
-      time: '2025-09-10T08:45:00Z',
-      read: false,
-      priority: 'medium',
-      actionUrl: '/hr/applications',
-      icon: 'arrow-right',
-      metadata: {
-        applicantName: 'Mike Wilson',
-        jobTitle: 'UX Designer',
-        newStatus: 'Interview Stage'
-      }
-    },
-    {
-      id: 6,
-      type: 'interview',
-      title: 'Interview Completed',
-      message: 'Technical interview with Emma Davis completed - feedback pending',
-      time: '2025-09-09T16:30:00Z',
-      read: true,
-      priority: 'medium',
-      actionUrl: '/hr/interviews',
-      icon: 'check-circle',
-      metadata: {
-        candidateName: 'Emma Davis',
-        interviewType: 'Technical Interview',
-        status: 'Completed - Feedback Pending'
-      }
-    },
-    {
-      id: 7,
-      type: 'system',
-      title: 'Job Posting Published',
-      message: 'Data Scientist position has been successfully published',
-      time: '2025-09-09T14:20:00Z',
-      read: true,
-      priority: 'low',
-      actionUrl: '/hr/jobs',
-      icon: 'megaphone',
-      metadata: {
-        jobTitle: 'Data Scientist',
-        status: 'Published'
-      }
-    },
-    {
-      id: 8,
-      type: 'deadline',
-      title: 'Interview Reminder',
-      message: 'Reminder: Interview with Alex Chen in 1 hour',
-      time: '2025-09-09T13:00:00Z',
-      read: false,
-      priority: 'high',
-      actionUrl: '/hr/interviews',
-      icon: 'bell',
-      metadata: {
-        candidateName: 'Alex Chen',
-        interviewTime: '2025-09-09T14:00:00Z',
-        timeLeft: '1 hour'
-      }
-    }
-  ]);
-
-  const [filteredNotifications, setFilteredNotifications] = useState(notifications);
-  const [selectedNotifications, setSelectedNotifications] = useState([]);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-  useEffect(() => {
-    // Since we removed filters and search, just show all notifications sorted by time
-    const sorted = [...notifications].sort((a, b) => new Date(b.time) - new Date(a.time));
-    setFilteredNotifications(sorted);
-  }, [notifications]);
+  const { items: notifications, unreadCount, markRead, markAllRead, refresh } = useNotifications();
+  const { token } = useAuth();
+  const [selectedNotifications, setSelectedNotifications] = React.useState([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
   const formatTime = (timeString) => {
     const time = new Date(timeString);
@@ -152,21 +20,7 @@ const HRNotifications = () => {
     return `${Math.floor(diffInMinutes / 1440)}d ago`;
   };
 
-  const markAsRead = (notificationId) => {
-    setNotifications(prev =>
-      prev.map(notification =>
-        notification.id === notificationId
-          ? { ...notification, read: true }
-          : notification
-      )
-    );
-  };
-
-  const markAllAsRead = () => {
-    setNotifications(prev =>
-      prev.map(notification => ({ ...notification, read: true }))
-    );
-  };
+  const markAsRead = (notificationId) => { markRead(notificationId).catch(() => {}); };
 
   const toggleSelectNotification = (notificationId) => {
     setSelectedNotifications(prev =>
@@ -177,24 +31,33 @@ const HRNotifications = () => {
   };
 
   const selectAllNotifications = () => {
-    if (selectedNotifications.length === filteredNotifications.length) {
+    if (selectedNotifications.length === notifications.length) {
       setSelectedNotifications([]);
     } else {
-      setSelectedNotifications(filteredNotifications.map(n => n.id));
+      setSelectedNotifications(notifications.map(n => n._id));
     }
   };
 
-  const deleteSelectedNotifications = () => {
-    setNotifications(prev =>
-      prev.filter(notification => !selectedNotifications.includes(notification.id))
-    );
-    setSelectedNotifications([]);
-    setShowDeleteConfirm(false);
+  const deleteSelectedNotifications = async () => {
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ ids: selectedNotifications })
+      });
+      if (!res.ok) throw new Error('Failed to delete notifications');
+      if (typeof refresh === 'function') await refresh();
+      setSelectedNotifications([]);
+      setShowDeleteConfirm(false);
+    } catch (e) {
+      console.error('HR bulk delete failed', e);
+    }
   };
 
-  const getUnreadCount = () => {
-    return notifications.filter(n => !n.read).length;
-  };
+  const getUnreadCount = () => unreadCount;
 
   // Icon Utility (Simplified SVG structure for dark mode handling)
   const renderIcon = (iconType, colorClass) => {
@@ -265,7 +128,7 @@ const HRNotifications = () => {
             <div className="flex items-center space-x-4">
               {getUnreadCount() > 0 && (
                 <button
-                  onClick={markAllAsRead}
+                  onClick={() => markAllRead().catch(() => {})}
                   className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
                 >
                   Mark All Read
@@ -292,7 +155,7 @@ const HRNotifications = () => {
                 <label className="flex items-center">
                   <input
                     type="checkbox"
-                    checked={selectedNotifications.length === filteredNotifications.length && filteredNotifications.length > 0}
+                    checked={selectedNotifications.length === notifications.length && notifications.length > 0}
                     onChange={selectAllNotifications}
                     className="h-4 w-4 rounded-sm border-gray-300 dark:border-gray-600 text-black dark:text-white focus:ring-black dark:focus:ring-white bg-white dark:bg-gray-800"
                   />
@@ -302,14 +165,14 @@ const HRNotifications = () => {
                     </label>
                   </div>
                   <p className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">
-                    {filteredNotifications.length} notifications
+                    {notifications.length} notifications
                   </p>
                 </div>
               </div>
 
               {/* Notifications */}
               <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredNotifications.length === 0 ? (
+                {notifications.length === 0 ? (
                   <div className="p-8 text-center">
                     <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500 stroke-current" fill="none" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5z" />
@@ -320,18 +183,18 @@ const HRNotifications = () => {
                     </p>
                   </div>
                 ) : (
-                  filteredNotifications.map((notification) => {
+                  notifications.map((notification) => {
                     const colors = getNotificationColors(notification.type, notification.read);
                     return (
                     <div
-                      key={notification.id}
+                      key={notification._id}
                       className={`p-4 transition-colors duration-300 flex items-start space-x-4 ${colors.bg} ${colors.hoverBg}`}
                     >
                       <div className="flex-shrink-0 pt-1">
                         <input
                           type="checkbox"
-                          checked={selectedNotifications.includes(notification.id)}
-                          onChange={() => toggleSelectNotification(notification.id)}
+                          checked={selectedNotifications.includes(notification._id)}
+                          onChange={() => toggleSelectNotification(notification._id)}
                           className="h-4 w-4 rounded-sm border-gray-300 dark:border-gray-600 text-black dark:text-white focus:ring-black dark:focus:ring-white bg-white dark:bg-gray-800"
                         />
                       </div>
@@ -356,11 +219,11 @@ const HRNotifications = () => {
                             </p>
                             <div className="flex items-center space-x-4">
                               <span className={`text-xs font-['Roboto'] ${colors.time}`}>
-                                {formatTime(notification.time)}
+                                {formatTime(notification.createdAt)}
                               </span>
                               {!notification.read && (
                                 <button
-                                  onClick={() => markAsRead(notification.id)}
+                                  onClick={() => markAsRead(notification._id)}
                                   className="flex items-center justify-center w-10 h-6 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 transition-colors"
                                   title="Mark as read"
                                 >
@@ -372,9 +235,21 @@ const HRNotifications = () => {
                             </div>
                           </div>
                           <div className="flex-shrink-0 ml-4">
-                            <button className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const res = await fetch(`/api/notifications/${notification._id}`, { method: 'DELETE', headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+                                  if (!res.ok) throw new Error('Failed to delete');
+                                  if (typeof refresh === 'function') await refresh();
+                                } catch (err) {
+                                  console.error('HR single delete failed', err);
+                                }
+                              }}
+                              className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+                              title="Delete"
+                            >
                               <svg className="w-4 h-4 stroke-current" fill="none" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 7h12M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7m3 4v6m4-6v6" />
                               </svg>
                             </button>
                           </div>
@@ -386,9 +261,9 @@ const HRNotifications = () => {
               </div>
 
               {/* Load More */}
-              {filteredNotifications.length > 0 && (
+              {notifications.length > 0 && (
                 <div className="border-t border-gray-200 dark:border-gray-700 p-4 text-center">
-                  <button className="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-medium font-['Roboto']">
+                  <button onClick={() => (typeof refresh === 'function' ? refresh() : null)} className="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-medium font-['Roboto']">
                     Load More Notifications
                   </button>
                 </div>

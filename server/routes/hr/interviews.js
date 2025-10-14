@@ -8,6 +8,7 @@ const { auth, authorize } = require('../../middleware/auth');
 const mongoose = require('mongoose');
 
 const router = express.Router();
+const { createAndEmit } = require('../../services/notificationService');
 
 // All HR interview routes require authentication & HR/Admin role
 router.use(auth, authorize('hr','admin'));
@@ -360,6 +361,49 @@ router.post('/', [
       .populate('interviewer', 'firstName lastName email')
       .lean();
 
+    // Create notifications
+    try {
+      // To interviewer
+      await createAndEmit({
+        toUserId: interviewerId,
+        toCompanyId: req.user.company?._id || req.user.companyId,
+        toRole: 'interviewer',
+        type: 'interview',
+        title: 'Interview Scheduled',
+        message: `Interview scheduled on ${scheduledDate} at ${scheduledTime} for ${populatedInterview?.application?.job?.title || 'a job'}`,
+        actionUrl: `/interviewer/interviews`,
+        entity: { kind: 'interview', id: interview._id },
+        priority: 'medium',
+        metadata: {
+          scheduledDate,
+          scheduledTime,
+          duration,
+          candidate: populatedInterview?.application?.applicant,
+          job: populatedInterview?.application?.job
+        },
+        createdBy: req.user?.id
+      });
+      // To applicant
+      const applicantId = application.applicant?._id || application.applicant;
+      if (applicantId) {
+        await createAndEmit({
+          toUserId: applicantId,
+          toCompanyId: req.user.company?._id || req.user.companyId,
+          toRole: 'applicant',
+          type: 'interview',
+          title: 'Interview Scheduled',
+          message: `Your interview for ${application?.job?.title || 'a job'} is scheduled on ${scheduledDate} at ${scheduledTime}`,
+          actionUrl: `/applicant/applications`,
+          entity: { kind: 'interview', id: interview._id },
+          priority: 'medium',
+          metadata: { scheduledDate, scheduledTime, duration },
+          createdBy: req.user?.id
+        });
+      }
+    } catch (e) {
+      console.warn('Failed creating notifications (schedule):', e.message);
+    }
+
     res.status(201).json({
       success: true,
       message: 'Interview scheduled successfully',
@@ -571,6 +615,25 @@ router.put('/:id', [
       message: 'Interview updated successfully',
       data: updatedInterview
     });
+
+    // Emit reschedule notifications (best-effort)
+    try {
+      await createAndEmit({
+        toUserId: updatedInterview?.interviewer?._id || updatedInterview?.interviewer,
+        toCompanyId: req.user.company?._id || req.user.companyId,
+        toRole: 'interviewer',
+        type: 'interview',
+        title: 'Interview Rescheduled',
+        message: `Interview rescheduled to ${updatedInterview?.scheduledDate?.toISOString?.() || updatedInterview?.scheduledDate} at ${updatedInterview?.scheduledTime}`,
+        actionUrl: `/interviewer/interviews`,
+        entity: { kind: 'interview', id: interview._id },
+        priority: 'low',
+        metadata: { scheduledDate: updatedInterview?.scheduledDate, scheduledTime: updatedInterview?.scheduledTime },
+        createdBy: req.user?.id
+      });
+    } catch (e) {
+      console.warn('Failed creating notifications (reschedule):', e.message);
+    }
 
   } catch (error) {
     console.error('Update interview error:', error);

@@ -6,6 +6,7 @@ const Application = require('../../models/Application');
 const Job = require('../../models/Job');
 const User = require('../../models/User');
 const { auth } = require('../../middleware/auth');
+const { createAndEmit } = require('../../services/notificationService');
 
 // Configure multer for file uploads - use memory storage to save files in database
 const storage = multer.memoryStorage();
@@ -148,6 +149,33 @@ router.post('/', auth, upload.single('customResume'), async (req, res) => {
       { path: 'job', select: 'title location type salaryRange company' },
       { path: 'job.company', select: 'name logo' }
     ]);
+
+    // Send notification to HR about new application
+    try {
+      const job = await Job.findById(jobId).select('title company postedBy');
+      if (job) {
+        await createAndEmit({
+          toUserId: job.postedBy,
+          toCompanyId: job.company,
+          toRole: 'hr',
+          type: 'application_submitted',
+          title: 'New Application Received',
+          message: `${firstName} ${lastName} has applied for ${job.title}`,
+          actionUrl: `/hr/applications/${application._id}`,
+          entity: { kind: 'Application', id: application._id },
+          priority: 'medium',
+          metadata: {
+            applicantName: `${firstName} ${lastName}`,
+            jobTitle: job.title,
+            applicationId: application._id
+          },
+          createdBy: applicantId
+        });
+      }
+    } catch (notifError) {
+      console.error('Failed to send application notification:', notifError);
+      // Don't fail the application submission if notification fails
+    }
 
     res.status(201).json({
       message: 'Application submitted successfully',

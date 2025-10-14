@@ -1,176 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import AdminLayout from '../../components/layout/AdminLayout';
+import { useNotifications } from '../../contexts/NotificationsContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 const AdminNotifications = () => {
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: 'hr_management',
-      title: 'New HR Manager Added',
-      message: 'Sarah Wilson has been added as HR Manager for Marketing Department',
-      time: '2025-09-10T15:30:00Z',
-      read: false,
-      priority: 'medium',
-      actionUrl: '/admin/hr-management',
-      icon: 'user-plus',
-      metadata: {
-        hrName: 'Sarah Wilson',
-        department: 'Marketing',
-        userId: 'HR001'
-      }
-    },
-    {
-      id: 2,
-      type: 'system',
-      title: 'System Backup Completed',
-      message: 'Daily system backup completed successfully at 3:00 AM',
-      time: '2025-09-10T14:15:00Z',
-      read: false,
-      priority: 'low',
-      actionUrl: '/admin/system',
-      icon: 'database',
-      metadata: {
-        backupSize: '2.5 GB',
-        duration: '45 minutes'
-      }
-    },
-    {
-      id: 3,
-      type: 'security',
-      title: 'Security Alert',
-      message: 'Multiple failed login attempts detected for admin account',
-      time: '2025-09-10T13:00:00Z',
-      read: false,
-      priority: 'high',
-      actionUrl: '/admin/security',
-      icon: 'shield',
-      metadata: {
-        attempts: 5,
-        ipAddress: '192.168.1.100',
-        timeframe: '30 minutes'
-      }
-    },
-    {
-      id: 4,
-      type: 'organization',
-      title: 'Organization Settings Updated',
-      message: 'Company profile information has been updated by John Admin',
-      time: '2025-09-10T11:45:00Z',
-      read: true,
-      priority: 'medium',
-      actionUrl: '/admin/organization',
-      icon: 'building',
-      metadata: {
-        updatedBy: 'John Admin',
-        changes: 'Company address, phone number'
-      }
-    },
-    {
-      id: 5,
-      type: 'user_activity',
-      title: 'New User Registration',
-      message: 'Michael Brown registered as a new candidate on the platform',
-      time: '2025-09-10T10:30:00Z',
-      read: false,
-      priority: 'low',
-      actionUrl: '/admin/users',
-      icon: 'user-check',
-      metadata: {
-        userName: 'Michael Brown',
-        userType: 'Candidate',
-        email: 'michael.brown@email.com'
-      }
-    },
-    {
-      id: 6,
-      type: 'job_management',
-      title: 'Job Posting Requires Approval',
-      message: 'Senior DevOps Engineer position posted by HR Team needs admin approval',
-      time: '2025-09-10T09:15:00Z',
-      read: true,
-      priority: 'medium',
-      actionUrl: '/admin/jobs',
-      icon: 'clipboard-check',
-      metadata: {
-        jobTitle: 'Senior DevOps Engineer',
-        postedBy: 'HR Team',
-        department: 'Engineering'
-      }
-    },
-    {
-      id: 7,
-      type: 'reports',
-      title: 'Monthly Analytics Report Ready',
-      message: 'August 2025 platform analytics and hiring report is now available',
-      time: '2025-09-09T18:00:00Z',
-      read: true,
-      priority: 'low',
-      actionUrl: '/admin/reports',
-      icon: 'chart-bar',
-      metadata: {
-        reportPeriod: 'August 2025',
-        reportType: 'Monthly Analytics'
-      }
-    },
-    {
-      id: 8,
-      type: 'interviewer_management',
-      title: 'Interview Capacity Alert',
-      message: 'Technical interview slots are 90% booked for next week',
-      time: '2025-09-09T16:30:00Z',
-      read: false,
-      priority: 'high',
-      actionUrl: '/admin/interviewer-management',
-      icon: 'calendar-alert',
-      metadata: {
-        capacity: '90%',
-        period: 'Next week',
-        interviewType: 'Technical'
-      }
-    },
-    {
-      id: 9,
-      type: 'system',
-      title: 'Platform Maintenance Scheduled',
-      message: 'Scheduled maintenance on September 15, 2025 from 2:00 AM to 4:00 AM',
-      time: '2025-09-09T14:00:00Z',
-      read: true,
-      priority: 'medium',
-      actionUrl: '/admin/maintenance',
-      icon: 'wrench',
-      metadata: {
-        maintenanceDate: '2025-09-15',
-        duration: '2 hours',
-        downtime: 'Expected'
-      }
-    },
-    {
-      id: 10,
-      type: 'performance',
-      title: 'Server Performance Alert',
-      message: 'Database server CPU usage exceeded 85% for 15 minutes',
-      time: '2025-09-09T12:45:00Z',
-      read: false,
-      priority: 'high',
-      actionUrl: '/admin/performance',
-      icon: 'cpu',
-      metadata: {
-        serverType: 'Database',
-        cpuUsage: '85%',
-        duration: '15 minutes'
-      }
-    }
-  ]);
-
-  const [filteredNotifications, setFilteredNotifications] = useState(notifications);
-  const [selectedNotifications, setSelectedNotifications] = useState([]);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-  useEffect(() => {
-    // Since we removed filters and search, just show all notifications sorted by time
-    const sorted = [...notifications].sort((a, b) => new Date(b.time) - new Date(a.time));
-    setFilteredNotifications(sorted);
-  }, [notifications]);
+  const { items: notifications, unreadCount, markRead, markAllRead, refresh } = useNotifications();
+  const { token } = useAuth();
+  const [selectedNotifications, setSelectedNotifications] = React.useState([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
   const formatTime = (timeString) => {
     const time = new Date(timeString);
@@ -183,21 +20,7 @@ const AdminNotifications = () => {
     return `${Math.floor(diffInMinutes / 1440)}d ago`;
   };
 
-  const markAsRead = (notificationId) => {
-    setNotifications(prev =>
-      prev.map(notification =>
-        notification.id === notificationId
-          ? { ...notification, read: true }
-          : notification
-      )
-    );
-  };
-
-  const markAllAsRead = () => {
-    setNotifications(prev =>
-      prev.map(notification => ({ ...notification, read: true }))
-    );
-  };
+  const markAsRead = (notificationId) => { markRead(notificationId).catch(() => {}); };
 
   const toggleSelectNotification = (notificationId) => {
     setSelectedNotifications(prev =>
@@ -208,23 +31,52 @@ const AdminNotifications = () => {
   };
 
   const selectAllNotifications = () => {
-    if (selectedNotifications.length === filteredNotifications.length) {
+    if (selectedNotifications.length === notifications.length) {
       setSelectedNotifications([]);
     } else {
-      setSelectedNotifications(filteredNotifications.map(n => n.id));
+      setSelectedNotifications(notifications.map(n => n._id));
     }
   };
 
-  const deleteSelectedNotifications = () => {
-    setNotifications(prev =>
-      prev.filter(notification => !selectedNotifications.includes(notification.id))
-    );
-    setSelectedNotifications([]);
-    setShowDeleteConfirm(false);
+  const deleteSelectedNotifications = async () => {
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ ids: selectedNotifications })
+      });
+      if (!res.ok) throw new Error('Failed to delete notifications');
+      if (typeof refresh === 'function') await refresh();
+      setSelectedNotifications([]);
+      setShowDeleteConfirm(false);
+    } catch (e) {
+      console.error('Admin bulk delete failed', e);
+    }
   };
 
-  const getUnreadCount = () => {
-    return notifications.filter(n => !n.read).length;
+  const getUnreadCount = () => unreadCount;
+
+  // Icon Utility
+  const renderIcon = (iconType, colorClass) => {
+      const svgClass = `w-5 h-5 ${colorClass} stroke-current`;
+      
+      switch (iconType) {
+          case 'user-plus':
+              return (<svg className={svgClass} fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>);
+          default:
+              return (<svg className={svgClass} fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>);
+      }
+  };
+
+  const getNotificationColors = (type, read) => {
+      const bg = read ? 'bg-white dark:bg-gray-800' : 'bg-blue-50 dark:bg-blue-900/20';
+      const hoverBg = 'hover:bg-gray-50 dark:hover:bg-gray-700/50';
+      let accent = 'text-gray-600 dark:text-gray-300';
+      if (!read) accent = 'text-blue-600 dark:text-blue-400';
+      return { bg, hoverBg, accent, time: 'text-gray-500 dark:text-gray-400' };
   };
 
   return (
@@ -244,7 +96,7 @@ const AdminNotifications = () => {
             <div className="flex items-center space-x-4">
               {getUnreadCount() > 0 && (
                 <button
-                  onClick={markAllAsRead}
+                  onClick={markAllRead}
                   className="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-300 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
                 >
                   Mark All Read
@@ -271,14 +123,9 @@ const AdminNotifications = () => {
                 <label className="flex items-center">
                   <input
                     type="checkbox"
-                    checked={selectedNotifications.length === filteredNotifications.length && filteredNotifications.length > 0}
+                    checked={selectedNotifications.length === notifications.length && notifications.length > 0}
                     onChange={selectAllNotifications}
-                    className="h-4 w-4 bg-white dark:bg-gray-700 border-2 border-black dark:border-gray-500 rounded-sm focus:ring-2 focus:ring-gray-800 dark:focus:ring-white checked:bg-gray-900 dark:checked:bg-white checked:border-gray-900 dark:checked:border-white relative appearance-none"
-                    style={{
-                      backgroundImage: selectedNotifications.length === filteredNotifications.length && filteredNotifications.length > 0 
-                        ? "url(\"data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='m13.854 3.646-1.708-1.708L6.5 7.584 4.354 5.438l-1.708 1.708L6.5 11l7.354-7.354z'/%3e%3c/svg%3e\")"
-                        : "none"
-                    }}
+                    className="h-4 w-4 rounded-sm border-gray-300 dark:border-gray-600 text-black dark:text-white focus:ring-black dark:focus:ring-white bg-white dark:bg-gray-800"
                   />
                   <span className="ml-2 text-sm text-gray-800 dark:text-gray-300 font-['Roboto']">
                     {selectedNotifications.length > 0 ? `${selectedNotifications.length} selected` : 'Select all'}
@@ -286,14 +133,14 @@ const AdminNotifications = () => {
                 </label>
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">
-                {filteredNotifications.length} notifications
+                {notifications.length} notifications
               </p>
             </div>
           </div>
 
           {/* Notifications */}
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {filteredNotifications.length === 0 ? (
+            {notifications.length === 0 ? (
               <div className="p-8 text-center">
                 <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -304,62 +151,73 @@ const AdminNotifications = () => {
                 </p>
               </div>
             ) : (
-              filteredNotifications.map((notification) => (
+              notifications.map((notification) => {
+                const colors = getNotificationColors(notification.type, notification.read);
+                return (
                 <div
-                  key={notification.id}
-                  className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
-                    !notification.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-                  }`}
+                  key={notification._id}
+                  className={`p-4 transition-colors duration-300 flex items-start space-x-4 ${colors.bg} ${colors.hoverBg}`}
                 >
-                  <div className="flex items-start space-x-4">
-                    <div className="flex-shrink-0">
-                      <input
-                        type="checkbox"
-                        checked={selectedNotifications.includes(notification.id)}
-                        onChange={() => toggleSelectNotification(notification.id)}
-                        className="h-4 w-4 bg-white dark:bg-gray-700 border-2 border-black dark:border-gray-500 rounded-sm focus:ring-2 focus:ring-gray-800 dark:focus:ring-white checked:bg-gray-900 dark:checked:bg-white checked:border-gray-900 dark:checked:border-white relative appearance-none"
-                        style={{
-                          backgroundImage: selectedNotifications.includes(notification.id)
-                            ? "url(\"data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='m13.854 3.646-1.708-1.708L6.5 7.584 4.354 5.438l-1.708 1.708L6.5 11l7.354-7.354z'/%3e%3c/svg%3e\")"
-                            : "none"
-                        }}
-                      />
-                    </div>
+                  <div className="flex-shrink-0 pt-1">
+                    <input
+                      type="checkbox"
+                      checked={selectedNotifications.includes(notification._id)}
+                      onChange={() => toggleSelectNotification(notification._id)}
+                      className="h-4 w-4 rounded-sm border-gray-300 dark:border-gray-600 text-black dark:text-white focus:ring-black dark:focus:ring-white bg-white dark:bg-gray-800"
+                    />
+                  </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <h4 className={`text-sm font-medium font-['Open_Sans'] ${
-                              !notification.read ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-400'
-                            }`}>
-                              {notification.title}
-                            </h4>
-                            {!notification.read && (
-                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto'] mb-2">
-                            {notification.message}
-                          </p>
-                          <div className="flex items-center space-x-4">
-                            <span className="text-xs text-gray-500 dark:text-gray-400 font-['Roboto']">
-                              {formatTime(notification.time)}
-                            </span>
-                            {!notification.read && (
-                              <button
-                                onClick={() => markAsRead(notification.id)}
-                                className="flex items-center justify-center w-10 h-6 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-                                title="Mark as read"
-                              >
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                              </button>
-                            )}
-                          </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <h4 className={`text-sm font-medium font-['Open_Sans'] ${
+                            !notification.read ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-400'
+                          }`}>
+                            {notification.title}
+                          </h4>
+                          {!notification.read && (
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          )}
                         </div>
-                        <div className="flex-shrink-0 ml-4">
+                        <p className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto'] mb-2">
+                          {notification.message}
+                        </p>
+                        <div className="flex items-center space-x-4">
+                          <span className={`text-xs font-['Roboto'] ${colors.time}`}>
+                            {formatTime(notification.createdAt)}
+                          </span>
+                          {!notification.read && (
+                            <button
+                              onClick={() => markAsRead(notification._id)}
+                              className="flex items-center justify-center w-10 h-6 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                              title="Mark as read"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </button>
+                          )}
+                          <button
+                            onClick={async () => {
+                              try {
+                                const res = await fetch(`/api/notifications/${notification._id}`, { method: 'DELETE', headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+                                if (!res.ok) throw new Error('Failed to delete');
+                                if (typeof refresh === 'function') await refresh();
+                              } catch (err) {
+                                console.error('Admin single delete failed', err);
+                              }
+                            }}
+                            className="flex items-center justify-center w-10 h-6 rounded-full bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 transition-colors"
+                            title="Delete"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 7h12M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7m3 4v6m4-6v6" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex-shrink-0 ml-4">
                           <button className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
@@ -369,15 +227,15 @@ const AdminNotifications = () => {
                       </div>
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 
           {/* Load More */}
-          {filteredNotifications.length > 0 && (
+          {notifications.length > 0 && (
             <div className="border-t border-gray-200 dark:border-gray-700 p-4 text-center">
-              <button className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium font-['Roboto']">
+              <button onClick={() => (typeof refresh === 'function' ? refresh() : null)} className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium font-['Roboto']">
                 Load More Notifications
               </button>
             </div>

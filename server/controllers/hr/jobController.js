@@ -2,6 +2,7 @@ const Job = require('../../models/Job');
 const User = require('../../models/User');
 const Application = require('../../models/Application');
 const mongoose = require('mongoose');
+const { createAndEmit } = require('../../services/notificationService');
 
 // @desc    Get all jobs posted by HR with pagination, filtering, and search
 // @route   GET /api/hr/jobs
@@ -269,6 +270,33 @@ const createJob = async (req, res) => {
       .populate('postedBy', 'firstName lastName')
       .populate('company', 'name')
       .lean();
+
+    // Send notification to Admin about new job posting
+    try {
+      const hrUser = await User.findById(userId).select('firstName lastName');
+      
+      if (hrUser) {
+        await createAndEmit({
+          toCompanyId: companyId,
+          toRole: 'admin',
+          type: 'job_created',
+          title: 'New Job Posted',
+          message: `${hrUser.firstName} ${hrUser.lastName} posted a new job: ${req.body.title}`,
+          actionUrl: `/admin/jobs/${job._id}`,
+          entity: { kind: 'Job', id: job._id },
+          priority: 'low',
+          metadata: {
+            hrName: `${hrUser.firstName} ${hrUser.lastName}`,
+            jobTitle: req.body.title,
+            department: req.body.department
+          },
+          createdBy: userId
+        });
+      }
+    } catch (notifError) {
+      console.error('Failed to send job creation notification:', notifError);
+      // Don't fail the job creation if notification fails
+    }
 
     res.status(201).json({
       success: true,

@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import hirewiseLogo from '../../assets/hirewise.svg';
 import ThemeToggle from './ThemeToggle';
+import { useNotifications } from '../../contexts/NotificationsContext';
 
 const HRNavbar = () => {
   const navigate = useNavigate();
@@ -21,39 +22,7 @@ const HRNavbar = () => {
   const notificationHoverTimeoutRef = useRef(null);
   const profileHoverTimeoutRef = useRef(null);
 
-  // Sample notifications for HR
-  const [notifications] = useState([
-    {
-      id: 1,
-      type: 'application',
-      title: 'New Application Received',
-      message: 'Maria Garcia applied for Senior Frontend Developer',
-      time: '5 minutes ago',
-      read: false,
-      icon: 'user'
-    },
-    {
-      id: 2,
-      type: 'interview',
-      title: 'Interview Scheduled',
-      message: 'Interview with John Smith scheduled for tomorrow 10:00 AM',
-      time: '1 hour ago',
-      read: false,
-      icon: 'calendar'
-    },
-    {
-      id: 3,
-      type: 'feedback',
-      title: 'Interview Feedback Submitted',
-      message: 'Sarah Johnson submitted feedback for Alex Rodriguez',
-      time: '2 hours ago',
-      read: true,
-      icon: 'check'
-    }
-  ]);
-
-  const unreadNotifications = notifications.filter(n => !n.read);
-  const unreadCount = unreadNotifications.length;
+  const { items: notifications, unreadCount, markRead } = useNotifications();
 
   // Navigation items for HR
   const navigationItems = [
@@ -155,8 +124,8 @@ const HRNavbar = () => {
     }
   };
 
-  const handleNotificationItemClick = (notification) => {
-    console.log('Notification clicked:', notification);
+  const handleNotificationItemClick = (notificationId) => {
+    markRead(notificationId).catch(() => {});
     setIsNotificationDropdownOpen(false);
     setIsNotificationClicked(false);
   };
@@ -275,9 +244,9 @@ const HRNavbar = () => {
                 <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 transition-colors duration-300">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-gray-900 dark:text-white font-['Open_Sans'] transition-colors duration-300">HR Notifications</h3>
-                    {unreadNotifications.length > 0 && (
+                    {unreadCount > 0 && (
                       <span className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs px-2 py-1 rounded-full font-medium transition-colors duration-300">
-                        {unreadNotifications.length} unread
+                        {unreadCount} unread
                       </span>
                     )}
                   </div>
@@ -287,8 +256,8 @@ const HRNavbar = () => {
                 <div className="max-h-96 overflow-y-auto">
                   {notifications.map((notification) => (
                     <button
-                      key={notification.id}
-                      onClick={() => handleNotificationItemClick(notification.id)}
+                      key={notification._id}
+                      onClick={() => handleNotificationItemClick(notification._id)}
                       className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-50 dark:border-gray-700 last:border-b-0 ${
                         !notification.read ? 'bg-gray-50 dark:bg-gray-800/60' : 'dark:bg-gray-800'
                       }`}
@@ -299,7 +268,7 @@ const HRNavbar = () => {
                         } ${notification.type === 'application' ? 'text-gray-700 dark:text-gray-300' : 
                            notification.type === 'interview' ? 'text-gray-700 dark:text-gray-300' : 
                            notification.type === 'feedback' ? 'text-gray-700 dark:text-gray-300' : 'text-gray-500 dark:text-gray-400'}`}>
-                          {getNotificationIcon(notification.icon)}
+                          {getNotificationIcon(notification.icon || (notification.type === 'interview' ? 'calendar' : notification.type === 'feedback' ? 'check' : 'user'))}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between">
@@ -319,7 +288,7 @@ const HRNavbar = () => {
                               </p>
                             </div>
                             <p className="text-xs text-gray-500 dark:text-gray-400 font-['Roboto'] flex-shrink-0 ml-2 transition-colors duration-300">
-                              {notification.time}
+                              {new Date(notification.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </p>
                           </div>
                         </div>
