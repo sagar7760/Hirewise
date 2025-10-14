@@ -1,5 +1,5 @@
 <div align="center">
-	<img src="/public/hirewise.svg" alt="HireWise" width="72" />
+	<img src="client/public/hirewise.svg" alt="HireWise" width="72" />
 	<h1>HireWise – Frontend</h1>
 	<p><strong>Smarter hiring with AI. Faster, fairer, better.</strong></p>
 	<sup>Built with React 19, Vite 7, Tailwind CSS 4, React Router 7</sup>
