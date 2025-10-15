@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 
 const ToastContext = createContext(null);
 
@@ -28,14 +28,15 @@ export const ToastProvider = ({ children, autoDismiss = 4000, maxToasts = 4 }) =
     return id;
   }, [autoDismiss, maxToasts, remove]);
 
-  const api = {
+  // Memoize context value so consumers don't see a new identity every render
+  const api = useMemo(() => ({
     show: (message, options) => push(options?.type || 'info', message, options),
     success: (message, options) => push('success', message, options),
     error: (message, options) => push('error', message, options),
     info: (message, options) => push('info', message, options),
     warning: (message, options) => push('warning', message, options),
     remove
-  };
+  }), [push, remove]);
 
   return (
     <ToastContext.Provider value={api}>

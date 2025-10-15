@@ -5,13 +5,13 @@ import { useTheme } from '../../contexts/ThemeContext';
 const InterviewerLayout = ({ children }) => {
   const { isDark } = useTheme();
   return (
-    <div className={`min-h-screen ${isDark ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-black'}`}>
+    <div className={`min-h-screen flex flex-col ${isDark ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-black'}`}>
       {/* Navbar */}
       <InterviewerNavbar />
 
       {/* Main Content */}
-      <div className="flex-1">
-        <main className="relative overflow-y-auto focus:outline-none">
+      <div className="flex-1 flex flex-col">
+        <main className="flex-1 relative overflow-y-auto focus:outline-none">
           {children}
         </main>
         

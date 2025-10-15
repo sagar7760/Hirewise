@@ -6,6 +6,9 @@ const InterviewerNotifications = () => {
   const { items: notifications, unreadCount, markRead, markAllRead } = useNotifications();
   const [selectedNotifications, setSelectedNotifications] = React.useState([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+  
+  // Alias for future filtering/search; prevents ReferenceError and allows easy extension
+  const filteredNotifications = notifications || [];
 
   const formatTime = (timeString) => {
     const time = new Date(timeString);

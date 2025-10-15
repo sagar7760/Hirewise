@@ -14,10 +14,15 @@ const PendingFeedback = () => {
   const [sort, setSort] = useState({ field: 'daysPending', dir: 'desc' });
   const [priorityFilter, setPriorityFilter] = useState('all');
 
-  const fetchPending = useCallback(async (page = 1) => {
+  const fetchPending = useCallback(async (page = 1, options = {}) => {
     setPending(prev => ({ ...prev, loading: true, error: null }));
     try {
-      const res = await makeJsonRequest(`/api/interviewer/feedback/pending?page=${page}&limit=10`);
+      const res = await makeJsonRequest(`/api/interviewer/feedback/pending?page=${page}&limit=10`, { signal: options.signal });
+      // If backend responded 304 (cached in makeJsonRequest), do not overwrite items
+      if (res?.cached) {
+        setPending(prev => ({ ...prev, loading: false }));
+        return;
+      }
       if (res?.success) {
         setPending({
           loading: false,
@@ -31,13 +36,25 @@ const PendingFeedback = () => {
         throw new Error(res?.message || 'Failed to load pending feedback');
       }
     } catch (err) {
+      // Ignore aborts (e.g., StrictMode double-invoke cleanup or quick route changes)
+      const isAbort = err?.name === 'AbortError' || err?.code === 'ABORT_ERR' || (typeof err?.message === 'string' && err.message.toLowerCase().includes('aborted'));
+      if (isAbort) {
+        // Silently end loading without surfacing an error
+        setPending(prev => ({ ...prev, loading: false }));
+        return;
+      }
       console.error('Fetch pending feedback error', err);
       toast.error(err.message || 'Failed to load pending feedback');
       setPending(prev => ({ ...prev, loading: false, error: err.message }));
     }
   }, [makeJsonRequest, toast]);
 
-  useEffect(() => { fetchPending(1); }, [fetchPending]);
+  // Initial fetch with abort on unmount; StrictMode will run this twice in dev.
+  useEffect(() => {
+    const ctrl = new AbortController();
+    fetchPending(1, { signal: ctrl.signal });
+    return () => ctrl.abort();
+  }, [fetchPending]);
 
   const resetForm = () => {};
 
