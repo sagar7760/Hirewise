@@ -175,11 +175,17 @@ app.use('/api/notifications', notificationsRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
+  const mongoose = require('mongoose');
+  const dbState = (mongoose.connection && mongoose.connection.readyState) || 0; // 0=disconnected,1=connected,2=connecting,3=disconnecting
   res.status(200).json({
     status: 'OK',
     message: 'HireWise API is running',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    db: {
+      state: dbState,
+      connected: dbState === 1
+    }
   });
 });
 

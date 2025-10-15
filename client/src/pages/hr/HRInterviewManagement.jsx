@@ -57,6 +57,7 @@ const HRInterviewManagement = () => {
     const hasFeedback = !!(i?.feedback && (i.feedback.submittedAt || i.feedback.overallRating != null || i.feedback.recommendation || (Array.isArray(i.feedback.strengths) && i.feedback.strengths.length)));
     return {
       id: i._id,
+      applicationId: i.application?._id || i.application?.id,
       candidate: {
         name: [applicant.firstName, applicant.lastName].filter(Boolean).join(' ') || 'Unknown',
         email: applicant.email || 'N/A',
@@ -470,6 +471,36 @@ const HRInterviewManagement = () => {
 
   // Toast notifications (Placeholder since the logic was removed in the previous context)
   const addToast = (message, type='info', ttl=4000) => { console.log(`Toast: [${type.toUpperCase()}] ${message}`); }; // Placeholder definition
+
+  // Decision actions (Hire/Reject) on completed interview with feedback
+  const [decisionSubmitting, setDecisionSubmitting] = useState(false);
+  const makeDecision = async (decision) => {
+    if (!selectedInterview?.applicationId) {
+      addToast('Missing application reference for this interview', 'error');
+      return;
+    }
+    if (decisionSubmitting) return;
+    const isHire = decision === 'hire';
+    const targetStatus = isHire ? 'offer_extended' : 'rejected';
+    try {
+      setDecisionSubmitting(true);
+      const res = await makeJsonRequest(`/api/hr/applications/${selectedInterview.applicationId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: targetStatus })
+      });
+      if (res?.success) {
+        addToast(isHire ? 'Offer extended to candidate.' : 'Candidate has been rejected.', 'success');
+        setShowInterviewModal(false);
+      } else {
+        throw new Error(res?.message || 'Failed to update application status');
+      }
+    } catch (err) {
+      addToast(err.message || 'Unable to make decision', 'error');
+    } finally {
+      setDecisionSubmitting(false);
+    }
+  };
 
   // Validation flags
   const isScheduleValid = !!(scheduleForm.applicationId && scheduleForm.interviewerId && scheduleForm.date && scheduleForm.time);
@@ -892,12 +923,22 @@ const HRInterviewManagement = () => {
                   Close
                 </button>
                 {selectedInterview.status === 'Completed' && selectedInterview.feedback && (
-                  <Link
-                    to={`/hr/candidates/${selectedInterview.candidate.name.replace(' ', '-').toLowerCase()}/decision`}
-                    className="bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-black px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
-                  >
-                    Make Decision
-                  </Link>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { if (window.confirm('Proceed to extend an offer to this candidate?')) makeDecision('hire'); }}
+                      disabled={decisionSubmitting}
+                      className={`px-6 py-2 rounded-lg font-medium font-['Roboto'] text-white dark:text-black ${decisionSubmitting ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : 'bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-200'}`}
+                    >
+                      {decisionSubmitting ? 'Processing...' : 'Hire (Extend Offer)'}
+                    </button>
+                    <button
+                      onClick={() => { if (window.confirm('Are you sure you want to reject this candidate?')) makeDecision('reject'); }}
+                      disabled={decisionSubmitting}
+                      className={`px-6 py-2 rounded-lg font-medium font-['Roboto'] border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 ${decisionSubmitting ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    >
+                      {decisionSubmitting ? 'Processing...' : 'Reject Candidate'}
+                    </button>
+                  </div>
                 )}
               </div>
             </div>

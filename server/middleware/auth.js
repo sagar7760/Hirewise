@@ -1,8 +1,14 @@
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 
 const auth = async (req, res, next) => {
   try {
+    const ready = mongoose.connection && mongoose.connection.readyState === 1; // connected
+    if (!ready) {
+      console.warn('Auth middleware - DB not connected');
+      return res.status(503).json({ success: false, message: 'Service temporarily unavailable' });
+    }
     const token = req.header('Authorization')?.replace('Bearer ', '');
     
     if (!token) {
@@ -35,9 +41,10 @@ const auth = async (req, res, next) => {
     next();
   } catch (error) {
     console.log('Auth middleware - Error:', error.message);
-    res.status(401).json({ 
+    const isTokenError = ['jwt malformed', 'jwt expired', 'invalid token', 'TokenExpiredError'].some(k => (error?.message || '').toLowerCase().includes(k.replace(/ /g,'')));
+    res.status(isTokenError ? 401 : 500).json({ 
       success: false, 
-      message: 'Token is not valid' 
+      message: isTokenError ? 'Token is not valid' : 'Internal server error' 
     });
   }
 };
