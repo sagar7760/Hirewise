@@ -244,6 +244,8 @@ const HRApplicationManagement = () => {
         return 'bg-gray-400 text-white';
       case 'interview_scheduled':
         return 'bg-gray-600 text-white';
+      case 'interview_completed':
+        return 'bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
       case 'completed':
         return 'bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
       case 'submitted':
@@ -1107,8 +1109,8 @@ const HRApplicationManagement = () => {
                     {selectedApplication.candidate.name}
                   </h3>
                   <div className="flex items-center mt-2">
-                    <span className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${getStatusColor(appFeedback ? 'completed' : selectedApplication.status)}`}>
-                      {formatStatus(appFeedback ? 'completed' : selectedApplication.status)}
+                    <span className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${getStatusColor(selectedApplication.status)}`}>
+                      {formatStatus(selectedApplication.status)}
                     </span>
                     <span className="ml-3 text-sm text-gray-500 dark:text-gray-400 font-['Roboto'] transition-colors duration-300">
                       Applied on {new Date(selectedApplication.appliedDate || selectedApplication.createdAt).toLocaleDateString()}
@@ -1414,7 +1416,7 @@ const HRApplicationManagement = () => {
                     </div>
                   )}
 
-                  {(appFeedback) && (
+                  {(appFeedback && (selectedApplication.status === 'completed' || selectedApplication.status === 'interview_completed')) && (
                     <div className="flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg">
                       <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
