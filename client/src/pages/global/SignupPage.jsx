@@ -447,12 +447,9 @@ const SignupPage = () => {
           }
         }
 
-        // Successfully registered (with or without resume), redirect to login
-        navigate('/login', { 
-          state: { 
-            message: formData.resume 
-              ? 'Account created successfully with resume! Please log in with your credentials.'
-              : 'Account created successfully! Please log in with your credentials.',
+        // Successfully registered (with or without resume), redirect to email verification
+        navigate('/verify-email', {
+          state: {
             email: formData.email
           }
         });

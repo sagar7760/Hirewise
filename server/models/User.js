@@ -38,9 +38,8 @@ const userSchema = new mongoose.Schema({
   company: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Company',
-    required: function() {
-      return this.role === 'hr' || this.role === 'interviewer' || this.role === 'admin';
-    }
+    // Do not require this directly; we validate presence of either company or companyId below
+    required: false
   },
   phone: {
     type: String,
@@ -217,9 +216,7 @@ const userSchema = new mongoose.Schema({
   accountStatus: {
     type: String,
     enum: ['pending_verification', 'active', 'suspended', 'inactive'],
-    default: function() {
-      return this.role === 'applicant' ? 'active' : 'pending_verification';
-    }
+    default: 'pending_verification'
   },
   emailVerifiedAt: {
     type: Date,
@@ -495,6 +492,15 @@ userSchema.pre('save', function(next) {
     this.permissions.canManageJobs = true;
   }
   
+  next();
+});
+
+// Ensure that for company-bound roles, at least one of company/companyId is provided
+userSchema.pre('validate', function(next) {
+  const needsCompany = ['admin', 'hr', 'interviewer'].includes(this.role);
+  if (needsCompany && !this.company && !this.companyId) {
+    this.invalidate('company', 'Company reference is required for this role');
+  }
   next();
 });
 

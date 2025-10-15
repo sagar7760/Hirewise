@@ -22,6 +22,7 @@ import LoginPage from './pages/global/LoginPage.jsx'
 import SignupPage from './pages/global/SignupPage.jsx'
 import CompanySignupPage from './pages/global/CompanySignupPage.jsx'
 import CompanyVerificationPage from './pages/global/CompanyVerificationPage.jsx'
+import EmailOtpVerify from './pages/global/EmailOtpVerify.jsx'
 import NotFoundPage from './pages/global/NotFoundPage.jsx'
 import UnauthorizedPage from './pages/global/UnauthorizedPage.jsx'
 import HowItWorksPage from './pages/global/HowItWorksPage.jsx'
@@ -99,6 +100,11 @@ function App() {
               <CompanyVerificationPage />
             </Layout>
           } />
+            <Route path="/verify-email" element={
+              <Layout showFooter={false}>
+                <EmailOtpVerify />
+              </Layout>
+            } />
           <Route path="/how-it-works" element={
             <Layout>
               <HowItWorksPage />

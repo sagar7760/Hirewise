@@ -1,9 +1,30 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 const CompanyVerificationPage = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const email = location.state?.email || 'your email';
+  const [msg, setMsg] = useState('');
+  const [err, setErr] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+
+  const resend = async () => {
+    setErr(''); setMsg('');
+    try {
+      const res = await fetch('/api/auth/otp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (!data.success) return setErr(data.message || 'Failed to resend');
+      setMsg('Verification code sent');
+      if (data.data?.resendCooldownSec) setCooldown(data.data.resendCooldownSec);
+    } catch(e) {
+      setErr('Network error');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300 flex items-center justify-center px-6">
@@ -126,18 +147,24 @@ const CompanyVerificationPage = () => {
           >
             Go to Login
           </Link>
+          <button
+            onClick={() => navigate('/verify-email', { state: { email } })}
+            className="flex-1 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            Enter OTP
+          </button>
         </div>
 
         {/* Resend Email */}
         <div className="text-center">
+          {msg && <p className="text-green-600 text-sm">{msg}</p>}
+          {err && <p className="text-red-600 text-sm">{err}</p>}
           <button
-            onClick={() => {
-              // TODO: Implement resend verification email
-              console.log('Resend verification email');
-            }}
-            className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 font-['Roboto'] underline hover:no-underline transition-colors"
+            onClick={resend}
+            disabled={cooldown>0}
+            className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 font-['Roboto'] underline hover:no-underline transition-colors disabled:opacity-50"
           >
-            Didn't receive the email? Click to resend
+            {cooldown>0 ? `Resend available in ${cooldown}s` : `Didn't receive the email? Click to resend`}
           </button>
         </div>
 

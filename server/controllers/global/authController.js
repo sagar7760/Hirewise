@@ -90,37 +90,15 @@ const register = async (req, res) => {
 
     await user.save();
 
-    // Create JWT token
-    const payload = {
-      id: user.id,
-      role: user.role
-    };
-
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN || '24h'
-    });
-
+    // Do not auto-login; require email verification via OTP
     res.status(201).json({
       success: true,
-      message: 'User registered successfully',
-      token,
-      user: {
+      message: 'User registered successfully. Please verify your email to activate your account.',
+      data: {
         id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        fullName: user.profile.fullName,
         email: user.email,
-        phone: user.phone,
         role: user.role,
-        profile: {
-          currentLocation: user.profile.currentLocation,
-          currentStatus: user.profile.currentStatus,
-          educationEntries: user.profile.educationEntries,
-          workExperienceEntries: user.profile.workExperienceEntries,
-          primarySkills: user.profile.primarySkills
-        },
-        profilePicture: user.profilePicture,
-        avatar: user.avatar
+        accountStatus: user.accountStatus
       }
     });
 
@@ -164,6 +142,16 @@ const login = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Invalid credentials'
+      });
+    }
+
+    // Block login if account not verified
+    if (user.accountStatus !== 'active') {
+      return res.status(403).json({
+        success: false,
+        message: 'Email verification required. Please verify your email to continue.',
+        code: 'EMAIL_VERIFICATION_REQUIRED',
+        data: { email: user.email }
       });
     }
 

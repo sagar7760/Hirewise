@@ -131,16 +131,20 @@ const companySchema = new mongoose.Schema({
     linkedin: {
       type: String,
       trim: true,
+      // Treat empty string as undefined so validation is skipped
+      set: function(v) { return v && v.trim() !== '' ? v : undefined; },
       validate: {
         validator: function(v) {
-          return !v || /^https?:\/\/(www\.)?linkedin\.com\/company\/.+/.test(v);
+          // Optional field: allow missing; otherwise require a valid URL
+          return !v || /^https?:\/\/.+/.test(v);
         },
-        message: 'LinkedIn URL must be a valid LinkedIn company page URL'
+        message: 'LinkedIn URL must be a valid URL starting with http:// or https://'
       }
     },
     careers: {
       type: String,
       trim: true,
+      set: function(v) { return v && v.trim() !== '' ? v : undefined; },
       validate: {
         validator: function(v) {
           return !v || /^https?:\/\/.+/.test(v);

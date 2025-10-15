@@ -21,6 +21,10 @@ router.get('/health', (req, res) => {
 const companyRoutes = require('./auth/company');
 router.use('/company', companyRoutes);
 
+// OTP routes
+const otpRoutes = require('./otp');
+router.use('/otp', otpRoutes);
+
 // @route   POST /api/auth/register
 // @desc    Register user with enhanced profile data
 // @access  Public

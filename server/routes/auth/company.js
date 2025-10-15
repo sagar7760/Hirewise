@@ -7,6 +7,27 @@ const Company = require('../../models/Company');
 const { uploadCompanyLogo } = require('../../middleware/upload');
 const router = express.Router();
 
+// Helper: detect if current MongoDB deployment supports transactions (replica set or mongos)
+async function supportsTransactions() {
+  try {
+    const admin = mongoose.connection.db.admin();
+    // "hello" is preferred in modern servers; fallback to ismaster for compatibility
+    let info;
+    try {
+      info = await admin.command({ hello: 1 });
+    } catch (e) {
+      info = await admin.command({ ismaster: 1 });
+    }
+    const isMongos = info?.msg === 'isdbgrid';
+    const isReplicaSet = !!info?.setName;
+    // logicalSessionTimeoutMinutes is required for transactions; standalone often lacks this
+    const hasSessions = !!info?.logicalSessionTimeoutMinutes;
+    return hasSessions && (isMongos || isReplicaSet);
+  } catch (e) {
+    return false;
+  }
+}
+
 // @route   POST /api/auth/company/register
 // @desc    Register a new company with admin user
 // @access  Public
@@ -186,109 +207,158 @@ router.post('/register', uploadCompanyLogo.single('companyLogo'), [
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(adminPassword, salt);
 
-    // Start a transaction to create both company and admin user
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
-    try {
-      // Create company first
-      const company = new Company({
-        name: companyName.trim(),
-        industry,
-        size: companySize,
-        headquarters,
-        country,
-        website: website || undefined,
-        registrationNumber: registrationNumber || undefined,
-        description: companyDescription || undefined,
-        logo: req.file ? `/uploads/company-logos/${req.file.filename}` : undefined,
-        socialLinks: {
-          linkedin: linkedinUrl || undefined,
-          careers: careersPageUrl || undefined
-        },
-        hiringRegions: hiringRegions ? (Array.isArray(hiringRegions) ? hiringRegions : [hiringRegions]) : [],
-        remotePolicy: remotePolicy || undefined,
-        status: 'pending_verification'
-      });
-
-      // Save company first (we need the ID for the admin user)
-      const savedCompany = await company.save({ session });
-
-      // Create admin user
-      const adminUser = new User({
-        firstName,
-        lastName,
-        email: adminEmail.toLowerCase(),
-        password: hashedPassword,
-        phone: adminPhone || undefined,
-        role: 'admin',
-        location: `${headquarters}, ${country}`,
-        companyId: savedCompany._id,
-        isCompanyAdmin: true,
-        accountStatus: 'pending_verification',
-        preferences: {
-          emailNotifications: true,
-          pushNotifications: true
-        },
-        permissions: {
-          canManageUsers: true,
-          canManageJobs: true,
-          canManageCompany: true,
-          canViewReports: true,
-          canManageInterviewers: true
-        }
-      });
-
-      // Save admin user
-      const savedAdmin = await adminUser.save({ session });
-
-      // Update company with admin user ID
-      savedCompany.adminUserId = savedAdmin._id;
-      await savedCompany.save({ session });
-
-      // Commit the transaction
-      await session.commitTransaction();
-
-      // Remove password from response
-      const adminResponse = savedAdmin.toObject();
-      delete adminResponse.password;
-
-      // TODO: Send verification email
-      // await sendVerificationEmail(adminEmail, savedAdmin._id, savedCompany._id);
-
-      res.status(201).json({
-        success: true,
-        message: 'Company registered successfully! Please check your email for verification.',
-        data: {
-          company: {
-            id: savedCompany._id,
-            name: savedCompany.name,
-            industry: savedCompany.industry,
-            location: savedCompany.fullLocation
+    // Use transaction when supported; otherwise fallback to non-transactional flow with manual rollback
+    const canTransact = await supportsTransactions();
+    if (canTransact) {
+      const session = await mongoose.startSession();
+      session.startTransaction();
+      try {
+        const company = new Company({
+          name: companyName.trim(),
+          industry,
+          size: companySize,
+          headquarters,
+          country,
+          website: website || undefined,
+          registrationNumber: registrationNumber || undefined,
+          description: companyDescription || undefined,
+          logo: req.file ? `/uploads/company-logos/${req.file.filename}` : undefined,
+          socialLinks: {
+            linkedin: linkedinUrl || undefined,
+            careers: careersPageUrl || undefined
           },
-          admin: {
-            id: savedAdmin._id,
-            firstName: adminResponse.firstName,
-            lastName: adminResponse.lastName,
-            email: adminResponse.email,
-            role: adminResponse.role,
-            isCompanyAdmin: adminResponse.isCompanyAdmin
-          },
-          nextSteps: [
-            'Check your email for verification link',
-            'Complete email verification',
-            'Login to your admin dashboard',
-            'Add HR users and interviewers'
-          ]
-        }
-      });
+          hiringRegions: hiringRegions ? (Array.isArray(hiringRegions) ? hiringRegions : [hiringRegions]) : [],
+          remotePolicy: remotePolicy || undefined,
+          status: 'pending_verification'
+        });
 
-    } catch (error) {
-      // Rollback transaction
-      await session.abortTransaction();
-      throw error;
-    } finally {
-      session.endSession();
+        const savedCompany = await company.save({ session });
+
+        const adminUser = new User({
+          firstName,
+          lastName,
+          email: adminEmail.toLowerCase(),
+          password: hashedPassword,
+          phone: adminPhone || undefined,
+          role: 'admin',
+          location: `${headquarters}, ${country}`,
+          companyId: savedCompany._id,
+          isCompanyAdmin: true,
+          accountStatus: 'pending_verification',
+          preferences: { emailNotifications: true, pushNotifications: true },
+          permissions: {
+            canManageUsers: true,
+            canManageJobs: true,
+            canManageCompany: true,
+            canViewReports: true,
+            canManageInterviewers: true
+          }
+        });
+
+        const savedAdmin = await adminUser.save({ session });
+
+        savedCompany.adminUserId = savedAdmin._id;
+        await savedCompany.save({ session });
+
+        await session.commitTransaction();
+        session.endSession();
+
+        const adminResponse = savedAdmin.toObject();
+        delete adminResponse.password;
+
+        return res.status(201).json({
+          success: true,
+          message: 'Company registered successfully! Please check your email for verification.',
+          data: {
+            company: { id: savedCompany._id, name: savedCompany.name, industry: savedCompany.industry, location: savedCompany.fullLocation },
+            admin: { id: savedAdmin._id, firstName: adminResponse.firstName, lastName: adminResponse.lastName, email: adminResponse.email, role: adminResponse.role, isCompanyAdmin: adminResponse.isCompanyAdmin },
+            nextSteps: [
+              'Check your email for verification link',
+              'Complete email verification',
+              'Login to your admin dashboard',
+              'Add HR users and interviewers'
+            ]
+          }
+        });
+      } catch (error) {
+        try { await session.abortTransaction(); } catch (_) {}
+        session.endSession();
+        throw error;
+      }
+    } else {
+      // Fallback: sequential operations with manual rollback
+      let savedCompany;
+      try {
+        const company = new Company({
+          name: companyName.trim(),
+          industry,
+          size: companySize,
+          headquarters,
+          country,
+          website: website || undefined,
+          registrationNumber: registrationNumber || undefined,
+          description: companyDescription || undefined,
+          logo: req.file ? `/uploads/company-logos/${req.file.filename}` : undefined,
+          socialLinks: {
+            linkedin: linkedinUrl || undefined,
+            careers: careersPageUrl || undefined
+          },
+          hiringRegions: hiringRegions ? (Array.isArray(hiringRegions) ? hiringRegions : [hiringRegions]) : [],
+          remotePolicy: remotePolicy || undefined,
+          status: 'pending_verification'
+        });
+
+        savedCompany = await company.save();
+
+        const adminUser = new User({
+          firstName,
+          lastName,
+          email: adminEmail.toLowerCase(),
+          password: hashedPassword,
+          phone: adminPhone || undefined,
+          role: 'admin',
+          location: `${headquarters}, ${country}`,
+          companyId: savedCompany._id,
+          isCompanyAdmin: true,
+          accountStatus: 'pending_verification',
+          preferences: { emailNotifications: true, pushNotifications: true },
+          permissions: {
+            canManageUsers: true,
+            canManageJobs: true,
+            canManageCompany: true,
+            canViewReports: true,
+            canManageInterviewers: true
+          }
+        });
+
+        const savedAdmin = await adminUser.save();
+        savedCompany.adminUserId = savedAdmin._id;
+        await savedCompany.save();
+
+        const adminResponse = savedAdmin.toObject();
+        delete adminResponse.password;
+
+        return res.status(201).json({
+          success: true,
+          message: 'Company registered successfully! Please check your email for verification.',
+          data: {
+            company: { id: savedCompany._id, name: savedCompany.name, industry: savedCompany.industry, location: savedCompany.fullLocation },
+            admin: { id: savedAdmin._id, firstName: adminResponse.firstName, lastName: adminResponse.lastName, email: adminResponse.email, role: adminResponse.role, isCompanyAdmin: adminResponse.isCompanyAdmin },
+            nextSteps: [
+              'Check your email for verification link',
+              'Complete email verification',
+              'Login to your admin dashboard',
+              'Add HR users and interviewers'
+            ]
+          }
+        });
+      } catch (error) {
+        // Manual rollback: if admin creation failed, delete the created company
+        if (savedCompany?._id) {
+          try { await Company.findByIdAndDelete(savedCompany._id); } catch (_) {}
+        }
+        throw error;
+      }
     }
 
   } catch (error) {
@@ -376,28 +446,37 @@ router.post('/verify', async (req, res) => {
       });
     }
 
-    // Update both user and company status in a transaction
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    // Update user and company; use transaction if supported, otherwise sequential
+    const canTransactVerify = await supportsTransactions();
+    if (canTransactVerify) {
+      const session = await mongoose.startSession();
+      session.startTransaction();
+      try {
+        user.accountStatus = 'active';
+        user.isEmailVerified = true;
+        user.emailVerifiedAt = new Date();
+        await user.save({ session });
 
-    try {
-      // Update account status
+        company.status = 'active';
+        company.verifiedAt = new Date();
+        await company.save({ session });
+
+        await session.commitTransaction();
+        session.endSession();
+      } catch (error) {
+        try { await session.abortTransaction(); } catch (_) {}
+        session.endSession();
+        throw error;
+      }
+    } else {
       user.accountStatus = 'active';
       user.isEmailVerified = true;
       user.emailVerifiedAt = new Date();
-      await user.save({ session });
+      await user.save();
 
-      // Update company status
       company.status = 'active';
       company.verifiedAt = new Date();
-      await company.save({ session });
-
-      await session.commitTransaction();
-    } catch (error) {
-      await session.abortTransaction();
-      throw error;
-    } finally {
-      session.endSession();
+      await company.save();
     }
 
     res.json({

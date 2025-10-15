@@ -247,8 +247,8 @@ const CompanySignupPage = () => {
       console.log('Server response:', data); // Debug log
 
       if (data.success) {
-        // Redirect to verification page
-        navigate('/company/verification-sent', { 
+        // Redirect to email OTP verification
+        navigate('/verify-email', {
           state: { email: formData.adminEmail }
         });
       } else {
