@@ -1,0 +1,56 @@
+{
+  "name": "hirewise-backend",
+  "description": "HireWise Backend API - Recruitment Platform",
+  "repository": "https://github.com/sagar7760/Hirewise",
+  "keywords": ["node", "express", "mongodb", "recruitment", "api"],
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ],
+  "env": {
+    "NODE_ENV": {
+      "description": "Node environment",
+      "value": "production"
+    },
+    "JWT_SECRET": {
+      "description": "Secret key for JWT token generation",
+      "generator": "secret"
+    },
+    "MONGODB_URI": {
+      "description": "MongoDB connection string"
+    },
+    "GEMINI_API_KEY": {
+      "description": "Google Gemini AI API key for AI features"
+    },
+    "EMAIL_SERVICE": {
+      "description": "Email service provider (e.g., gmail)",
+      "value": "gmail"
+    },
+    "EMAIL_USER": {
+      "description": "Email address for sending notifications"
+    },
+    "EMAIL_PASS": {
+      "description": "Email password or app-specific password"
+    },
+    "CORS_ORIGIN": {
+      "description": "Frontend URL for CORS (your Vercel deployment URL)"
+    },
+    "JWT_EXPIRES_IN": {
+      "description": "JWT token expiration time",
+      "value": "7d"
+    },
+    "MAX_FILE_SIZE": {
+      "description": "Maximum file upload size in bytes",
+      "value": "5242880"
+    },
+    "RATE_LIMIT_WINDOW_MS": {
+      "description": "Rate limit window in milliseconds",
+      "value": "900000"
+    },
+    "RATE_LIMIT_MAX_REQUESTS": {
+      "description": "Maximum requests per window",
+      "value": "100"
+    }
+  }
+}

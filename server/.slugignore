@@ -1,0 +1,10 @@
+*.md
+.git
+.gitignore
+test-files/
+tests/
+scripts/
+*.log
+.env.example
+.vscode
+.DS_Store
