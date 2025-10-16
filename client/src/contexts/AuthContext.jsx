@@ -274,6 +274,10 @@ export const AuthProvider = ({ children }) => {
 
   // Function to make authenticated API requests
   const apiRequest = useCallback(async (url, options = {}) => {
+    // Use environment variable for API URL in production, proxy in development
+    const apiUrl = import.meta.env.VITE_API_URL || '';
+    const fullUrl = apiUrl ? `${apiUrl}${url}` : url;
+    
     const config = {
       ...options,
       headers: {
@@ -285,7 +289,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     try {
-      const response = await fetch(url, config);
+      const response = await fetch(fullUrl, config);
 
       // Handle token expiration
       if (response.status === 401) {

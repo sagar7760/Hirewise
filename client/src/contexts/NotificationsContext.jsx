@@ -10,10 +10,13 @@ export const NotificationsProvider = ({ children, pollIntervalMs = 30000 }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const socketRef = useRef(null);
 
+  // Get API URL from environment
+  const apiUrl = import.meta.env.VITE_API_URL || '';
+
   // REST fetchers
   const fetchList = async () => {
     try {
-      const res = await fetch('/api/notifications?limit=20', {
+      const res = await fetch(`${apiUrl}/api/notifications?limit=20`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       if (res.ok) {
@@ -27,7 +30,7 @@ export const NotificationsProvider = ({ children, pollIntervalMs = 30000 }) => {
 
   const fetchUnread = async () => {
     try {
-      const res = await fetch('/api/notifications/unread-count', {
+      const res = await fetch(`${apiUrl}/api/notifications/unread-count`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       if (res.ok) {
@@ -47,8 +50,9 @@ export const NotificationsProvider = ({ children, pollIntervalMs = 30000 }) => {
       socketRef.current = null;
     }
 
-  const origin = window.location.origin.replace(/:\d+$/, ':5000');
-  const socket = io(origin, { auth: { token } });
+  // Use environment variable for Socket.IO connection
+  const socketUrl = import.meta.env.VITE_API_URL || window.location.origin.replace(/:\d+$/, ':5000');
+  const socket = io(socketUrl, { auth: { token } });
     socketRef.current = socket;
 
     socket.on('connect', () => {
@@ -81,7 +85,7 @@ export const NotificationsProvider = ({ children, pollIntervalMs = 30000 }) => {
 
   const markRead = async (id) => {
     try {
-      const res = await fetch(`/api/notifications/${id}/read`, { method: 'PATCH', headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      const res = await fetch(`${apiUrl}/api/notifications/${id}/read`, { method: 'PATCH', headers: token ? { Authorization: `Bearer ${token}` } : {} });
       if (res.ok) {
         setItems(prev => prev.map(n => n._id === id ? { ...n, read: true, readAt: new Date().toISOString() } : n));
         setUnreadCount(prev => Math.max(0, prev - 1));
@@ -91,7 +95,7 @@ export const NotificationsProvider = ({ children, pollIntervalMs = 30000 }) => {
 
   const markAllRead = async () => {
     try {
-      const res = await fetch('/api/notifications/read-all', { method: 'PATCH', headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      const res = await fetch(`${apiUrl}/api/notifications/read-all`, { method: 'PATCH', headers: token ? { Authorization: `Bearer ${token}` } : {} });
       if (res.ok) {
         setItems(prev => prev.map(n => ({ ...n, read: true, readAt: n.readAt || new Date().toISOString() })));
         setUnreadCount(0);
