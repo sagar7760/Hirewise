@@ -53,6 +53,11 @@ const LoginPage = () => {
           navigate('/dashboard');
       }
     } catch (error) {
+      // Check for email verification required error
+      if (error.code === 'EMAIL_VERIFICATION_REQUIRED' && error.email) {
+        navigate('/verify-email', { state: { email: error.email } });
+        return;
+      }
       setError(error.message || 'Login failed');
     } finally {
       setLoading(false);
@@ -129,12 +134,12 @@ const LoginPage = () => {
 
           {/* Forgot Password */}
           <div className="text-left">
-            <a 
-              href="#" 
+            <Link 
+              to="/forgot-password" 
               className="text-sm text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white font-['Roboto'] transition-colors"
             >
               Forgot password?
-            </a>
+            </Link>
           </div>
 
           {/* Error Display */}

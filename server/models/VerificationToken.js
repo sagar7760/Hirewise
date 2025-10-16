@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const verificationTokenSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
   email: { type: String, index: true },
-  type: { type: String, enum: ['email_otp'], default: 'email_otp' },
+  type: { type: String, enum: ['email_otp', 'password_reset'], default: 'email_otp' },
   codeHash: { type: String, required: true },
   expiresAt: { type: Date, required: true, index: true },
   attemptsRemaining: { type: Number, default: 5 },

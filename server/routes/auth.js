@@ -25,6 +25,10 @@ router.use('/company', companyRoutes);
 const otpRoutes = require('./otp');
 router.use('/otp', otpRoutes);
 
+// Password reset routes
+const passwordResetRoutes = require('./passwordReset');
+router.use('/', passwordResetRoutes);
+
 // @route   POST /api/auth/register
 // @desc    Register user with enhanced profile data
 // @access  Public

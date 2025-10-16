@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const pad = (n) => n.toString().padStart(2, '0');
@@ -8,6 +8,7 @@ export default function EmailOtpVerify() {
   const location = useLocation();
   const initialEmail = location.state?.email || '';
   const initialUserId = location.state?.userId || '';
+  const hasSentInitialOtp = useRef(false);
 
   const [email, setEmail] = useState(initialEmail);
   const [userId] = useState(initialUserId);
@@ -23,10 +24,14 @@ export default function EmailOtpVerify() {
   useEffect(() => {
     if (!initialEmail && !initialUserId) {
       setError('Missing verification context. Please sign up again.');
+      return;
     }
-    // Auto-send OTP on first load
-    // eslint-disable-next-line no-use-before-define
-    sendCode();
+    // Auto-send OTP on first load only (prevent double-send in React StrictMode)
+    if (!hasSentInitialOtp.current) {
+      hasSentInitialOtp.current = true;
+      // eslint-disable-next-line no-use-before-define
+      sendCode();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

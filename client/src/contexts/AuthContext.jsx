@@ -163,7 +163,11 @@ export const AuthProvider = ({ children }) => {
         setUser(data.user);
         return data.user; // Return user for navigation purposes
       } else {
-        throw new Error(data.message || 'Login failed');
+        // Preserve code and data for special error handling
+        const error = new Error(data.message || 'Login failed');
+        error.code = data.code;
+        error.email = data.data?.email;
+        throw error;
       }
     } catch (error) {
       console.error('Login error:', error);

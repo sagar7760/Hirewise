@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 const User = require('../../models/User');
+const PendingRegistration = require('../../models/PendingRegistration');
 
 // @desc    Register user
 // @access  Public
@@ -29,15 +30,18 @@ const register = async (req, res) => {
       role = 'applicant' 
     } = req.body;
 
-    // Check if user exists
-    let user = await User.findOne({ email });
-    if (user) {
+    // Check if user already exists (active account)
+    let existingUser = await User.findOne({ email });
+    if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: 'User already exists'
+        message: 'User already exists with this email'
       });
     }
 
+    // Check if there's already a pending registration
+    let pendingReg = await PendingRegistration.findOne({ email, type: 'applicant' });
+    
     // Split fullName into firstName and lastName
     const nameParts = fullName ? fullName.trim().split(' ') : ['', ''];
     const firstName = nameParts[0] || '';
@@ -66,39 +70,61 @@ const register = async (req, res) => {
       });
     }
 
-    // Create user with enhanced profile data
-    user = new User({
-      firstName,
-      lastName,
-      email,
-      password,
-      phone,
-      role,
-      profile: {
-        fullName,
-        currentLocation,
-        currentStatus,
-        educationEntries: parsedEducationEntries,
-        workExperienceEntries: parsedWorkExperienceEntries,
-        primarySkills: parsedPrimarySkills
-      }
-    });
-
     // Hash password
     const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
-    await user.save();
+    // Store registration data temporarily (will be created after OTP verification)
+    if (pendingReg) {
+      // Update existing pending registration
+      pendingReg.userData = {
+        firstName,
+        lastName,
+        password: hashedPassword,
+        phone,
+        role,
+        profile: {
+          fullName,
+          currentLocation,
+          currentStatus,
+          educationEntries: parsedEducationEntries,
+          workExperienceEntries: parsedWorkExperienceEntries,
+          primarySkills: parsedPrimarySkills
+        }
+      };
+      pendingReg.expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // Reset expiry
+      await pendingReg.save();
+    } else {
+      // Create new pending registration
+      pendingReg = new PendingRegistration({
+        email,
+        type: 'applicant',
+        userData: {
+          firstName,
+          lastName,
+          password: hashedPassword,
+          phone,
+          role,
+          profile: {
+            fullName,
+            currentLocation,
+            currentStatus,
+            educationEntries: parsedEducationEntries,
+            workExperienceEntries: parsedWorkExperienceEntries,
+            primarySkills: parsedPrimarySkills
+          }
+        }
+      });
+      await pendingReg.save();
+    }
 
-    // Do not auto-login; require email verification via OTP
-    res.status(201).json({
+    // Return success - actual user will be created on OTP verification
+    res.status(200).json({
       success: true,
-      message: 'User registered successfully. Please verify your email to activate your account.',
+      message: 'Registration initiated. Please verify your email with the OTP sent to your inbox.',
       data: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        accountStatus: user.accountStatus
+        email: email,
+        requiresVerification: true
       }
     });
 

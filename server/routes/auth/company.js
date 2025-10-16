@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
 const User = require('../../models/User');
 const Company = require('../../models/Company');
+const PendingRegistration = require('../../models/PendingRegistration');
 const { uploadCompanyLogo } = require('../../middleware/upload');
 const router = express.Router();
 
@@ -176,7 +177,7 @@ router.post('/register', uploadCompanyLogo.single('companyLogo'), [
       });
     }
 
-    // Check if email already exists
+    // Check if email already exists in active users
     const existingUser = await User.findOne({ email: adminEmail.toLowerCase() });
     if (existingUser) {
       return res.status(400).json({
@@ -198,6 +199,9 @@ router.post('/register', uploadCompanyLogo.single('companyLogo'), [
       });
     }
 
+    // Check for pending registration with same email
+    let pendingReg = await PendingRegistration.findOne({ email: adminEmail.toLowerCase(), type: 'company' });
+
     // Split admin full name
     const nameParts = adminFullName.trim().split(' ');
     const firstName = nameParts[0];
@@ -207,159 +211,54 @@ router.post('/register', uploadCompanyLogo.single('companyLogo'), [
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(adminPassword, salt);
 
-    // Use transaction when supported; otherwise fallback to non-transactional flow with manual rollback
-    const canTransact = await supportsTransactions();
-    if (canTransact) {
-      const session = await mongoose.startSession();
-      session.startTransaction();
-      try {
-        const company = new Company({
-          name: companyName.trim(),
-          industry,
-          size: companySize,
-          headquarters,
-          country,
-          website: website || undefined,
-          registrationNumber: registrationNumber || undefined,
-          description: companyDescription || undefined,
-          logo: req.file ? `/uploads/company-logos/${req.file.filename}` : undefined,
-          socialLinks: {
-            linkedin: linkedinUrl || undefined,
-            careers: careersPageUrl || undefined
-          },
-          hiringRegions: hiringRegions ? (Array.isArray(hiringRegions) ? hiringRegions : [hiringRegions]) : [],
-          remotePolicy: remotePolicy || undefined,
-          status: 'pending_verification'
-        });
+    // Store company registration data temporarily (will be created after OTP verification)
+    const companyDataToStore = {
+      companyName: companyName.trim(),
+      industry,
+      companySize,
+      headquarters,
+      country,
+      website: website || undefined,
+      registrationNumber: registrationNumber || undefined,
+      description: companyDescription || undefined,
+      logo: req.file ? `/uploads/company-logos/${req.file.filename}` : undefined,
+      socialLinks: {
+        linkedin: linkedinUrl || undefined,
+        careers: careersPageUrl || undefined
+      },
+      hiringRegions: hiringRegions ? (Array.isArray(hiringRegions) ? hiringRegions : [hiringRegions]) : [],
+      remotePolicy: remotePolicy || undefined,
+      adminFirstName: firstName,
+      adminLastName: lastName,
+      adminPassword: hashedPassword,
+      adminPhone: adminPhone || undefined
+    };
 
-        const savedCompany = await company.save({ session });
-
-        const adminUser = new User({
-          firstName,
-          lastName,
-          email: adminEmail.toLowerCase(),
-          password: hashedPassword,
-          phone: adminPhone || undefined,
-          role: 'admin',
-          location: `${headquarters}, ${country}`,
-          companyId: savedCompany._id,
-          isCompanyAdmin: true,
-          accountStatus: 'pending_verification',
-          preferences: { emailNotifications: true, pushNotifications: true },
-          permissions: {
-            canManageUsers: true,
-            canManageJobs: true,
-            canManageCompany: true,
-            canViewReports: true,
-            canManageInterviewers: true
-          }
-        });
-
-        const savedAdmin = await adminUser.save({ session });
-
-        savedCompany.adminUserId = savedAdmin._id;
-        await savedCompany.save({ session });
-
-        await session.commitTransaction();
-        session.endSession();
-
-        const adminResponse = savedAdmin.toObject();
-        delete adminResponse.password;
-
-        return res.status(201).json({
-          success: true,
-          message: 'Company registered successfully! Please check your email for verification.',
-          data: {
-            company: { id: savedCompany._id, name: savedCompany.name, industry: savedCompany.industry, location: savedCompany.fullLocation },
-            admin: { id: savedAdmin._id, firstName: adminResponse.firstName, lastName: adminResponse.lastName, email: adminResponse.email, role: adminResponse.role, isCompanyAdmin: adminResponse.isCompanyAdmin },
-            nextSteps: [
-              'Check your email for verification link',
-              'Complete email verification',
-              'Login to your admin dashboard',
-              'Add HR users and interviewers'
-            ]
-          }
-        });
-      } catch (error) {
-        try { await session.abortTransaction(); } catch (_) {}
-        session.endSession();
-        throw error;
-      }
+    if (pendingReg) {
+      // Update existing pending registration
+      pendingReg.companyData = companyDataToStore;
+      pendingReg.expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // Reset expiry
+      await pendingReg.save();
     } else {
-      // Fallback: sequential operations with manual rollback
-      let savedCompany;
-      try {
-        const company = new Company({
-          name: companyName.trim(),
-          industry,
-          size: companySize,
-          headquarters,
-          country,
-          website: website || undefined,
-          registrationNumber: registrationNumber || undefined,
-          description: companyDescription || undefined,
-          logo: req.file ? `/uploads/company-logos/${req.file.filename}` : undefined,
-          socialLinks: {
-            linkedin: linkedinUrl || undefined,
-            careers: careersPageUrl || undefined
-          },
-          hiringRegions: hiringRegions ? (Array.isArray(hiringRegions) ? hiringRegions : [hiringRegions]) : [],
-          remotePolicy: remotePolicy || undefined,
-          status: 'pending_verification'
-        });
-
-        savedCompany = await company.save();
-
-        const adminUser = new User({
-          firstName,
-          lastName,
-          email: adminEmail.toLowerCase(),
-          password: hashedPassword,
-          phone: adminPhone || undefined,
-          role: 'admin',
-          location: `${headquarters}, ${country}`,
-          companyId: savedCompany._id,
-          isCompanyAdmin: true,
-          accountStatus: 'pending_verification',
-          preferences: { emailNotifications: true, pushNotifications: true },
-          permissions: {
-            canManageUsers: true,
-            canManageJobs: true,
-            canManageCompany: true,
-            canViewReports: true,
-            canManageInterviewers: true
-          }
-        });
-
-        const savedAdmin = await adminUser.save();
-        savedCompany.adminUserId = savedAdmin._id;
-        await savedCompany.save();
-
-        const adminResponse = savedAdmin.toObject();
-        delete adminResponse.password;
-
-        return res.status(201).json({
-          success: true,
-          message: 'Company registered successfully! Please check your email for verification.',
-          data: {
-            company: { id: savedCompany._id, name: savedCompany.name, industry: savedCompany.industry, location: savedCompany.fullLocation },
-            admin: { id: savedAdmin._id, firstName: adminResponse.firstName, lastName: adminResponse.lastName, email: adminResponse.email, role: adminResponse.role, isCompanyAdmin: adminResponse.isCompanyAdmin },
-            nextSteps: [
-              'Check your email for verification link',
-              'Complete email verification',
-              'Login to your admin dashboard',
-              'Add HR users and interviewers'
-            ]
-          }
-        });
-      } catch (error) {
-        // Manual rollback: if admin creation failed, delete the created company
-        if (savedCompany?._id) {
-          try { await Company.findByIdAndDelete(savedCompany._id); } catch (_) {}
-        }
-        throw error;
-      }
+      // Create new pending registration
+      pendingReg = new PendingRegistration({
+        email: adminEmail.toLowerCase(),
+        type: 'company',
+        companyData: companyDataToStore
+      });
+      await pendingReg.save();
     }
+
+    // Return success - actual company/user will be created on OTP verification
+    return res.status(200).json({
+      success: true,
+      message: 'Company registration initiated. Please verify your email with the OTP sent to your inbox.',
+      data: {
+        email: adminEmail.toLowerCase(),
+        companyName: companyName.trim(),
+        requiresVerification: true
+      }
+    });
 
   } catch (error) {
     console.error('Company registration error:', error);
