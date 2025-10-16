@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { buildApiUrl } from '../utils/api';
 
 const AuthContext = createContext();
 
@@ -24,7 +25,8 @@ export const AuthProvider = ({ children }) => {
       const avatarVal = candidateUser.avatar || candidateUser.profilePicture;
       if (avatarVal === 'base64_stored' && token) {
         setAvatarHydrating(true);
-        const resp = await fetch('/api/admin/profile/avatar', {
+        
+        const resp = await fetch(buildApiUrl('/api/admin/profile/avatar'), {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -110,7 +112,7 @@ export const AuthProvider = ({ children }) => {
       setIsRefreshingUser(true);
       setLastRefreshTime(now);
       
-      const response = await fetch('/api/profile', {
+      const response = await fetch(buildApiUrl('/api/profile'), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -146,7 +148,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(buildApiUrl('/api/auth/login'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -214,7 +216,7 @@ export const AuthProvider = ({ children }) => {
       setIsRefreshingUser(true);
       setLastRefreshTime(now);
       
-      const response = await fetch('/api/profile', {
+      const response = await fetch(buildApiUrl('/api/profile'), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -274,9 +276,8 @@ export const AuthProvider = ({ children }) => {
 
   // Function to make authenticated API requests
   const apiRequest = useCallback(async (url, options = {}) => {
-    // Use environment variable for API URL in production, proxy in development
-    const apiUrl = import.meta.env.VITE_API_URL || '';
-    const fullUrl = apiUrl ? `${apiUrl}${url}` : url;
+    // Use buildApiUrl utility for consistent URL handling
+    const fullUrl = buildApiUrl(url);
     
     const config = {
       ...options,
