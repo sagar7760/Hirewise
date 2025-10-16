@@ -6,7 +6,8 @@ const connectDB = () => {
   const isProd = process.env.NODE_ENV === 'production';
   // Prefer explicit env URI; fallback to local IPv4 to avoid ::1 issues
   const fallbackLocal = 'mongodb://127.0.0.1:27017/hirewise';
-  const mongoURI = (isProd ? process.env.MONGODB_URI_PROD : process.env.MONGODB_URI) || fallbackLocal;
+  // Use MONGODB_URI for both dev and prod (Heroku uses MONGODB_URI)
+  const mongoURI = process.env.MONGODB_URI || process.env.MONGODB_URI_PROD || fallbackLocal;
 
   const maxRetries = parseInt(process.env.DB_MAX_RETRIES || '0', 10); // 0 => retry forever
   const retryDelayMs = parseInt(process.env.DB_RETRY_DELAY_MS || '5000', 10);
