@@ -7,7 +7,8 @@ const {
   updateProfile,
   downloadCurrentResume,
   deleteCurrentResume,
-  validateProfileUpdate
+  validateProfileUpdate,
+  changePassword
 } = require('../../controllers/applicant/profileController');
 
 // Configure multer for memory storage (not disk storage)
@@ -49,6 +50,11 @@ router.get('/resume/download', downloadCurrentResume);
 // @desc    Delete current resume
 // @access  Private
 router.delete('/resume', deleteCurrentResume);
+
+// @route   POST /api/profile/change-password
+// @desc    Change applicant password
+// @access  Private
+router.post('/change-password', changePassword);
 
 // @route   POST /api/profile/upload-photo
 // @desc    Upload profile picture (store in database as base64)

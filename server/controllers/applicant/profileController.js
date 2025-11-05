@@ -1,4 +1,5 @@
 const User = require('../../models/User');
+const bcrypt = require('bcryptjs');
 const Resume = require('../../models/Resume');
 const { body, validationResult } = require('express-validator');
 
@@ -426,5 +427,39 @@ module.exports = {
   updateProfile,
   downloadCurrentResume,
   deleteCurrentResume,
-  validateProfileUpdate
+  validateProfileUpdate,
+  // Change password for applicant
+  changePassword: async (req, res) => {
+    try {
+      const userId = req.user._id || req.user.id;
+      const { currentPassword, newPassword } = req.body || {};
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ success: false, message: 'Current password and new password are required' });
+      }
+      if (typeof newPassword !== 'string' || newPassword.length < 6) {
+        return res.status(400).json({ success: false, message: 'New password must be at least 6 characters' });
+      }
+
+      const user = await User.findById(userId).select('+password');
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+
+      const match = await bcrypt.compare(currentPassword, user.password);
+      if (!match) {
+        return res.status(400).json({ success: false, message: 'Current password is incorrect' });
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(newPassword, salt);
+      user.lastPasswordChange = new Date();
+      await user.save();
+
+      return res.json({ success: true, message: 'Password changed successfully', lastPasswordChange: user.lastPasswordChange });
+    } catch (error) {
+      console.error('Applicant changePassword error:', error);
+      return res.status(500).json({ success: false, message: 'Failed to change password' });
+    }
+  }
 };

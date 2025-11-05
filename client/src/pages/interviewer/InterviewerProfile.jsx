@@ -20,6 +20,20 @@ const InterviewerProfile = () => {
     newPassword: '',
     confirmPassword: ''
   });
+  const [passwordValidation, setPasswordValidation] = useState({ current: '', new: '', confirm: '' });
+  const [passwordError, setPasswordError] = useState(null);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState({ current: false, new: false, confirm: false });
+
+  const validatePasswordForm = (fields = passwordData) => {
+    const v = { current: '', new: '', confirm: '' };
+    if (!fields.currentPassword?.trim()) v.current = 'Current password is required';
+    if (!fields.newPassword || fields.newPassword.length < 8) v.new = 'New password must be at least 8 characters';
+    if (fields.newPassword && fields.currentPassword && fields.newPassword === fields.currentPassword) v.new = 'New password must be different from current password';
+    if (fields.confirmPassword !== fields.newPassword) v.confirm = 'Passwords do not match';
+    setPasswordValidation(v);
+    return !v.current && !v.new && !v.confirm;
+  };
 
   const [phoneData, setPhoneData] = useState({ newPhone: '' });
 
@@ -78,25 +92,29 @@ const InterviewerProfile = () => {
 
   const handlePasswordChange = async (e) => {
     e.preventDefault();
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert('Passwords do not match');
-      return;
-    }
+    setPasswordError(null);
+    if (!validatePasswordForm()) return;
     try {
+      setChangingPassword(true);
       const resp = await apiRequest('/api/interviewer/profile/password', {
         method: 'POST',
         body: JSON.stringify({ currentPassword: passwordData.currentPassword, newPassword: passwordData.newPassword })
       });
       const data = await resp.json();
       if (!data.success) {
-        alert(data.message || 'Password change failed');
+        const serverMsg = data.message || data.error;
+        if (resp.status === 400 || resp.status === 401) setPasswordError(serverMsg || 'Current password is incorrect');
+        else setPasswordError(serverMsg || 'Password change failed');
         return;
       }
-  toast.success('Password updated');
+      toast.success('Password updated');
       setShowPasswordModal(false);
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setPasswordValidation({ current: '', new: '', confirm: '' });
     } catch (e2) {
-      alert(e2.message || 'Error updating password');
+      setPasswordError(e2.message || 'Error updating password');
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -697,52 +715,77 @@ const InterviewerProfile = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-['Roboto']">
                     Current Password
                   </label>
-                  <input
-                    type="password"
-                    value={passwordData.currentPassword}
-                    onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-black dark:text-white bg-white dark:bg-gray-800"
-                    required
-                  />
+                  <div className="relative">
+                    <input
+                      type={passwordVisible.current ? 'text' : 'password'}
+                      value={passwordData.currentPassword}
+                      onChange={(e) => { setPasswordError(null); const v = { ...passwordData, currentPassword: e.target.value }; setPasswordData(v); validatePasswordForm(v); }}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-black dark:text-white bg-white dark:bg-gray-800 ${passwordValidation.current || passwordError ? 'border-red-400 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'}`}
+                      required
+                    />
+                    <button type="button" onClick={() => setPasswordVisible(p => ({ ...p, current: !p.current }))} className="absolute inset-y-0 right-2 px-2 text-gray-500 dark:text-gray-400">
+                      {passwordVisible.current ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
+                  {(passwordValidation.current || passwordError) && (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400 font-['Roboto']">{passwordError || passwordValidation.current}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-['Roboto']">
                     New Password
                   </label>
-                  <input
-                    type="password"
-                    value={passwordData.newPassword}
-                    onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-black dark:text-white bg-white dark:bg-gray-800"
-                    required
-                  />
+                  <div className="relative">
+                    <input
+                      type={passwordVisible.new ? 'text' : 'password'}
+                      value={passwordData.newPassword}
+                      onChange={(e) => { setPasswordError(null); const v = { ...passwordData, newPassword: e.target.value }; setPasswordData(v); validatePasswordForm(v); }}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-black dark:text-white bg-white dark:bg-gray-800 ${passwordValidation.new ? 'border-red-400 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'}`}
+                      required
+                    />
+                    <button type="button" onClick={() => setPasswordVisible(p => ({ ...p, new: !p.new }))} className="absolute inset-y-0 right-2 px-2 text-gray-500 dark:text-gray-400">
+                      {passwordVisible.new ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
+                  <p className={`mt-1 text-xs font-['Roboto'] ${passwordValidation.new ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                    {passwordValidation.new || 'Minimum 8 characters. Use a mix of letters, numbers, and symbols.'}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-['Roboto']">
                     Confirm New Password
                   </label>
-                  <input
-                    type="password"
-                    value={passwordData.confirmPassword}
-                    onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-['Roboto'] text-black dark:text-white bg-white dark:bg-gray-800"
-                    required
-                  />
+                  <div className="relative">
+                    <input
+                      type={passwordVisible.confirm ? 'text' : 'password'}
+                      value={passwordData.confirmPassword}
+                      onChange={(e) => { setPasswordError(null); const v = { ...passwordData, confirmPassword: e.target.value }; setPasswordData(v); validatePasswordForm(v); }}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-black dark:text-white bg-white dark:bg-gray-800 ${passwordValidation.confirm ? 'border-red-400 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'}`}
+                      required
+                    />
+                    <button type="button" onClick={() => setPasswordVisible(p => ({ ...p, confirm: !p.confirm }))} className="absolute inset-y-0 right-2 px-2 text-gray-500 dark:text-gray-400">
+                      {passwordVisible.confirm ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
+                  {passwordValidation.confirm && (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400 font-['Roboto']">{passwordValidation.confirm}</p>
+                  )}
                 </div>
               </div>
               <div className="flex justify-end space-x-3 mt-6">
                 <button
                   type="button"
-                  onClick={() => setShowPasswordModal(false)}
+                  onClick={() => { setShowPasswordModal(false); setPasswordError(null); setPasswordValidation({ current: '', new: '', confirm: '' }); }}
                   className="bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-black text-white dark:bg-white dark:text-black px-4 py-2 rounded-lg font-medium font-['Roboto'] cursor-pointer transition-colors"
+                  disabled={changingPassword || !!passwordValidation.current || !!passwordValidation.new || !!passwordValidation.confirm}
+                  className={`px-4 py-2 rounded-lg font-medium font-['Roboto'] cursor-pointer transition-colors text-white dark:text-black ${changingPassword || passwordValidation.current || passwordValidation.new || passwordValidation.confirm ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : 'bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-200'}`}
                 >
-                  Change Password
+                  {changingPassword ? 'Changing...' : 'Change Password'}
                 </button>
               </div>
             </form>

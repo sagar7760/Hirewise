@@ -9,6 +9,13 @@ const ProfilePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  // Password change UI states
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [passwordValidation, setPasswordValidation] = useState({ current: '', new: '', confirm: '' });
+  const [passwordError, setPasswordError] = useState(null);
+  const [passwordVisible, setPasswordVisible] = useState({ current: false, new: false, confirm: false });
+  const [changingPassword, setChangingPassword] = useState(false);
   
   // Profile picture states
   const [profilePicture, setProfilePicture] = useState(null);
@@ -251,6 +258,45 @@ const ProfilePage = () => {
   const forceRefresh = async () => {
     clearCache();
     await loadProfileData();
+  };
+
+  // Password handlers
+  const validatePasswordForm = (fields = passwordData) => {
+    const v = { current: '', new: '', confirm: '' };
+    if (!fields.currentPassword?.trim()) v.current = 'Current password is required';
+    if (!fields.newPassword || fields.newPassword.length < 8) v.new = 'New password must be at least 8 characters';
+    if (fields.newPassword && fields.currentPassword && fields.newPassword === fields.currentPassword) v.new = 'New password must be different from current password';
+    if (fields.confirmPassword !== fields.newPassword) v.confirm = 'Passwords do not match';
+    setPasswordValidation(v);
+    return !v.current && !v.new && !v.confirm;
+  };
+
+  const handleApplicantPasswordChange = async (e) => {
+    e?.preventDefault?.();
+    setPasswordError(null);
+    if (!validatePasswordForm()) return;
+    try {
+      setChangingPassword(true);
+      const resp = await apiRequest('/api/profile/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword: passwordData.currentPassword, newPassword: passwordData.newPassword })
+      });
+      const data = await resp.json();
+      if (!data.success) {
+        const serverMsg = data.message || data.error;
+        if (resp.status === 400 || resp.status === 401) setPasswordError(serverMsg || 'Current password is incorrect');
+        else setPasswordError(serverMsg || 'Failed to change password');
+        return;
+      }
+      // success: close and reset
+      setShowPasswordModal(false);
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setPasswordValidation({ current: '', new: '', confirm: '' });
+    } catch (e2) {
+      setPasswordError(e2.message || 'Error changing password');
+    } finally {
+      setChangingPassword(false);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -1415,6 +1461,23 @@ const ProfilePage = () => {
               </div>
             </div>
 
+            {/* Security Settings */}
+            <div className="mt-8 pt-8 border-t border-gray-100 dark:border-gray-700 transition-colors duration-300">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white font-['Open_Sans'] mb-6 transition-colors duration-300">Security Settings</h2>
+              <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50 transition-colors duration-300">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-white font-['Open_Sans']">Password</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">Change your account password</p>
+                </div>
+                <button
+                  onClick={() => setShowPasswordModal(true)}
+                  className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
+                >
+                  Change Password
+                </button>
+              </div>
+            </div>
+
             {/* Bottom Action Buttons (Mobile) */}
             {isEditing && (
               <div className="mt-6 flex space-x-3 md:hidden">
@@ -1443,6 +1506,89 @@ const ProfilePage = () => {
             onSave={handleModalSave}
             onCancel={closeModal}
           />
+        )}
+
+        {/* Password Change Modal */}
+        {showPasswordModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-black/70 flex items-center justify-center z-50 transition-colors duration-300">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md dark:border dark:border-gray-700 transition-colors duration-300">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 font-['Open_Sans']">Change Password</h3>
+              <form onSubmit={handleApplicantPasswordChange}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-['Roboto']">Current Password</label>
+                    <div className="relative">
+                      <input
+                        type={passwordVisible.current ? 'text' : 'password'}
+                        value={passwordData.currentPassword}
+                        onChange={(e) => { setPasswordError(null); const v = { ...passwordData, currentPassword: e.target.value }; setPasswordData(v); validatePasswordForm(v); }}
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-black dark:focus:ring-white text-gray-900 dark:text-white dark:bg-gray-700 ${passwordValidation.current || passwordError ? 'border-red-400 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'}`}
+                        required
+                      />
+                      <button type="button" onClick={() => setPasswordVisible(p => ({ ...p, current: !p.current }))} className="absolute inset-y-0 right-2 px-2 text-gray-500 dark:text-gray-400">
+                        {passwordVisible.current ? 'Hide' : 'Show'}
+                      </button>
+                    </div>
+                    {(passwordValidation.current || passwordError) && (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400 font-['Roboto']">{passwordError || passwordValidation.current}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-['Roboto']">New Password</label>
+                    <div className="relative">
+                      <input
+                        type={passwordVisible.new ? 'text' : 'password'}
+                        value={passwordData.newPassword}
+                        onChange={(e) => { setPasswordError(null); const v = { ...passwordData, newPassword: e.target.value }; setPasswordData(v); validatePasswordForm(v); }}
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-black dark:focus:ring-white text-gray-900 dark:text-white dark:bg-gray-700 ${passwordValidation.new ? 'border-red-400 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'}`}
+                        required
+                      />
+                      <button type="button" onClick={() => setPasswordVisible(p => ({ ...p, new: !p.new }))} className="absolute inset-y-0 right-2 px-2 text-gray-500 dark:text-gray-400">
+                        {passwordVisible.new ? 'Hide' : 'Show'}
+                      </button>
+                    </div>
+                    <p className={`mt-1 text-xs font-['Roboto'] ${passwordValidation.new ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                      {passwordValidation.new || 'Minimum 8 characters. Use a mix of letters, numbers, and symbols.'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-['Roboto']">Confirm New Password</label>
+                    <div className="relative">
+                      <input
+                        type={passwordVisible.confirm ? 'text' : 'password'}
+                        value={passwordData.confirmPassword}
+                        onChange={(e) => { setPasswordError(null); const v = { ...passwordData, confirmPassword: e.target.value }; setPasswordData(v); validatePasswordForm(v); }}
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-black dark:focus:ring-white text-gray-900 dark:text-white dark:bg-gray-700 ${passwordValidation.confirm ? 'border-red-400 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'}`}
+                        required
+                      />
+                      <button type="button" onClick={() => setPasswordVisible(p => ({ ...p, confirm: !p.confirm }))} className="absolute inset-y-0 right-2 px-2 text-gray-500 dark:text-gray-400">
+                        {passwordVisible.confirm ? 'Hide' : 'Show'}
+                      </button>
+                    </div>
+                    {passwordValidation.confirm && (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400 font-['Roboto']">{passwordValidation.confirm}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => { setShowPasswordModal(false); setPasswordError(null); setPasswordValidation({ current: '', new: '', confirm: '' }); }}
+                    className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg font-medium font-['Roboto'] transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={changingPassword || !!passwordValidation.current || !!passwordValidation.new || !!passwordValidation.confirm}
+                    className={`px-6 py-2 rounded-lg font-medium font-['Roboto'] transition-colors text-white dark:text-black ${changingPassword || passwordValidation.current || passwordValidation.new || passwordValidation.confirm ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : 'bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-200'}`}
+                  >
+                    {changingPassword ? 'Changing...' : 'Change Password'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         )}
       </div>
     </DashboardLayout>
