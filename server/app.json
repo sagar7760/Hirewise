@@ -51,6 +51,14 @@
     "RATE_LIMIT_MAX_REQUESTS": {
       "description": "Maximum requests per window",
       "value": "100"
+    },
+    "RATE_LIMIT_AUTH_MAX": {
+      "description": "Maximum auth endpoint requests per window",
+      "value": "20"
+    },
+    "RATE_LIMIT_MUTATION_MAX": {
+      "description": "Maximum write-heavy role route requests per window",
+      "value": "100"
     }
   }
 }

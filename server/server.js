@@ -9,7 +9,8 @@ const path = require('path');
 
 const connectDB = require('./config/database');
 const errorHandler = require('./middleware/errorHandler');
-const { init: initNotificationIo } = require('./services/notificationService');
+// Real-time notification socket removed for performance/rate-limit simplification
+const { init: initNotificationIo } = require('./services/notificationService'); // kept placeholder init (no-op now)
 const notificationsRoutes = require('./routes/notifications');
 
 // Import routes
@@ -46,55 +47,8 @@ const interviewerFeedbackRoutes = require('./routes/interviewer/feedback');
 const interviewerDashboardRoutes = require('./routes/interviewer/dashboard');
 
 const app = express();
-const server = http.createServer(app);
-
-// Socket.IO setup (optional real-time notifications)
-let io;
-try {
-  const { Server } = require('socket.io');
-  io = new Server(server, {
-    cors: {
-      origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
-      credentials: true
-    }
-  });
-
-  // Basic auth via query token (JWT) to join rooms
-  const jwt = require('jsonwebtoken');
-  io.use((socket, next) => {
-    try {
-      const token = socket.handshake.auth?.token || socket.handshake.query?.token;
-      if (!token) return next(); // allow anonymous, but won't join private rooms
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      socket.data.user = { id: decoded.id, role: decoded.role, companyId: decoded.companyId };
-      next();
-    } catch (e) {
-      console.warn('Socket auth failed:', e.message);
-      next();
-    }
-  });
-
-  io.on('connection', (socket) => {
-    const u = socket.data.user;
-    console.log('🔌 Socket connected:', socket.id);
-    if (u?.id) {
-      socket.join(`user:${u.id}`);
-      console.log(`👤 User joined room: user:${u.id}`);
-    }
-    if (u?.companyId && u?.role) {
-      socket.join(`company:${u.companyId}:${u.role}`);
-      console.log(`🏢 User joined room: company:${u.companyId}:${u.role}`);
-    }
-    
-    socket.on('disconnect', () => {
-      console.log('🔌 Socket disconnected:', socket.id);
-    });
-  });
-
-  initNotificationIo(io);
-} catch (e) {
-  console.warn('Socket.IO not initialized:', e.message);
-}
+const server = http.createServer(app); // plain HTTP server (no Socket.IO)
+initNotificationIo(null); // ensure notification service gracefully handles absence
 
 // Configure server to handle larger headers
 app.use((req, res, next) => {
@@ -109,13 +63,22 @@ connectDB();
 // Security middleware
 app.use(helmet());
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
-});
-app.use(limiter);
+// Rate limiting: lighter on read-heavy GETs, stricter on auth/mutations
+const WINDOW = parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000;
+const DEFAULT_MAX = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 300;
+const AUTH_MAX = parseInt(process.env.RATE_LIMIT_AUTH_MAX) || 20;
+const MUTATION_MAX = parseInt(process.env.RATE_LIMIT_MUTATION_MAX) || 100;
+
+// Default limiter (mostly GETs)
+app.use(rateLimit({ windowMs: WINDOW, max: DEFAULT_MAX, standardHeaders: true, legacyHeaders: false }));
+
+// Stricter limiter for auth endpoints
+app.use('/api/auth', rateLimit({ windowMs: WINDOW, max: AUTH_MAX, standardHeaders: true, legacyHeaders: false }));
+
+// Moderate limiter for write-heavy routes
+app.use(['/api/applications', '/api/hr', '/api/admin', '/api/interviewer', '/api/profile'],
+  rateLimit({ windowMs: WINDOW, max: MUTATION_MAX, standardHeaders: true, legacyHeaders: false })
+);
 
 // CORS configuration
 app.use(cors({

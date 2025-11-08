@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from './AuthContext';
-import { io } from 'socket.io-client';
-import { buildApiUrl, getApiUrl } from '../utils/api';
+// Socket.io removed: we now rely purely on REST polling and manual refresh triggers.
+import { buildApiUrl } from '../utils/api';
 
 const NotificationsContext = createContext(null);
 
@@ -9,7 +9,7 @@ export const NotificationsProvider = ({ children, pollIntervalMs = 30000 }) => {
   const { token } = useAuth();
   const [items, setItems] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const socketRef = useRef(null);
+  // Removed socket ref; using lightweight polling only
 
   // REST fetchers
   const fetchList = async () => {
@@ -38,39 +38,7 @@ export const NotificationsProvider = ({ children, pollIntervalMs = 30000 }) => {
     } catch (e) {}
   };
 
-  // Initialize socket
-  useEffect(() => {
-  if (!token) return;
-
-    // Close any existing
-    if (socketRef.current) {
-      try { socketRef.current.disconnect(); } catch {}
-      socketRef.current = null;
-    }
-
-  // Use environment variable for Socket.IO connection
-  const socketUrl = getApiUrl() || window.location.origin.replace(/:\d+$/, ':5000');
-  const socket = io(socketUrl, { auth: { token } });
-    socketRef.current = socket;
-
-    socket.on('connect', () => {
-      // console.log('Socket connected');
-    });
-
-    socket.on('notification:new', (notif) => {
-      setItems(prev => [notif, ...prev].slice(0, 50));
-      setUnreadCount(prev => prev + 1);
-    });
-
-    socket.on('disconnect', () => {
-      // console.log('Socket disconnected');
-    });
-
-    return () => {
-      try { socket.disconnect(); } catch {}
-      socketRef.current = null;
-    };
-  }, [token]);
+  // Socket initialization removed.
 
   // Initial and polling fetch
   useEffect(() => {

@@ -1,15 +1,9 @@
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 
-let ioInstance = null;
-
-function init(io) {
-  ioInstance = io;
-}
-
-function getIo() {
-  return ioInstance;
-}
+// Socket removed: keep init/getIo as no-ops for backward compatibility
+function init() { /* no-op */ }
+function getIo() { return null; }
 
 async function createAndEmit({
   toUserId,
@@ -48,25 +42,7 @@ async function createAndEmit({
   await notif.save();
   console.log('✅ Notification saved to DB:', notif._id);
 
-  // Emit in real-time if socket is available
-  if (ioInstance) {
-    try {
-      if (toUserId) {
-        const room = `user:${toUserId.toString()}`;
-        ioInstance.to(room).emit('notification:new', notif.toObject());
-        console.log(`🔔 Emitted to room: ${room}`);
-      }
-      if (toCompanyId && toRole) {
-        const room = `company:${toCompanyId.toString()}:${toRole}`;
-        ioInstance.to(room).emit('notification:new', notif.toObject());
-        console.log(`🔔 Emitted to room: ${room}`);
-      }
-    } catch (e) {
-      console.warn('Socket emit failed:', e.message);
-    }
-  } else {
-    console.warn('⚠️ Socket.IO not initialized');
-  }
+  // Real-time socket emission removed. Clients should fetch via REST when needed.
   return notif;
 }
 

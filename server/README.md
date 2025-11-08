@@ -179,7 +179,11 @@ The server will start on `http://localhost:5000`
 
 ## Security Features
 
-- **Rate Limiting:** 100 requests per 15 minutes per IP
+- **Rate Limiting (Tiered):**
+  - General (mostly GET): up to 300 requests / 15 min / IP (`RATE_LIMIT_MAX_REQUESTS`)
+  - Auth endpoints: 20 requests / 15 min / IP (`RATE_LIMIT_AUTH_MAX`)
+  - Write-heavy role routes (applications, hr, admin, interviewer, profile): 100 requests / 15 min / IP (`RATE_LIMIT_MUTATION_MAX`)
+  - Adjustable via environment variables: `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX_REQUESTS`, `RATE_LIMIT_AUTH_MAX`, `RATE_LIMIT_MUTATION_MAX`
 - **CORS:** Configured for specific origins
 - **Helmet:** Security headers
 - **Input Validation:** All inputs validated and sanitized
