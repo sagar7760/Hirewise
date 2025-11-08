@@ -200,8 +200,29 @@ router.get('/', auth, async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+    const { status } = req.query;
 
-    const applications = await Application.find({ applicant: applicantId })
+    // Build query with optional status filter
+    const query = { applicant: applicantId };
+    if (status && typeof status === 'string') {
+      const allowed = [
+        'submitted',
+        'under_review',
+        'shortlisted',
+        'interview_scheduled',
+        'interviewed',
+        'offer_extended',
+        'offer_accepted',
+        'offer_declined',
+        'rejected',
+        'withdrawn'
+      ];
+      if (allowed.includes(status)) {
+        query.status = status;
+      }
+    }
+
+    const applications = await Application.find(query)
       .populate([
         { 
           path: 'job', 
@@ -220,7 +241,7 @@ router.get('/', auth, async (req, res) => {
       .skip(skip)
       .limit(limit);
 
-    const total = await Application.countDocuments({ applicant: applicantId });
+    const total = await Application.countDocuments(query);
     const totalPages = Math.ceil(total / limit);
 
     res.json({
@@ -229,8 +250,12 @@ router.get('/', auth, async (req, res) => {
         currentPage: page,
         totalPages,
         totalApplications: total,
+        limit,
         hasNext: page < totalPages,
-        hasPrev: page > 1
+        hasPrev: page > 1,
+        // Provide aliases expected by some clients
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
       }
     });
 

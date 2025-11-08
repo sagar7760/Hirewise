@@ -60,8 +60,18 @@ app.use((req, res, next) => {
 // Connect to MongoDB
 connectDB();
 
-// Security middleware
+// Security & CORS first so all later middleware (including rate limits) return proper headers
 app.use(helmet());
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  credentials: true
+}));
+
+// Handle preflight early (especially before rate limits) so OPTIONS always succeeds
+app.options('*', cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  credentials: true
+}));
 
 // Rate limiting: lighter on read-heavy GETs, stricter on auth/mutations
 const WINDOW = parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000;
@@ -69,22 +79,29 @@ const DEFAULT_MAX = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 300;
 const AUTH_MAX = parseInt(process.env.RATE_LIMIT_AUTH_MAX) || 20;
 const MUTATION_MAX = parseInt(process.env.RATE_LIMIT_MUTATION_MAX) || 100;
 
+// Common skip function: never rate limit preflight or HEAD, prevents CORS failures
+const skipPreflight = (req) => req.method === 'OPTIONS' || req.method === 'HEAD';
+
+// Custom handler to ensure CORS headers still present on 429
+const rateLimitHandler = (req, res, next, options) => {
+  res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || 'http://localhost:5173');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.status(options.statusCode).json({
+    status: 'error',
+    message: 'Too many requests, please slow down.'
+  });
+};
+
 // Default limiter (mostly GETs)
-app.use(rateLimit({ windowMs: WINDOW, max: DEFAULT_MAX, standardHeaders: true, legacyHeaders: false }));
+app.use(rateLimit({ windowMs: WINDOW, max: DEFAULT_MAX, standardHeaders: true, legacyHeaders: false, skip: skipPreflight, handler: rateLimitHandler }));
 
 // Stricter limiter for auth endpoints
-app.use('/api/auth', rateLimit({ windowMs: WINDOW, max: AUTH_MAX, standardHeaders: true, legacyHeaders: false }));
+app.use('/api/auth', rateLimit({ windowMs: WINDOW, max: AUTH_MAX, standardHeaders: true, legacyHeaders: false, skip: skipPreflight, handler: rateLimitHandler }));
 
 // Moderate limiter for write-heavy routes
 app.use(['/api/applications', '/api/hr', '/api/admin', '/api/interviewer', '/api/profile'],
-  rateLimit({ windowMs: WINDOW, max: MUTATION_MAX, standardHeaders: true, legacyHeaders: false })
+  rateLimit({ windowMs: WINDOW, max: MUTATION_MAX, standardHeaders: true, legacyHeaders: false, skip: skipPreflight, handler: rateLimitHandler })
 );
-
-// CORS configuration
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
-  credentials: true
-}));
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
