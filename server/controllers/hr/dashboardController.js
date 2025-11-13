@@ -44,19 +44,88 @@ exports.getRecentApplications = async (req, res) => {
 
     const apps = await Application.find({ job: { $in: myJobIds } })
       .populate('applicant', 'firstName lastName')
-      .populate('job', 'title')
+      .populate('job', 'title requiredSkills preferredSkills experienceLevel qualification')
       .sort({ createdAt: -1 })
       .limit(5)
       .lean();
 
-    const formatted = apps.map(a => ({
-      id: a._id,
-      candidate: `${a.applicant.firstName} ${a.applicant.lastName}`,
-      job: a.job?.title || 'Unknown',
-      appliedDate: a.createdAt,
-      resumeScore: typeof a.aiAnalysis?.overallScore === 'number' ? (a.aiAnalysis.overallScore / 10).toFixed(1) : null,
-      status: a.status
-    }));
+    // Helper function: Calculate job matching score (same logic as HR applications page)
+    const calculateJobMatchingScore = (app, job) => {
+      if (!job) return 5.0;
+
+      let totalScore = 0;
+      let maxScore = 0;
+
+      // Skills matching (40% weight)
+      const skillsWeight = 4;
+      const candidateSkills = app.aiAnalysis?.extractedInfo?.skills || app.parsedResume?.skills || app.skills || [];
+      const requiredSkills = job.requiredSkills || [];
+      const preferredSkills = job.preferredSkills || [];
+      
+      if (requiredSkills.length > 0 || preferredSkills.length > 0) {
+        const allJobSkills = [...requiredSkills, ...preferredSkills];
+        const matchingSkills = candidateSkills.filter(skill => 
+          allJobSkills.some(jobSkill => 
+            jobSkill.toLowerCase().includes(skill.toLowerCase()) || 
+            skill.toLowerCase().includes(jobSkill.toLowerCase())
+          )
+        );
+        const skillsScore = allJobSkills.length > 0 ? (matchingSkills.length / allJobSkills.length) * 10 : 5;
+        totalScore += skillsScore * skillsWeight;
+        maxScore += 10 * skillsWeight;
+      }
+
+      // Experience matching (35% weight)
+      const expWeight = 3.5;
+      const candidateExp = app.experience || 0;
+      const requiredExpLevel = job.experienceLevel || 'entry';
+      
+      let expScore = 5; // Default score
+      if (requiredExpLevel === 'entry' && candidateExp >= 0) expScore = 8;
+      else if (requiredExpLevel === 'mid' && candidateExp >= 2) expScore = 8;
+      else if (requiredExpLevel === 'senior' && candidateExp >= 4) expScore = 9;
+      else if (requiredExpLevel === 'lead' && candidateExp >= 6) expScore = 9;
+      
+      totalScore += expScore * expWeight;
+      maxScore += 10 * expWeight;
+
+      // Education matching (25% weight)
+      const eduWeight = 2.5;
+      const candidateEducation = app.aiAnalysis?.extractedInfo?.education || app.parsedResume?.education || [];
+      const requiredQualification = job.qualification || '';
+      
+      let eduScore = 5; // Default score
+      if (candidateEducation.length > 0) {
+        const hasRelevantEducation = candidateEducation.some(edu => 
+          requiredQualification.toLowerCase().includes(edu.degree?.toLowerCase() || '') ||
+          edu.degree?.toLowerCase().includes(requiredQualification.toLowerCase()) ||
+          (requiredQualification.toLowerCase().includes('bachelor') && edu.degree?.toLowerCase().includes('bachelor')) ||
+          (requiredQualification.toLowerCase().includes('master') && edu.degree?.toLowerCase().includes('master'))
+        );
+        eduScore = hasRelevantEducation ? 8 : 6;
+      }
+      
+      totalScore += eduScore * eduWeight;
+      maxScore += 10 * eduWeight;
+
+      // Calculate final score out of 10
+      const finalScore = maxScore > 0 ? (totalScore / maxScore) * 10 : 5;
+      return Math.round(finalScore * 10) / 10; // Round to 1 decimal place
+    };
+
+    const formatted = apps.map(a => {
+      // Use AI overallScore if available, otherwise calculate matching score
+      const resumeScore = a.aiAnalysis?.overallScore || calculateJobMatchingScore(a, a.job);
+
+      return {
+        id: a._id,
+        candidate: `${a.applicant.firstName} ${a.applicant.lastName}`,
+        job: a.job?.title || 'Unknown',
+        appliedDate: a.createdAt,
+        resumeScore: resumeScore,
+        status: a.status
+      };
+    });
 
     res.json({ success: true, recentApplications: formatted });
   } catch (error) {
@@ -104,7 +173,6 @@ exports.getUpcomingInterviews = async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to fetch upcoming interviews', details: error.message });
   }
 };
-console.log('HR Dashboard controller module loaded');
 
 // Get HR dashboard statistics
 exports.getStats = async (req, res) => {

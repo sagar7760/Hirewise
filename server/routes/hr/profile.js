@@ -4,8 +4,6 @@ const profileController = require('../../controllers/hr/profileController');
 
 const router = express.Router();
 
-console.log('HR Profile routes module loaded'); // Debug log
-
 // Test route
 router.get('/test', profileController.test);
 

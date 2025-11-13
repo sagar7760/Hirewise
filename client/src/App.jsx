@@ -7,11 +7,6 @@ import { ToastProvider } from './contexts/ToastContext.jsx'
 import { ThemeProvider } from './contexts/ThemeContext.jsx'
 import { NotificationsProvider } from './contexts/NotificationsContext.jsx'
 
-// Debug utilities (only in development)
-if (process.env.NODE_ENV === 'development') {
-  import('./utils/debugAuth.js');
-}
-
 // Layout Components
 import Layout from './components/layout/Layout.jsx'
 import ProtectedRoute from './components/common/ProtectedRoute.jsx'

@@ -280,11 +280,6 @@ const HRCreateJob = () => {
         status
       };
       
-      console.log('Submitting job data:', submitData);
-      console.log('Original job data:', jobData);
-      console.log('Processed salary min:', processSalaryValue(jobData.salaryRange.min, jobData.salaryRange.format));
-      console.log('Processed salary max:', processSalaryValue(jobData.salaryRange.max, jobData.salaryRange.format));
-      
       const response = await makeJsonRequest('/api/hr/jobs', {
         method: 'POST',
         headers: {

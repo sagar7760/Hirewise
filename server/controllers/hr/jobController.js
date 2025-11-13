@@ -110,24 +110,38 @@ const getJobs = async (req, res) => {
           const period = job.salaryRange.period || 'year';
           const format = job.salaryRange.format || 'absolute';
           
+          // Always present salary in LPA on HR Jobs page.
+          // Handles both storage formats:
+          // 1) format === 'absolute'  -> values are in absolute INR (e.g., 500000), convert to LPA (5.0)
+          // 2) format === 'lpa'       -> values are in LPA (e.g., 5). However, some legacy records saved
+          //    converted absolute values (e.g., 500000) but kept format as 'lpa'. Detect and fix by magnitude.
           const formatSalaryValue = (value) => {
-            if (!value) return null;
+            if (!value && value !== 0) return null;
             const numValue = parseFloat(value);
+            if (Number.isNaN(numValue)) return null;
+
+            // If explicitly LPA but magnitude looks like absolute INR, normalize
             if (format === 'lpa') {
-              return `${numValue} LPA`;
-            } else {
-              // Format as Indian currency for INR
-              if (currency === 'INR') {
-                const lakhs = numValue / 100000;
-                if (lakhs >= 1) {
-                  return `${lakhs.toFixed(1)} LPA`;
-                } else {
-                  return `₹${numValue.toLocaleString('en-IN')}`;
-                }
-              } else {
-                return `${currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency}${numValue.toLocaleString()}`;
+              // Heuristic: any value >= 1000 is very likely an absolute INR amount saved mistakenly
+              if (numValue >= 1000) {
+                const lakhs = numValue / 100000; // convert absolute to LPA
+                // For large ranges like 5-50 LPA prefer one decimal up to <10
+                const display = lakhs >= 10 ? lakhs.toFixed(0) : lakhs.toFixed(1);
+                return `${display} LPA`;
               }
+              // Proper LPA input
+              return `${numValue} LPA`;
             }
+
+            // Absolute format path
+            if (currency === 'INR') {
+              const lakhs = numValue / 100000;
+              const display = lakhs >= 10 ? lakhs.toFixed(0) : lakhs.toFixed(1);
+              return `${display} LPA`;
+            }
+
+            // Non-INR currencies: retain original currency formatting
+            return `${currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency}${numValue.toLocaleString()}`;
           };
 
           const minFormatted = formatSalaryValue(job.salaryRange.min);

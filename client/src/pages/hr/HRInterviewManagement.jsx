@@ -487,18 +487,14 @@ const HRInterviewManagement = () => {
       if (!res?.success) throw new Error(res?.message || 'Failed to reschedule');
       setRescheduleModal({ open:false, id:null, date:'', time:'', duration:'', reason:'' });
       fetchInterviews();
-      // addToast('Interview rescheduled','success');
     } catch(err){ setError(err.message); } finally { setSubmitting(false); }
   };
-
-  // Toast notifications (Placeholder since the logic was removed in the previous context)
-  const addToast = (message, type='info', ttl=4000) => { console.log(`Toast: [${type.toUpperCase()}] ${message}`); }; // Placeholder definition
 
   // Decision actions (Hire/Reject) on completed interview with feedback
   const [decisionSubmitting, setDecisionSubmitting] = useState(false);
   const makeDecision = async (decision) => {
     if (!selectedInterview?.applicationId) {
-      addToast('Missing application reference for this interview', 'error');
+      setError('Missing application reference for this interview');
       return;
     }
     if (decisionSubmitting) return;
@@ -512,13 +508,12 @@ const HRInterviewManagement = () => {
         body: JSON.stringify({ status: targetStatus })
       });
       if (res?.success) {
-        addToast(isHire ? 'Offer extended to candidate.' : 'Candidate has been rejected.', 'success');
         setShowInterviewModal(false);
       } else {
         throw new Error(res?.message || 'Failed to update application status');
       }
     } catch (err) {
-      addToast(err.message || 'Unable to make decision', 'error');
+      setError(err.message || 'Unable to make decision');
     } finally {
       setDecisionSubmitting(false);
     }

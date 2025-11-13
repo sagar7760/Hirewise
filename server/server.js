@@ -18,7 +18,6 @@ const authRoutes = require('./routes/auth');
 const jobRoutes = require('./routes/applicant/jobs');
 const applicationRoutes = require('./routes/applications');
 const profileRoutes = require('./routes/profile');
-const aiRoutes = require('./routes/ai');
 const resumeRoutes = require('./routes/applicant/resumes');
 const applicantProfileRoutes = require('./routes/applicant/profile');
 const savedJobsRoutes = require('./routes/applicant/saved-jobs');
@@ -120,7 +119,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/profile', applicantProfileRoutes); // Use the new applicant profile routes
-app.use('/api/ai', aiRoutes);
 app.use('/api/resumes', resumeRoutes);
 app.use('/api/applicant/saved-jobs', savedJobsRoutes);
 app.use('/api/applicant/applications', applicantApplicationRoutes);
@@ -134,7 +132,6 @@ app.use('/api/hr/interviewers', hrInterviewerRoutes);
 
 // HR profile routes
 app.use('/api/hr/profile', hrProfileRoutes);
-console.log('Registered route: /api/hr/profile');
 
 // Admin API Routes
 app.use('/api/admin/organization', adminOrganizationRoutes);

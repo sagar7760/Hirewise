@@ -518,9 +518,6 @@ const PastInterviewsContent = ({ section, rawState, onRetry, onOpenDetails }) =>
                       className="bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 dark:text-white transition-colors font-['Roboto']"
                       onClick={() => onOpenDetails(interview)}
                     >View Details</button>
-                    {/* Secondary Button inversion (View Feedback / Export) */}
-                    <button className="bg-white text-black border border-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 transition-colors font-['Roboto']">View Feedback</button>
-                    <button className="bg-white text-black border border-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 transition-colors font-['Roboto']">Export</button>
                   </div>
                 </div>
               </div>

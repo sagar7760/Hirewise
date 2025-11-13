@@ -36,11 +36,8 @@ const auth = async (req, res, next) => {
       isCompanyAdmin: decoded.isCompanyAdmin
     };
     
-    console.log('Auth middleware - Setting req.user:', req.user.id); // Debug
-    
     next();
   } catch (error) {
-    console.log('Auth middleware - Error:', error.message);
     const isTokenError = ['jwt malformed', 'jwt expired', 'invalid token', 'TokenExpiredError'].some(k => (error?.message || '').toLowerCase().includes(k.replace(/ /g,'')));
     res.status(isTokenError ? 401 : 500).json({ 
       success: false, 

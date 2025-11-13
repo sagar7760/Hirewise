@@ -68,17 +68,9 @@ export const AuthProvider = ({ children }) => {
                            (!parsedUser.currentResumeId && !parsedUser.resumeAvailable);
         
         if (needsRefresh) {
-          console.log('🔄 AuthContext: User data incomplete, refreshing...', {
-            hasPhone: !!parsedUser.phone,
-            hasSkills: !!parsedUser.skills,
-            hasPrimarySkills: !!parsedUser.profile?.primarySkills,
-            hasResume: !!(parsedUser.currentResumeId || parsedUser.resumeAvailable)
-          });
           // Reset the refresh timer when we detect incomplete data
           setLastRefreshTime(0);
           refreshUserData(storedToken);
-        } else {
-          console.log('✅ AuthContext: User data looks complete, skipping refresh');
         }
 
         // Attempt avatar hydration if placeholder present
@@ -99,12 +91,10 @@ export const AuthProvider = ({ children }) => {
     const REFRESH_COOLDOWN = 10 * 1000; // 10 seconds
     
     if (isRefreshingUser) {
-      console.log('User data refresh already in progress, skipping...');
       return;
     }
     
     if (now - lastRefreshTime < REFRESH_COOLDOWN) {
-      console.log('User data refreshed recently, skipping...');
       return;
     }
 
@@ -188,7 +178,6 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const updateUser = (updatedUser) => {
-    console.log("updateUser - Setting user to:", updatedUser);
     setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
     // Trigger hydration if avatar is placeholder
@@ -204,12 +193,10 @@ export const AuthProvider = ({ children }) => {
       const REFRESH_COOLDOWN = 10 * 1000; // 10 seconds
       
       if (isRefreshingUser) {
-        console.log('User data refresh already in progress, skipping...');
         return;
       }
       
       if (!forceRefresh && now - lastRefreshTime < REFRESH_COOLDOWN) {
-        console.log('User data refreshed recently, skipping...');
         return;
       }
 

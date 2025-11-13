@@ -3,8 +3,13 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 const ProtectedRoute = ({ children, roles = [], requireCompany = false, requireCompanyAdmin = false }) => {
-  const { user, isAuthenticated, hasRole, isCompanyAdmin, getCompany } = useAuth();
+  const { user, isAuthenticated, hasRole, isCompanyAdmin, getCompany, loading } = useAuth();
   const location = useLocation();
+
+  // Wait for auth hydration on initial load to avoid false redirects on refresh
+  if (loading) {
+    return null; // or a lightweight skeleton/loader if desired
+  }
 
   // If not authenticated, redirect to login
   if (!isAuthenticated()) {
