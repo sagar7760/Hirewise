@@ -7,6 +7,9 @@ const Interview = require('../../models/Interview');
 const { auth, authorize } = require('../../middleware/auth');
 const mongoose = require('mongoose');
 const { createAndEmit } = require('../../services/notificationService');
+const rateLimit = require('express-rate-limit');
+const crypto = require('crypto');
+const geminiService = require('../../services/geminiService');
 
 const router = express.Router();
 
@@ -924,6 +927,132 @@ router.get('/:id/resume', auth, authorize('hr', 'admin'), [
       success: false,
       message: 'Server error occurred while fetching resume'
     });
+  }
+});
+
+// @route   POST /api/hr/applications/:id/ai-feedback-analysis
+// @desc    Generate on-demand AI sentiment/summary from interview feedback, cached by content hash
+// @access  Private (HR, Admin)
+const aiAnalysisLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 1,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req /*, res*/) => `${req.user?.id || 'anon'}:${req.params?.id || 'app'}`,
+  handler: (req, res /*, next, options */) => {
+    res.status(429).json({ success: false, message: 'AI analysis rate-limited. Please wait ~1 minute.' });
+  }
+});
+
+router.post('/:id/ai-feedback-analysis', auth, authorize('hr','admin'), aiAnalysisLimiter, [
+  param('id').isMongoId().withMessage('Invalid application ID')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, message: 'Validation failed', errors: errors.array() });
+    }
+
+    const { id } = req.params;
+
+    // Verify the application belongs to HR's company/jobs
+    const user = await User.findById(req.user.id).select('company companyId');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    const companyId = user.company || user.companyId;
+    const companyJobs = await Job.find({ company: companyId }).select('_id title');
+    const jobIds = companyJobs.map(j => j._id);
+
+    const application = await Application.findOne({ _id: id, job: { $in: jobIds } })
+      .populate('job', 'title description requiredSkills preferredSkills')
+      .lean();
+    if (!application) {
+      return res.status(404).json({ success: false, message: 'Application not found' });
+    }
+
+    // Gather interviews with submitted feedback or completed status
+    const interviews = await Interview.find({ application: id, $or: [
+      { 'feedback.submittedAt': { $ne: null } },
+      { status: 'completed' }
+    ]}).sort({ scheduledDate: 1 }).lean();
+
+    // Build aggregated feedback text
+    const parts = [];
+    if (!interviews.length) {
+      parts.push('No interview feedback available.');
+    } else {
+      interviews.forEach((iv, idx) => {
+        const fb = iv.feedback || {};
+        const seg = [
+          `Interview #${idx + 1} (${iv.type || 'n/a'} round ${iv.round || 1})`,
+          fb.overallRating ? `Overall rating: ${fb.overallRating}/5` : null,
+          fb.technicalSkills ? `Technical: ${fb.technicalSkills}/5` : null,
+          fb.communicationSkills ? `Communication: ${fb.communicationSkills}/5` : null,
+          fb.problemSolving ? `Problem Solving: ${fb.problemSolving}/5` : null,
+          fb.culturalFit ? `Cultural Fit: ${fb.culturalFit}/5` : null,
+          Array.isArray(fb.strengths) && fb.strengths.length ? `Strengths: ${fb.strengths.join('; ')}` : null,
+          Array.isArray(fb.weaknesses) && fb.weaknesses.length ? `Concerns: ${fb.weaknesses.join('; ')}` : null,
+          fb.recommendation ? `Recommendation: ${fb.recommendation}` : null,
+          fb.additionalNotes ? `Notes: ${fb.additionalNotes}` : null
+        ].filter(Boolean).join('\n');
+        parts.push(seg);
+      });
+    }
+
+    // Include HR notes (if any) for extra context
+    if (Array.isArray(application.notes) && application.notes.length) {
+      const noteTexts = application.notes.map(n => n.text || n.content).filter(Boolean);
+      if (noteTexts.length) {
+        parts.push('HR Notes:');
+        parts.push(noteTexts.join('\n'));
+      }
+    }
+
+    const aggregated = parts.join('\n\n');
+    const contentHash = crypto.createHash('sha256').update(aggregated).digest('hex');
+
+    // Check cache
+    // Cache temporarily disabled during testing: always run fresh analysis
+
+    // Run AI analysis
+    const aiResult = await geminiService.analyzeInterviewFeedback({
+      feedbackText: aggregated,
+      candidateName: application.personalInfo?.firstName ? `${application.personalInfo.firstName} ${application.personalInfo.lastName || ''}`.trim() : undefined,
+      jobTitle: application.job?.title,
+      jobDescription: application.job?.description,
+      applicationId: application._id?.toString?.() || id,
+      jobId: application.job?._id?.toString?.(),
+      skills: Array.from(new Set([
+        ...(Array.isArray(application.skills) ? application.skills : []),
+        ...(application.aiAnalysis?.extractedInfo?.skills || []),
+        ...(application.job?.requiredSkills || [])
+      ])),
+      status: application.status
+    });
+
+    // Normalize result
+    const normalized = {
+      sentiment: aiResult.sentiment || 'neutral',
+      confidence: typeof aiResult.confidence === 'number' ? Math.max(0, Math.min(1, aiResult.confidence)) : 0.5,
+      summary: aiResult.summary || 'No summary produced',
+      strengths: Array.isArray(aiResult.strengths) ? aiResult.strengths : [],
+      concerns: Array.isArray(aiResult.concerns) ? aiResult.concerns : [],
+      flags: Array.isArray(aiResult.flags) ? aiResult.flags : [],
+      suggestedDecisionNote: aiResult.suggestedDecisionNote || '',
+      generatedAt: new Date(),
+      interviewsConsidered: interviews.map(iv => iv._id),
+      contentHash,
+      model: geminiService.modelId
+    };
+
+    // Save to application
+    await Application.findByIdAndUpdate(id, { $set: { aiFeedback: normalized } });
+
+    return res.json({ success: true, cached: false, data: normalized });
+  } catch (error) {
+    console.error('AI feedback analysis error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to analyze interview feedback' });
   }
 });
 

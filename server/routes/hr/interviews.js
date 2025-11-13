@@ -139,7 +139,8 @@ router.get('/', [
             path: 'job', 
             select: 'title department employmentType' 
           }
-        ]
+        ],
+        select: 'aiFeedback applicant job'
       })
       .populate('interviewer', 'firstName lastName email')
       .lean();

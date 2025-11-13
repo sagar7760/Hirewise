@@ -61,6 +61,24 @@ const HRApplicationManagement = () => {
   const [fetchingFeedback, setFetchingFeedback] = useState(false);
   // Background detection for table status override (applicationId -> boolean hasFeedback)
   const [feedbackByAppId, setFeedbackByAppId] = useState({});
+  // AI interview feedback analysis state
+  const [aiFeedbackAnalysis, setAiFeedbackAnalysis] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiCached, setAiCached] = useState(false);
+  const [aiError, setAiError] = useState(null);
+
+  // Ensure AI analysis state is unique per selected application
+  useEffect(() => {
+    if (selectedApplication) {
+      // Preload from stored application.aiFeedback if present, else clear
+      setAiFeedbackAnalysis(selectedApplication.aiFeedback || null);
+    } else {
+      setAiFeedbackAnalysis(null);
+    }
+    setAiCached(false);
+    setAiError(null);
+    setAiLoading(false);
+  }, [selectedApplication?.id, showApplicationModal]);
 
   // Handle URL parameter for job filtering
   useEffect(() => {
@@ -585,6 +603,14 @@ const HRApplicationManagement = () => {
   const appFeedback = externalFeedback || inlineFeedback;
   const feedbackStrengths = Array.isArray(appFeedback?.strengths) ? appFeedback.strengths : [];
   const feedbackWeaknesses = Array.isArray(appFeedback?.weaknesses) ? appFeedback.weaknesses : [];
+  const hasFeedbackData = !!(appFeedback && (
+    appFeedback.overallRating != null ||
+    !!appFeedback.recommendation ||
+    (Array.isArray(appFeedback.strengths) && appFeedback.strengths.length > 0) ||
+    (Array.isArray(appFeedback.weaknesses) && appFeedback.weaknesses.length > 0) ||
+    !!appFeedback.additionalNotes ||
+    !!appFeedback.submittedAt
+  ));
 
   // When opening the Application Details modal, try to fetch interview feedback if not present inline
   useEffect(() => {
@@ -1216,94 +1242,16 @@ const HRApplicationManagement = () => {
                 </div>
               </div>
 
-              {/* Interview Feedback (if available) */}
+              {/* Interview Feedback / AI Analysis */}
               <div className="mb-6 border-t border-gray-200 dark:border-gray-700 pt-6">
                 <h4 className="text-lg font-medium text-gray-900 dark:text-white font-['Open_Sans'] mb-4">Interview Feedback</h4>
-                {!appFeedback ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">No interviewer feedback submitted yet.</p>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                      {/* Overall Rating */}
-                      <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg text-center">
-                        <div className="text-2xl font-bold text-gray-900 dark:text-white font-['Open_Sans']">{appFeedback.overallRating ?? '—'}/5</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">Overall Rating</div>
-                      </div>
-                      {/* Recommendation */}
-                      <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg text-center">
-                        <div className={`text-lg font-semibold font-['Open_Sans'] ${getRecommendationColor(appFeedback.recommendation)}`}>
-                          {(() => {
-                            const map = { strongly_recommend: 'Strong Hire', recommend: 'Hire', neutral: 'Maybe', do_not_recommend: 'No Hire', strongly_do_not_recommend: 'Strong No Hire' };
-                            const val = appFeedback.recommendation;
-                            return map[val] || val || '—';
-                          })()}
-                        </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">Recommendation</div>
-                      </div>
-                      {/* Submitted */}
-                      <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg text-center">
-                        <div className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto']">{appFeedback.submittedAt ? new Date(appFeedback.submittedAt).toLocaleString() : '—'}</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">Submitted</div>
-                      </div>
-                    </div>
-
-                    {/* Score Breakdown (no candidate experience) */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Technical Skills</h5>
-                        <div className="flex items-center gap-2">
-                          <StarDisplay rating={appFeedback.technicalSkills} />
-                          <span className="text-xs text-gray-700 dark:text-gray-300 font-['Roboto']">{appFeedback.technicalSkills ?? '—'}/5</span>
-                        </div>
-                      </div>
-                      <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Problem Solving</h5>
-                        <div className="flex items-center gap-2">
-                          <StarDisplay rating={appFeedback.problemSolving} />
-                          <span className="text-xs text-gray-700 dark:text-gray-300 font-['Roboto']">{appFeedback.problemSolving ?? '—'}/5</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Strengths / Areas of Concern */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Strengths</h5>
-                        {feedbackStrengths.length > 0 ? (
-                          <ul className="space-y-1">
-                            {feedbackStrengths.map((s, idx) => (
-                              <li key={idx} className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto'] flex items-start">
-                                <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                                {s}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">No strengths provided.</p>
-                        )}
-                      </div>
-                      {feedbackWeaknesses.length > 0 && (
-                        <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                          <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Areas of Concern</h5>
-                          <ul className="space-y-1">
-                            {feedbackWeaknesses.map((w, idx) => (
-                              <li key={idx} className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto'] flex items-start">
-                                <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                                {w}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Comments at bottom */}
-                    <div className="mt-4">
-                      <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Comments</h5>
-                      <p className="text-gray-600 dark:text-gray-300 font-['Roboto']">{appFeedback.additionalNotes || '—'}</p>
-                    </div>
-                  </>
+                {fetchingFeedback && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">Checking for interview feedback…</p>
                 )}
+                {!fetchingFeedback && !hasFeedbackData && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto']">No interview feedback has been submitted yet.</p>
+                )}
+                {/* Analyze with AI removed in Application View Details per request */}
               </div>
 
               <div className="flex justify-between items-center">

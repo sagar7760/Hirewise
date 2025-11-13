@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import AIInterviewFeedbackSummary from '../../components/common/AIInterviewFeedbackSummary';
 import { Link } from 'react-router-dom';
 import HRLayout from '../../components/layout/HRLayout';
 import { useApiRequest } from '../../hooks/useApiRequest';
@@ -36,6 +37,26 @@ const HRInterviewManagement = () => {
   const [candidateHighlight, setCandidateHighlight] = useState(-1);
   const [candidateJobFilter, setCandidateJobFilter] = useState('all');
   const [jobsForFilter, setJobsForFilter] = useState([]);
+  // AI analysis state for interview modal (calls application-level endpoint)
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiData, setAiData] = useState(null);
+  const [aiCached, setAiCached] = useState(false);
+  const [aiError, setAiError] = useState(null);
+
+  // Clear AI summary when changing the selected interview/modal to prevent cross-bleed
+  useEffect(() => {
+    // If the currently selected interview has an application.aiFeedback, preload it as cached
+    const stored = selectedInterview?.application?.aiFeedback || selectedInterview?.aiFeedback;
+    if (stored) {
+      setAiData(stored);
+      setAiCached(true);
+    } else {
+      setAiData(null);
+      setAiCached(false);
+    }
+    setAiError(null);
+    setAiLoading(false);
+  }, [selectedInterview?.id, showInterviewModal]);
 
   // Map backend statuses to display labels
   const statusDisplayMap = {
@@ -58,6 +79,7 @@ const HRInterviewManagement = () => {
     return {
       id: i._id,
       applicationId: i.application?._id || i.application?.id,
+      application: { aiFeedback: i.application?.aiFeedback },
       candidate: {
         name: [applicant.firstName, applicant.lastName].filter(Boolean).join(' ') || 'Unknown',
         email: applicant.email || 'N/A',
@@ -914,6 +936,26 @@ const HRInterviewManagement = () => {
                   </div>
                 </div>
               )}
+
+              {/* AI Analysis action and result via shared component (compact variant) */}
+              <AIInterviewFeedbackSummary
+                data={aiData}
+                loading={aiLoading}
+                cached={aiCached}
+                error={aiError}
+                onAnalyze={async () => {
+                  if (!selectedInterview?.applicationId) return;
+                  setAiError(null); setAiLoading(true);
+                  try {
+                    const res = await makeJsonRequest(`/api/hr/applications/${selectedInterview.applicationId}/ai-feedback-analysis`, { method: 'POST' });
+                    if (res?.success) { setAiData(res.data); setAiCached(!!res.cached); }
+                    else { setAiError(res?.message || 'Failed to analyze'); }
+                  } catch (e) {
+                    setAiError(e.message || 'Error running AI analysis');
+                  } finally { setAiLoading(false); }
+                }}
+                variant="compact"
+              />
 
               <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <button

@@ -164,6 +164,28 @@ const applicationSchema = new mongoose.Schema({
       confidence: Number
     }
   },
+  // AI feedback sentiment/summary generated from interview feedback (on-demand)
+  aiFeedback: {
+    sentiment: {
+      type: String,
+      enum: ['positive', 'neutral', 'negative'],
+      default: undefined
+    },
+    confidence: {
+      type: Number, // 0-1 confidence score
+      min: 0,
+      max: 1
+    },
+    summary: String,
+    strengths: [String],
+    concerns: [String],
+    flags: [String],
+    suggestedDecisionNote: String,
+    generatedAt: Date,
+    interviewsConsidered: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Interview' }],
+    contentHash: String, // hash of input content used for caching
+    model: String // model id used for generation
+  },
   // Application timeline
   timeline: [{
     status: String,
