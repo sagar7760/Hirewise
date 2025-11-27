@@ -127,15 +127,7 @@ const JobDetailsPage = () => {
         }
       }
 
-      const response = await fetch(`/api/jobs/${jobId}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(localStorage.getItem('token') && {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          })
-        }
-      });
-
+      const response = await apiRequest(`/api/jobs/${jobId}`);
       const data = await response.json();
 
       if (data.success) {

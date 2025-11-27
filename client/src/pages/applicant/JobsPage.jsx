@@ -4,6 +4,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { CACHE_PREFIXES, CACHE_DURATIONS } from '../../utils/cacheUtils';
 import { smartCacheSet, clearExpiredCache } from '../../utils/cacheManager';
+import { getApiUrl } from '../../utils/api';
 
 const JobsPage = () => {
   const navigate = useNavigate();
@@ -272,15 +273,7 @@ const JobsPage = () => {
       if (filters.country) params.append('country', filters.country);
       if (filters.company) params.append('company', filters.company);
 
-      const response = await fetch(`/api/jobs?${params}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(localStorage.getItem('token') && {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          })
-        }
-      });
-
+      const response = await apiRequest(`/api/jobs?${params}`);
       const data = await response.json();
 
       if (data.success) {
@@ -631,7 +624,10 @@ const JobsPage = () => {
                       {/* Company Logo Image */}
                       {(() => {
                         const hasLogo = job.companyLogo || (job.company && job.company.logo);
-                        const logoSrc = job.companyLogo || job.company?.logo;
+                        const rawLogo = job.companyLogo || job.company?.logo;
+                        const logoSrc = rawLogo && rawLogo.startsWith('/uploads/')
+                          ? `${getApiUrl()}${rawLogo}`
+                          : rawLogo;
                         
                         return hasLogo ? (
                           <img 
