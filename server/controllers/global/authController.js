@@ -154,12 +154,18 @@ const login = async (req, res) => {
     const { email, password } = req.body;
 
     // Check for user and populate company information
-    const user = await User.findOne({ email }).select('+password').populate('company');
+    let user = await User.findOne({ email }).select('+password').populate('company');
     if (!user) {
       return res.status(400).json({
         success: false,
         message: 'Invalid credentials'
       });
+    }
+
+    // If company wasn't populated but companyId exists, fetch it separately
+    if (!user.company && user.companyId) {
+      const Company = require('../../models/Company');
+      user.company = await Company.findById(user.companyId);
     }
 
     // Check password
@@ -185,7 +191,7 @@ const login = async (req, res) => {
     const payload = {
       id: user.id,
       role: user.role,
-      companyId: user.company?._id,
+      companyId: user.company?._id || user.companyId,
       isCompanyAdmin: user.isCompanyAdmin
     };
 
@@ -193,24 +199,60 @@ const login = async (req, res) => {
       expiresIn: process.env.JWT_EXPIRES_IN
     });
 
+    // Fetch complete user profile data including resume
+    const Resume = require('../../models/Resume');
+    let currentResume = null;
+    if (user.profile?.currentResumeId || user.currentResumeId) {
+      currentResume = await Resume.findOne({
+        _id: user.profile?.currentResumeId || user.currentResumeId,
+        userId: user._id,
+        isActive: true
+      }).select('-fileData');
+    }
+
+    // Determine company data - handle both company and companyId fields
+    const companyData = user.company ? {
+      id: user.company._id || user.company,
+      name: user.company.name || 'Company',
+      domain: user.company.domain || null
+    } : (user.companyId ? {
+      id: user.companyId,
+      name: 'Company', // Fallback name if company not populated
+      domain: null
+    } : null);
+
     res.json({
       success: true,
       message: 'Login successful',
       token,
       user: {
         id: user.id,
+        _id: user._id,
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
+        phone: user.phone,
         role: user.role,
         isCompanyAdmin: user.isCompanyAdmin,
         profilePicture: user.profilePicture,
         avatar: user.avatar,
-        company: user.company ? {
-          id: user.company._id,
-          name: user.company.name,
-          domain: user.company.domain
-        } : null
+        companyId: user.company?._id || user.companyId, // Add companyId for reference
+        // Include complete profile data for dashboard calculations
+        profile: {
+          currentLocation: user.profile?.currentLocation || user.location,
+          summary: user.profile?.summary,
+          primarySkills: user.profile?.primarySkills || user.skills || [],
+          educationEntries: user.profile?.educationEntries || [],
+          workExperienceEntries: user.profile?.workExperienceEntries || [],
+          projects: user.profile?.projects || [],
+          currentResumeId: currentResume?._id || user.profile?.currentResumeId || user.currentResumeId,
+          resume: currentResume ? { fileName: currentResume.originalName } : null
+        },
+        // Add top-level references for easier access
+        skills: user.profile?.primarySkills || user.skills || [],
+        currentResumeId: currentResume?._id || user.profile?.currentResumeId || user.currentResumeId,
+        resumeAvailable: !!currentResume,
+        company: companyData
       }
     });
 

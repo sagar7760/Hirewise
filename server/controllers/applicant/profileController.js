@@ -48,6 +48,22 @@ const getProfile = async (req, res) => {
 
     // Transform data for frontend
     const profileData = {
+      // Include user ID and metadata
+      _id: user._id,
+      id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      isCompanyAdmin: user.isCompanyAdmin,
+      
+      // Company data for HR/Admin/Interviewer roles
+      companyId: user.companyId?._id || user.companyId || user.company,
+      company: user.companyId ? {
+        id: user.companyId._id || user.companyId,
+        name: user.companyId.name || 'Company',
+        logo: user.companyId.logo || null
+      } : null,
+      
       // Personal Information
       fullName: `${user.firstName} ${user.lastName}`,
       email: user.email,
@@ -55,8 +71,11 @@ const getProfile = async (req, res) => {
       location: user.profile?.currentLocation || user.location || '',
       summary: user.profile?.summary || '',
       profilePicture: user.profilePicture || user.avatar || '',
+      avatar: user.profilePicture || user.avatar || '',
       
-      // Resume info
+      // Resume info - include multiple references for compatibility
+      currentResumeId: currentResume?._id || user.profile?.currentResumeId || user.currentResumeId,
+      resumeAvailable: !!currentResume,
       resume: currentResume ? {
         id: currentResume._id,
         fileName: currentResume.originalName,
@@ -67,6 +86,20 @@ const getProfile = async (req, res) => {
         }),
         fileSize: `${(currentResume.fileSize / 1024).toFixed(0)} KB`
       } : null,
+      
+      // Include profile object with all fields for dashboard calculations
+      profile: {
+        currentLocation: user.profile?.currentLocation || user.location || '',
+        summary: user.profile?.summary || '',
+        primarySkills: user.profile?.primarySkills || user.skills || [],
+        educationEntries: user.profile?.educationEntries || [],
+        workExperienceEntries: user.profile?.workExperienceEntries || [],
+        projects: user.profile?.projects || [],
+        currentResumeId: currentResume?._id || user.profile?.currentResumeId || user.currentResumeId,
+        resume: currentResume ? {
+          fileName: currentResume.originalName
+        } : null
+      },
       
       // Education - check both old and new format
       education: (user.profile?.educationEntries?.map(edu => ({
@@ -100,7 +133,7 @@ const getProfile = async (req, res) => {
         description: work.description
       }))) || [],
       
-      // Skills - check both old and new format
+      // Skills - check both old and new format (include at top level for easy access)
       skills: user.profile?.primarySkills || user.skills || [],
       
       // Projects - check both old and new format

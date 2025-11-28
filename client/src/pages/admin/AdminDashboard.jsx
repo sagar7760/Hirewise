@@ -196,8 +196,8 @@ const AdminDashboard = () => {
                   {/* Gradient Definition */}
                   <defs>
                     <linearGradient id="appsGradient" x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="0%" stopColor="#374151" stopOpacity="0.35" className="dark:stop-white" stopOpacity-dark="0.2"/>
-                      <stop offset="80%" stopColor="#374151" stopOpacity="0.05" className="dark:stop-white" stopOpacity-dark="0.05"/>
+                      <stop offset="0%" stopColor="#374151" stopOpacity="0.35" className="dark:stop-white"/>
+                      <stop offset="80%" stopColor="#374151" stopOpacity="0.05" className="dark:stop-white"/>
                     </linearGradient>
                   </defs>
                 </svg>

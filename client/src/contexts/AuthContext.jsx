@@ -57,21 +57,20 @@ export const AuthProvider = ({ children }) => {
     if (storedToken && storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
+        
         setToken(storedToken);
         setUser(parsedUser);
         
-        // Refresh user data to get latest profile information including resume
-        // Only refresh if user data seems incomplete or is missing key fields
-        const needsRefresh = !parsedUser.phone || 
-                           !parsedUser.skills || 
-                           !parsedUser.profile?.primarySkills || 
-                           (!parsedUser.currentResumeId && !parsedUser.resumeAvailable);
+        // Use setTimeout to ensure state updates are processed before rendering
+        setTimeout(() => {
+          setLoading(false);
+        }, 0);
         
-        if (needsRefresh) {
-          // Reset the refresh timer when we detect incomplete data
-          setLastRefreshTime(0);
-          refreshUserData(storedToken);
-        }
+        // Silently refresh user data in background to ensure we have the latest profile information
+        // This happens without blocking the UI, so the dashboard shows cached data immediately
+        // then updates when fresh data arrives
+        setLastRefreshTime(0);
+        refreshUserData(storedToken);
 
         // Attempt avatar hydration if placeholder present
         hydrateAvatarIfNeeded(parsedUser);
@@ -79,10 +78,12 @@ export const AuthProvider = ({ children }) => {
         console.error('Error parsing stored user data:', error);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        setLoading(false);
       }
+    } else {
+      console.log('🔐 AuthContext: No stored auth data found');
+      setLoading(false);
     }
-    
-    setLoading(false);
   }, []);
 
   const refreshUserData = async (authToken) => {
@@ -261,11 +262,8 @@ export const AuthProvider = ({ children }) => {
     return user?.company || null;
   };
 
-  // Function to make authenticated API requests
-  const apiRequest = useCallback(async (url, options = {}) => {
-    // Use buildApiUrl utility for consistent URL handling
-    const fullUrl = buildApiUrl(url);
-    
+  const apiRequest = useCallback(async (path, options = {}) => {
+    const fullUrl = buildApiUrl(path);
     const config = {
       ...options,
       headers: {
@@ -295,7 +293,7 @@ export const AuthProvider = ({ children }) => {
       return response;
     } catch (error) {
       // Handle network errors that might include header size issues
-      if (error.message.includes('431') || error.message.includes('header')) {
+      if (error.message?.includes('431') || error.message?.includes('header')) {
         console.error('Header size error detected. Clearing auth data...');
         logout();
         throw new Error('Session data corrupted. Please login again.');

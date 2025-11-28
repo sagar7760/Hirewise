@@ -23,7 +23,7 @@ const ProtectedRoute = ({ children, roles = [], requireCompany = false, requireC
 
   // If company association is required
   if (requireCompany && !getCompany()) {
-    return <Navigate to="/company/setup" replace />;
+    return <Navigate to="/unauthorized" replace />;
   }
 
   // If company admin privileges required

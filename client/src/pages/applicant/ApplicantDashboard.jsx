@@ -25,20 +25,6 @@ const ApplicantDashboard = () => {
     fetchDashboardData();
   }, []);
 
-  // Fallback: If profile completion is low after initial load, try refreshing user data
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (user && dashboardData.profileCompletion && dashboardData.profileCompletion.percentage < 50) {
-        console.log('🔄 Dashboard: Profile completion low, forcing user data refresh...');
-        refreshUser(true).catch(error => { // Force refresh to bypass rate limiting
-          console.error('Failed to refresh user data:', error);
-        });
-      }
-    }, 2000); // Wait 2 seconds after initial load
-
-    return () => clearTimeout(timer);
-  }, [dashboardData.profileCompletion, user, refreshUser]);
-
   // Recalculate profile completion whenever user data changes
   useEffect(() => {
     if (user && user.firstName && user.email) { // Basic validation to ensure user data is loaded
@@ -680,7 +666,7 @@ const ApplicantDashboard = () => {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-xs text-green-600 dark:text-green-400 font-['Roboto'] mb-3">Profile Complete! 🎉</p>
+                  <p className="text-xs text-green-600 dark:text-green-400 font-['Roboto'] mb-3">Profile Complete!</p>
                 )}
                 
                 <Link 
