@@ -110,6 +110,15 @@ const uploadCompanyLogo = multer({
   fileFilter: imageFileFilter
 });
 
+// Memory storage for resume during registration (before user account exists)
+const uploadResumeMemory = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 5 * 1024 * 1024 // 5MB default
+  },
+  fileFilter: resumeFileFilter
+});
+
 // Utility function to delete file
 const deleteFile = (filePath) => {
   if (fs.existsSync(filePath)) {
@@ -121,6 +130,7 @@ module.exports = {
   uploadResume,
   uploadProfilePic,
   uploadCompanyLogo,
+  uploadResumeMemory,
   deleteFile,
   uploadsDir,
   resumesDir,

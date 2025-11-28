@@ -178,6 +178,88 @@ async function verifyOtp(req, res) {
         });
         await user.save();
         
+        // Create Resume document if resume was uploaded during registration
+        let resumeId = null;
+        if (pendingReg.resumeData && pendingReg.resumeData.fileData) {
+          try {
+            console.log('========== RESUME CREATION START ==========');
+            console.log('Resume data found in pending registration:', {
+              originalName: pendingReg.resumeData.originalName,
+              mimeType: pendingReg.resumeData.mimeType,
+              fileSize: pendingReg.resumeData.fileSize,
+              hasFileData: !!pendingReg.resumeData.fileData,
+              fileDataType: typeof pendingReg.resumeData.fileData
+            });
+            
+            // Validate resume data
+            if (!pendingReg.resumeData.fileData || !Buffer.isBuffer(pendingReg.resumeData.fileData)) {
+              console.error('Invalid file data - not a Buffer:', typeof pendingReg.resumeData.fileData);
+              throw new Error('Invalid resume file data');
+            }
+            
+            // Convert Buffer to Base64 string as required by Resume model
+            const fileDataBase64 = pendingReg.resumeData.fileData.toString('base64');
+            
+            // Generate a unique filename
+            const timestamp = Date.now();
+            const ext = pendingReg.resumeData.originalName.split('.').pop() || 'pdf';
+            const fileName = `resume_${user._id}_${timestamp}.${ext}`;
+            
+            const Resume = require('../../models/Resume');
+            const resumeDoc = {
+              userId: user._id,
+              fileName: fileName,
+              originalName: pendingReg.resumeData.originalName || 'resume.pdf',
+              mimeType: pendingReg.resumeData.mimeType || 'application/pdf',
+              fileData: fileDataBase64, // Store as Base64 string
+              fileSize: pendingReg.resumeData.fileSize || pendingReg.resumeData.fileData.length,
+              isActive: true,
+              processingStatus: 'completed'
+            };
+            
+            console.log('Creating Resume document with:', {
+              userId: resumeDoc.userId,
+              fileName: resumeDoc.fileName,
+              originalName: resumeDoc.originalName,
+              fileSize: resumeDoc.fileSize,
+              base64Length: fileDataBase64.length
+            });
+            
+            const resume = new Resume(resumeDoc);
+            const savedResume = await resume.save();
+            resumeId = savedResume._id;
+            
+            console.log('✅ Resume document saved successfully:', {
+              resumeId: resumeId,
+              userId: user._id
+            });
+            
+            // Update user's currentResumeId
+            user.currentResumeId = resumeId;
+            if (!user.profile) {
+              user.profile = {};
+            }
+            user.profile.currentResumeId = resumeId;
+            
+            await user.save();
+            
+            console.log('✅ User updated with resumeId:', resumeId);
+            console.log('========== RESUME CREATION END ==========');
+          } catch (resumeError) {
+            console.error('❌ ERROR saving resume after OTP verification:', {
+              error: resumeError.message,
+              stack: resumeError.stack,
+              name: resumeError.name
+            });
+            // Don't fail the entire verification if resume save fails
+          }
+        } else {
+          console.log('⚠️ No resume data found in pending registration:', {
+            hasResumeData: !!pendingReg.resumeData,
+            hasFileData: !!pendingReg.resumeData?.fileData
+          });
+        }
+        
         // Delete pending registration
         await PendingRegistration.deleteOne({ _id: pendingReg._id });
         
@@ -187,7 +269,8 @@ async function verifyOtp(req, res) {
           data: {
             userId: user._id,
             email: user.email,
-            role: user.role
+            role: user.role,
+            resumeUploaded: !!resumeId
           }
         });
       } else if (pendingReg.type === 'company') {

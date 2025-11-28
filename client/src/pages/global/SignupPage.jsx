@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ResumeParser } from '../../utils/resumeParser';
 
@@ -46,6 +46,47 @@ const SignupPage = () => {
   const [isParsingResume, setIsParsingResume] = useState(false);
   const [parseSuccess, setParseSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Auto-scroll to first error field when validation fails
+  useEffect(() => {
+    if (Object.keys(errors).length > 0) {
+      // Get the first error key
+      const firstErrorKey = Object.keys(errors)[0];
+      
+      // Map error keys to element IDs/names
+      let elementId = firstErrorKey;
+      
+      // Handle education field errors (e.g., education_1_qualification)
+      if (firstErrorKey.startsWith('education_')) {
+        const parts = firstErrorKey.split('_');
+        if (parts.length === 3) {
+          elementId = `${parts[2]}_${parts[1]}`; // Convert education_1_qualification to qualification_1
+        }
+      }
+      
+      // Handle work experience field errors (e.g., work_1_company)
+      if (firstErrorKey.startsWith('work_')) {
+        const parts = firstErrorKey.split('_');
+        if (parts.length >= 3) {
+          elementId = `${parts[2]}_${parts[1]}`; // Convert work_1_company to company_1
+        }
+      }
+      
+      // Try to find the element by ID or name
+      let element = document.getElementById(elementId) || document.querySelector(`[name="${elementId}"]`);
+      
+      // If not found, try the original error key
+      if (!element) {
+        element = document.getElementById(firstErrorKey) || document.querySelector(`[name="${firstErrorKey}"]`);
+      }
+      
+      // Scroll to the element if found
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        element.focus();
+      }
+    }
+  }, [errors]);
 
   // Predefined options for dropdowns
   const qualificationOptions = [
@@ -157,27 +198,30 @@ const SignupPage = () => {
         setParseSuccess(false);
         
         const parsedData = await ResumeParser.parseFile(file);
+        console.log('Parsed resume data:', parsedData);
         
-        // Auto-fill form with parsed data
-        setFormData(prev => ({
-          ...prev,
-          fullName: parsedData.fullName || prev.fullName,
-          email: parsedData.email || prev.email,
-          phone: parsedData.phone || prev.phone,
-          currentLocation: parsedData.currentLocation || prev.currentLocation,
-          primarySkills: parsedData.primarySkills.length > 0 ? parsedData.primarySkills : prev.primarySkills,
-          educationEntries: parsedData.educationEntries.length > 0 && parsedData.educationEntries[0].qualification 
-            ? parsedData.educationEntries 
-            : prev.educationEntries,
-          workExperienceEntries: parsedData.workExperienceEntries.length > 0 && parsedData.workExperienceEntries[0].position
-            ? parsedData.workExperienceEntries 
-            : prev.workExperienceEntries
-        }));
+        // Auto-fill form with parsed data - only update basic fields (name, email, phone, skills)
+        // DO NOT auto-fill location, education or work experience - let user fill manually
+        setFormData(prev => {
+          const updatedData = {
+            ...prev,
+            fullName: parsedData.fullName && parsedData.fullName.length > 3 ? parsedData.fullName : prev.fullName,
+            email: parsedData.email && parsedData.email.includes('@') ? parsedData.email : prev.email,
+            phone: parsedData.phone && parsedData.phone.length >= 10 ? parsedData.phone : prev.phone,
+            // Don't fill location - user should enter manually
+            primarySkills: parsedData.primarySkills && parsedData.primarySkills.length > 0 ? parsedData.primarySkills : prev.primarySkills,
+          };
+          
+          // Keep existing education and work experience - do not replace
+          // User should fill these manually for accuracy
+          
+          return updatedData;
+        });
         
         setParseSuccess(true);
         
         // Show success message briefly
-        setTimeout(() => setParseSuccess(false), 3000);
+        setTimeout(() => setParseSuccess(false), 5000);
         
       } catch (error) {
         console.error('Resume parsing failed:', error);
@@ -227,6 +271,20 @@ const SignupPage = () => {
   };
 
   const handleEducationChange = (id, field, value) => {
+    // Validate CGPA/Percentage - only allow numbers and decimal point
+    if (field === 'cgpaPercentage' && value) {
+      // Allow only digits, decimal point, and percentage sign
+      const numericValue = value.replace(/[^0-9.%]/g, '');
+      
+      // Prevent multiple decimal points
+      const parts = numericValue.split('.');
+      if (parts.length > 2) {
+        return; // Don't update if multiple decimals
+      }
+      
+      value = numericValue;
+    }
+    
     setFormData(prev => ({
       ...prev,
       educationEntries: prev.educationEntries.map(entry =>
@@ -373,81 +431,58 @@ const SignupPage = () => {
 
     setIsSubmitting(true);
     try {
-      // Prepare form data for submission
-      const submitData = {
-        fullName: formData.fullName.trim(),
-        email: formData.email.trim().toLowerCase(),
-        password: formData.password,
-        phone: formData.phone.trim(),
-        currentLocation: formData.currentLocation.trim(),
-        currentStatus: formData.currentStatus,
-        educationEntries: formData.educationEntries.map(entry => ({
-          qualification: entry.qualification,
-          fieldOfStudy: entry.fieldOfStudy.trim(),
-          universityName: entry.universityName.trim(),
-          graduationYear: entry.graduationYear,
-          cgpaPercentage: entry.cgpaPercentage.trim()
-        })),
-        workExperienceEntries: formData.workExperienceEntries.map(entry => ({
-          yearsOfExperience: entry.yearsOfExperience,
-          company: entry.company.trim(),
-          position: entry.position.trim(),
-          startDate: entry.startDate,
-          endDate: entry.endDate,
-          isCurrentlyWorking: entry.isCurrentlyWorking,
-          description: entry.description.trim()
-        })),
-        primarySkills: formData.primarySkills
-      };
+      // Prepare FormData for submission (to support file upload)
+      const formDataToSubmit = new FormData();
+      
+      // Append text fields
+      formDataToSubmit.append('fullName', formData.fullName.trim());
+      formDataToSubmit.append('email', formData.email.trim().toLowerCase());
+      formDataToSubmit.append('password', formData.password);
+      formDataToSubmit.append('phone', formData.phone.trim());
+      formDataToSubmit.append('currentLocation', formData.currentLocation.trim());
+      formDataToSubmit.append('currentStatus', formData.currentStatus);
+      
+      // Append arrays as JSON strings
+      const educationData = formData.educationEntries.map(entry => ({
+        qualification: entry.qualification,
+        fieldOfStudy: entry.fieldOfStudy.trim(),
+        universityName: entry.universityName.trim(),
+        graduationYear: entry.graduationYear,
+        cgpaPercentage: entry.cgpaPercentage.trim()
+      }));
+      formDataToSubmit.append('educationEntries', JSON.stringify(educationData));
+      
+      const workData = formData.workExperienceEntries.map(entry => ({
+        yearsOfExperience: entry.yearsOfExperience,
+        company: entry.company.trim(),
+        position: entry.position.trim(),
+        startDate: entry.startDate,
+        endDate: entry.endDate,
+        isCurrentlyWorking: entry.isCurrentlyWorking,
+        description: entry.description.trim()
+      }));
+      formDataToSubmit.append('workExperienceEntries', JSON.stringify(workData));
+      
+      formDataToSubmit.append('primarySkills', JSON.stringify(formData.primarySkills));
+      
+      // Append resume file if present
+      if (formData.resume) {
+        formDataToSubmit.append('resume', formData.resume);
+      }
 
-      console.log('Submitting signup data:', submitData);
+      console.log('Submitting signup with resume:', formData.resume ? 'Yes' : 'No');
 
-      // Step 1: Register the user
+      // Register the user (with resume if provided)
       const response = await fetch('/api/auth/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(submitData)
+        body: formDataToSubmit // Don't set Content-Type header - browser will set it with boundary for multipart/form-data
       });
 
       const data = await response.json();
       console.log('Server response:', data);
 
       if (data.success) {
-        // Step 2: If resume is provided, upload it
-        if (formData.resume) {
-          try {
-            console.log('Uploading resume file...');
-            
-            // Create FormData for file upload
-            const resumeFormData = new FormData();
-            resumeFormData.append('resume', formData.resume);
-
-            const resumeResponse = await fetch('/api/resumes/upload', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${data.token}`
-              },
-              body: resumeFormData
-            });
-
-            const resumeData = await resumeResponse.json();
-            console.log('Resume upload response:', resumeData);
-
-            if (resumeData.success) {
-              console.log('Resume uploaded successfully');
-            } else {
-              console.warn('Resume upload failed:', resumeData.message);
-              // Don't fail the entire signup process if resume upload fails
-            }
-          } catch (resumeError) {
-            console.error('Resume upload error:', resumeError);
-            // Don't fail the entire signup process if resume upload fails
-          }
-        }
-
-        // Successfully registered (with or without resume), redirect to email verification
+        // Successfully registered, redirect to email verification
         navigate('/verify-email', {
           state: {
             email: formData.email
@@ -837,19 +872,20 @@ const SignupPage = () => {
 
                     {/* CGPA/Percentage */}
                     <div>
-                      <label htmlFor={`cgpaPercentage_${education.id}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-2">
-                        CGPA / Percentage <span className="text-gray-400">(Optional)</span>
+                      <label htmlFor={`cgpaPercentage_${education.id}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Open_Sans'] mb-1">
+                        CGPA / Percentage 
                       </label>
                       <input
                         id={`cgpaPercentage_${education.id}`}
                         name={`cgpaPercentage_${education.id}`}
                         type="text"
+                        inputMode="decimal"
                         value={education.cgpaPercentage}
                         onChange={(e) => handleEducationChange(education.id, 'cgpaPercentage', e.target.value)}
-                        placeholder="e.g., 8.5 CGPA or 85%"
+                        placeholder="e.g., 8.5 or 85%"
                         className="block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-['Roboto'] transition-colors dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-400 dark:text-gray-100 dark:focus:ring-gray-300 dark:focus:border-gray-300"
                       />
-                     
+                      <p className="mt-1 text-xs text-gray-500 font-['Roboto']">Enter CGPA (0-10) or Percentage (0-100)</p>
                     </div>
                   </div>
                   <p className="text-sm text-gray-500 font-['Roboto']">
@@ -1131,7 +1167,7 @@ const SignupPage = () => {
           <div className="pt-6">
             {/* Display submit errors */}
             {errors.submit && (
-              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg dark:bg-red-900 dark:border-red-700 dark:text-red-300">
+              <div className="mb-2 text-center p-2 dark:text-red-300">
                 <p className="text-sm text-red-600 font-['Roboto']">{errors.submit}</p>
               </div>
             )}

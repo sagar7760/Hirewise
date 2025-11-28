@@ -74,24 +74,48 @@ const register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    // Prepare user data
+    const userData = {
+      firstName,
+      lastName,
+      password: hashedPassword,
+      phone,
+      role,
+      profile: {
+        fullName,
+        currentLocation,
+        currentStatus,
+        educationEntries: parsedEducationEntries,
+        workExperienceEntries: parsedWorkExperienceEntries,
+        primarySkills: parsedPrimarySkills
+      }
+    };
+
+    // Handle resume file if provided
+    let resumeData = null;
+    if (req.file) {
+      console.log('Resume file received:', {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        hasBuffer: !!req.file.buffer
+      });
+      
+      resumeData = {
+        originalName: req.file.originalname,
+        mimeType: req.file.mimetype,
+        fileData: req.file.buffer,
+        fileSize: req.file.size
+      };
+    } else {
+      console.log('No resume file in request');
+    }
+
     // Store registration data temporarily (will be created after OTP verification)
     if (pendingReg) {
       // Update existing pending registration
-      pendingReg.userData = {
-        firstName,
-        lastName,
-        password: hashedPassword,
-        phone,
-        role,
-        profile: {
-          fullName,
-          currentLocation,
-          currentStatus,
-          educationEntries: parsedEducationEntries,
-          workExperienceEntries: parsedWorkExperienceEntries,
-          primarySkills: parsedPrimarySkills
-        }
-      };
+      pendingReg.userData = userData;
+      pendingReg.resumeData = resumeData;
       pendingReg.expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // Reset expiry
       await pendingReg.save();
     } else {
@@ -99,24 +123,13 @@ const register = async (req, res) => {
       pendingReg = new PendingRegistration({
         email,
         type: 'applicant',
-        userData: {
-          firstName,
-          lastName,
-          password: hashedPassword,
-          phone,
-          role,
-          profile: {
-            fullName,
-            currentLocation,
-            currentStatus,
-            educationEntries: parsedEducationEntries,
-            workExperienceEntries: parsedWorkExperienceEntries,
-            primarySkills: parsedPrimarySkills
-          }
-        }
+        userData: userData,
+        resumeData: resumeData
       });
       await pendingReg.save();
     }
+
+    console.log('Pending registration saved with resume:', !!resumeData);
 
     // Return success - actual user will be created on OTP verification
     res.status(200).json({
@@ -124,7 +137,8 @@ const register = async (req, res) => {
       message: 'Registration initiated. Please verify your email with the OTP sent to your inbox.',
       data: {
         email: email,
-        requiresVerification: true
+        requiresVerification: true,
+        resumeUploaded: !!resumeData
       }
     });
 

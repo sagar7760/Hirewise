@@ -1,6 +1,7 @@
 const express = require('express');
 const { body } = require('express-validator');
 const { auth } = require('../middleware/auth');
+const { uploadResumeMemory } = require('../middleware/upload');
 const { 
   register, 
   login, 
@@ -30,17 +31,21 @@ const passwordResetRoutes = require('./passwordReset');
 router.use('/', passwordResetRoutes);
 
 // @route   POST /api/auth/register
-// @desc    Register user with enhanced profile data
+// @desc    Register user with enhanced profile data (with optional resume)
 // @access  Public
-router.post('/register', [
-  body('fullName').trim().notEmpty().withMessage('Full name is required'),
-  body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  body('phone').optional().trim(),
-  body('currentLocation').optional().trim(),
-  body('currentStatus').optional().trim(),
-  body('role').optional().isIn(['applicant', 'hr', 'interviewer', 'admin']).withMessage('Invalid role')
-], register);
+router.post('/register', 
+  uploadResumeMemory.single('resume'), // Handle optional resume file
+  [
+    body('fullName').trim().notEmpty().withMessage('Full name is required'),
+    body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
+    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+    body('phone').optional().trim(),
+    body('currentLocation').optional().trim(),
+    body('currentStatus').optional().trim(),
+    body('role').optional().isIn(['applicant', 'hr', 'interviewer', 'admin']).withMessage('Invalid role')
+  ], 
+  register
+);
 
 // @route   POST /api/auth/login
 // @desc    Authenticate user & get token

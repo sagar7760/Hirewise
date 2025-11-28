@@ -29,6 +29,13 @@ const pendingRegistrationSchema = new mongoose.Schema({
       primarySkills: [String]
     }
   },
+  // Resume data for applicants (stored temporarily until verification)
+  resumeData: {
+    originalName: String,
+    mimeType: String,
+    fileData: Buffer,
+    fileSize: Number
+  },
   // For company registration
   companyData: {
     companyName: String,
