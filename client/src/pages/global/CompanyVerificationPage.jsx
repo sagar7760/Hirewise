@@ -12,7 +12,7 @@ const CompanyVerificationPage = () => {
   const resend = async () => {
     setErr(''); setMsg('');
     try {
-      const res = await fetch('/api/auth/otp/send', {
+      const res = await fetch(buildApiUrl('/api/auth/otp/send'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })

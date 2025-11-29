@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { buildApiUrl } from '../../utils/api';
 
 const pad = (n) => n.toString().padStart(2, '0');
 
@@ -75,7 +76,7 @@ export default function EmailOtpVerify() {
     setError('');
     setMessage('');
     try {
-      const res = await fetch('/api/auth/otp/send', {
+      const res = await fetch(buildApiUrl('/api/auth/otp/send'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, userId }),
@@ -103,7 +104,7 @@ export default function EmailOtpVerify() {
     setError('');
     setMessage('');
     try {
-      const res = await fetch('/api/auth/otp/verify', {
+      const res = await fetch(buildApiUrl('/api/auth/otp/verify'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, userId, code: codeString }),

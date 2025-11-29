@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { buildApiUrl } from '../../utils/api';
 
 const CompanySignupPage = () => {
   const navigate = useNavigate();
@@ -232,7 +233,7 @@ const CompanySignupPage = () => {
       console.log('Running backend validation for Step 1');
       try {
         // Check if company name already exists
-        const response = await fetch('/api/auth/company/check-name', {
+        const response = await fetch(buildApiUrl('/api/auth/company/check-name'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ companyName: formData.companyName.trim() })
@@ -335,7 +336,7 @@ const CompanySignupPage = () => {
       
       console.log('Sending form data with file upload support'); // Debug log
       
-      const response = await fetch('/api/auth/company/register', {
+      const response = await fetch(buildApiUrl('/api/auth/company/register'), {
         method: 'POST',
         // Don't set Content-Type header - let browser set it with boundary for FormData
         body: formDataToSend

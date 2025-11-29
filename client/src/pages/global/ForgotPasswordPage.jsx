@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { buildApiUrl } from '../../utils/api';
 
 const pad = (n) => n.toString().padStart(2, '0');
 
@@ -33,14 +34,14 @@ export default function ForgotPasswordPage() {
       setError('Please enter your email');
       return;
     }
-    setSending(true);
+    setSubmitting(true);
     setError('');
     setMessage('');
     try {
-      const res = await fetch('/api/auth/forgot-password', {
+      const res = await fetch(buildApiUrl('/api/auth/reset-password'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, resend: true }),
       });
       const data = await res.json();
       if (!data.success) {
@@ -124,7 +125,7 @@ export default function ForgotPasswordPage() {
     setError('');
     setMessage('');
     try {
-      const res = await fetch('/api/auth/reset-password', {
+      const res = await fetch(buildApiUrl('/api/auth/reset-password'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, code: codeString, newPassword }),

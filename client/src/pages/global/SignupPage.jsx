@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { buildApiUrl } from '../../utils/api';
 import { ResumeParser } from '../../utils/resumeParser';
 
 const SignupPage = () => {
@@ -473,7 +474,7 @@ const SignupPage = () => {
       console.log('Submitting signup with resume:', formData.resume ? 'Yes' : 'No');
 
       // Register the user (with resume if provided)
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch(buildApiUrl('/api/auth/register'), {
         method: 'POST',
         body: formDataToSubmit // Don't set Content-Type header - browser will set it with boundary for multipart/form-data
       });
