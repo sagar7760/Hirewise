@@ -165,7 +165,7 @@ async function verifyOtp(req, res) {
     if (pendingReg) {
       if (pendingReg.type === 'applicant') {
         // Create applicant user from pending registration
-        user = new User({
+        const userData = {
           firstName: pendingReg.userData.firstName,
           lastName: pendingReg.userData.lastName,
           email: pendingReg.email,
@@ -175,8 +175,9 @@ async function verifyOtp(req, res) {
           profile: pendingReg.userData.profile,
           accountStatus: 'active',
           emailVerifiedAt: new Date()
-        });
-        await user.save();
+        };
+        
+        user = await User.create(userData);
         
         // Create Resume document if resume was uploaded during registration
         let resumeId = null;
@@ -277,11 +278,9 @@ async function verifyOtp(req, res) {
         // Create company and admin user from pending registration
         const cd = pendingReg.companyData;
         
-        const session = await mongoose.startSession();
-        session.startTransaction();
-        
         try {
-          const company = new Company({
+          // Create company first
+          const company = await Company.create({
             name: cd.companyName,
             industry: cd.industry,
             size: cd.companySize,
@@ -297,9 +296,8 @@ async function verifyOtp(req, res) {
             status: 'active'
           });
   
-          const savedCompany = await company.save({ session });
-  
-          const adminUser = new User({
+          // Create admin user with reference to company
+          const adminUser = await User.create({
             firstName: cd.adminFirstName,
             lastName: cd.adminLastName,
             email: pendingReg.email,
@@ -307,7 +305,7 @@ async function verifyOtp(req, res) {
             phone: cd.adminPhone,
             role: 'admin',
             location: `${cd.headquarters}, ${cd.country}`,
-            companyId: savedCompany._id,
+            companyId: company._id,
             isCompanyAdmin: true,
             accountStatus: 'active',
             emailVerifiedAt: new Date(),
@@ -321,17 +319,13 @@ async function verifyOtp(req, res) {
             }
           });
   
-          const savedAdmin = await adminUser.save({ session });
-  
-          savedCompany.adminUserId = savedAdmin._id;
-          if (savedCompany.verificationStatus) {
-            savedCompany.verificationStatus.emailVerified = true;
-            savedCompany.verificationStatus.verifiedAt = new Date();
+          // Update company with admin user reference
+          company.adminUserId = adminUser._id;
+          if (company.verificationStatus) {
+            company.verificationStatus.emailVerified = true;
+            company.verificationStatus.verifiedAt = new Date();
           }
-          await savedCompany.save({ session });
-  
-          await session.commitTransaction();
-          session.endSession();
+          await company.save();
           
           // Delete pending registration
           await PendingRegistration.deleteOne({ _id: pendingReg._id });
@@ -340,16 +334,15 @@ async function verifyOtp(req, res) {
             success: true, 
             message: 'Email verified successfully! Your company account has been created.',
             data: {
-              userId: savedAdmin._id,
-              email: savedAdmin.email,
-              role: savedAdmin.role,
-              companyId: savedCompany._id,
-              companyName: savedCompany.name
+              userId: adminUser._id,
+              email: adminUser.email,
+              role: adminUser.role,
+              companyId: company._id,
+              companyName: company.name
             }
           });
         } catch (error) {
-          try { await session.abortTransaction(); } catch (_) {}
-          session.endSession();
+          console.error('Company creation error:', error);
           throw error;
         }
       }
@@ -383,7 +376,14 @@ async function verifyOtp(req, res) {
     });
   } catch (error) {
     console.error('verifyOtp error:', error);
-    return res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Error stack:', error.stack);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Server error during OTP verification',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 }
 

@@ -94,6 +94,18 @@ export default function ForgotPasswordPage() {
     }
   };
 
+  const handleCodeKeyDown = (idx, e) => {
+    // Handle backspace to move to previous input
+    if (e.key === 'Backspace' && !code[idx] && idx > 0) {
+      e.preventDefault();
+      const prev = [...code];
+      prev[idx - 1] = '';
+      setCode(prev);
+      const el = document.getElementById(`reset-otp-${idx - 1}`);
+      if (el) el.focus();
+    }
+  };
+
   const handleResetSubmit = async (e) => {
     e.preventDefault();
     if (codeString.length !== 6) {
@@ -200,7 +212,8 @@ export default function ForgotPasswordPage() {
                     maxLength={1}
                     value={v}
                     onChange={(e) => handleCodeChange(i, e.target.value)}
-                    className="w-12 h-12 text-center text-xl rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-black dark:focus:ring-white"
+                    onKeyDown={(e) => handleCodeKeyDown(i, e)}
+                    className="w-12 h-12 text-center text-xl rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                   />
                 ))}
               </div>

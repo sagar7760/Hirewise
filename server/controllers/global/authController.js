@@ -7,6 +7,9 @@ const PendingRegistration = require('../../models/PendingRegistration');
 // @desc    Register user
 // @access  Public
 const register = async (req, res) => {
+  // Define normalizedEmail at function scope so it's accessible in catch block
+  let normalizedEmail = '';
+  
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -30,8 +33,11 @@ const register = async (req, res) => {
       role = 'applicant' 
     } = req.body;
 
+    // Normalize email to lowercase
+    normalizedEmail = email.toLowerCase().trim();
+
     // Check if user already exists (active account)
-    let existingUser = await User.findOne({ email });
+    let existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -40,7 +46,7 @@ const register = async (req, res) => {
     }
 
     // Check if there's already a pending registration
-    let pendingReg = await PendingRegistration.findOne({ email, type: 'applicant' });
+    let pendingReg = await PendingRegistration.findOne({ email: normalizedEmail, type: 'applicant' });
     
     // Split fullName into firstName and lastName
     const nameParts = fullName ? fullName.trim().split(' ') : ['', ''];
@@ -118,15 +124,17 @@ const register = async (req, res) => {
       pendingReg.resumeData = resumeData;
       pendingReg.expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // Reset expiry
       await pendingReg.save();
+      console.log('Updated existing pending registration for:', email);
     } else {
       // Create new pending registration
       pendingReg = new PendingRegistration({
-        email,
+        email: normalizedEmail,
         type: 'applicant',
         userData: userData,
         resumeData: resumeData
       });
       await pendingReg.save();
+      console.log('Created new pending registration for:', normalizedEmail);
     }
 
     console.log('Pending registration saved with resume:', !!resumeData);
@@ -136,7 +144,7 @@ const register = async (req, res) => {
       success: true,
       message: 'Registration initiated. Please verify your email with the OTP sent to your inbox.',
       data: {
-        email: email,
+        email: normalizedEmail,
         requiresVerification: true,
         resumeUploaded: !!resumeData
       }
@@ -144,9 +152,36 @@ const register = async (req, res) => {
 
   } catch (error) {
     console.error('Registration error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error name:', error.name);
+    console.error('Error code:', error.code);
+    
+    // Handle duplicate key error - this means pending registration already exists
+    // This is OK, user should proceed to OTP verification
+    if (error.code === 11000) {
+      return res.status(200).json({
+        success: true,
+        message: 'A pending registration already exists for this email. Please verify your email with the OTP.',
+        data: {
+          email: normalizedEmail,
+          requiresVerification: true,
+          pendingExists: true
+        }
+      });
+    }
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid data provided',
+        error: error.message
+      });
+    }
+    
     res.status(500).json({
       success: false,
-      message: 'Server error',
+      message: 'Server error during registration',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }

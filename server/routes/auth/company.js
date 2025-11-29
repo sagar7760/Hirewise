@@ -29,6 +29,45 @@ async function supportsTransactions() {
   }
 }
 
+// @route   POST /api/auth/company/check-name
+// @desc    Check if company name is available
+// @access  Public
+router.post('/check-name', async (req, res) => {
+  try {
+    const { companyName } = req.body;
+    
+    if (!companyName || !companyName.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Company name is required'
+      });
+    }
+    
+    // Check if company name already exists (case-insensitive)
+    const existingCompany = await Company.findOne({ 
+      name: { $regex: new RegExp(`^${companyName.trim()}$`, 'i') }
+    });
+    
+    if (existingCompany) {
+      return res.status(400).json({
+        success: false,
+        message: 'A company with this name is already registered'
+      });
+    }
+    
+    return res.json({
+      success: true,
+      message: 'Company name is available'
+    });
+  } catch (error) {
+    console.error('Check company name error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while checking company name'
+    });
+  }
+});
+
 // @route   POST /api/auth/company/register
 // @desc    Register a new company with admin user
 // @access  Public
@@ -177,6 +216,23 @@ router.post('/register', uploadCompanyLogo.single('companyLogo'), [
       });
     }
 
+    // Validate full name has at least first and last name
+    const nameParts = adminFullName.trim().split(/\s+/);
+    if (nameParts.length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please enter your full name (first and last name)',
+        field: 'adminFullName'
+      });
+    }
+    if (nameParts[0].length < 2 || nameParts[nameParts.length - 1].length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: 'First and last name must be at least 2 characters each',
+        field: 'adminFullName'
+      });
+    }
+
     // Check if email already exists in active users
     const existingUser = await User.findOne({ email: adminEmail.toLowerCase() });
     if (existingUser) {
@@ -202,10 +258,9 @@ router.post('/register', uploadCompanyLogo.single('companyLogo'), [
     // Check for pending registration with same email
     let pendingReg = await PendingRegistration.findOne({ email: adminEmail.toLowerCase(), type: 'company' });
 
-    // Split admin full name
-    const nameParts = adminFullName.trim().split(' ');
+    // Split admin full name (already validated above)
     const firstName = nameParts[0];
-    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+    const lastName = nameParts.slice(1).join(' ');
 
     // Hash password
     const salt = await bcrypt.genSalt(10);

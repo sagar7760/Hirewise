@@ -57,6 +57,18 @@ export default function EmailOtpVerify() {
     }
   };
 
+  const handleKeyDown = (idx, e) => {
+    // Handle backspace to move to previous input
+    if (e.key === 'Backspace' && !code[idx] && idx > 0) {
+      e.preventDefault();
+      const prev = [...code];
+      prev[idx - 1] = '';
+      setCode(prev);
+      const el = document.getElementById(`otp-${idx - 1}`);
+      if (el) el.focus();
+    }
+  };
+
   const sendCode = async () => {
     if (!email && !userId) return;
     setSending(true);
@@ -131,6 +143,7 @@ export default function EmailOtpVerify() {
               maxLength={1}
               value={v}
               onChange={(e) => handleChange(i, e.target.value)}
+              onKeyDown={(e) => handleKeyDown(i, e)}
               className="w-12 h-12 text-center text-xl rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           ))}

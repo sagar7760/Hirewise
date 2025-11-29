@@ -28,8 +28,16 @@ router.get(
       const { page = 1, limit = 20, status = 'all' } = req.query;
       const filter = {
         $or: [
+          // Notifications specifically for this user
           { user: req.user.id },
-          { $and: [{ company: req.user.company?._id || req.user.companyId }, { role: req.user.role }] }
+          // Company-wide notifications for this role (but NOT targeted to a specific user)
+          { 
+            $and: [
+              { company: req.user.company?._id || req.user.companyId }, 
+              { role: req.user.role },
+              { user: { $exists: false } } // Only show if no specific user is assigned
+            ] 
+          }
         ]
       };
       if (status === 'unread') filter.read = false;
@@ -67,8 +75,16 @@ router.get('/unread-count', async (req, res) => {
   try {
     const filter = {
       $or: [
+        // Notifications specifically for this user
         { user: req.user.id },
-        { $and: [{ company: (req.user.company && req.user.company._id) || req.user.companyId }, { role: req.user.role }] }
+        // Company-wide notifications for this role (but NOT targeted to a specific user)
+        { 
+          $and: [
+            { company: (req.user.company && req.user.company._id) || req.user.companyId }, 
+            { role: req.user.role },
+            { user: { $exists: false } } // Only count if no specific user is assigned
+          ] 
+        }
       ],
       read: false
     };
@@ -92,7 +108,18 @@ router.patch('/:id/read', [param('id').isMongoId()], async (req, res) => {
 
     const notif = await Notification.findOne({
       _id: req.params.id,
-      $or: [{ user: req.user.id }, { company: req.user.company?._id || req.user.companyId }]
+      $or: [
+        // Notifications specifically for this user
+        { user: req.user.id },
+        // Company-wide notifications for this role (but NOT targeted to a specific user)
+        { 
+          $and: [
+            { company: req.user.company?._id || req.user.companyId },
+            { role: req.user.role },
+            { user: { $exists: false } } // Only allow if no specific user is assigned
+          ]
+        }
+      ]
     });
     if (!notif) return res.status(404).json({ success: false, message: 'Notification not found' });
     notif.read = true;
@@ -110,8 +137,16 @@ router.patch('/read-all', async (req, res) => {
   try {
     const filter = {
       $or: [
+        // Notifications specifically for this user
         { user: req.user.id },
-        { $and: [{ company: (req.user.company && req.user.company._id) || req.user.companyId }, { role: req.user.role }] }
+        // Company-wide notifications for this role (but NOT targeted to a specific user)
+        { 
+          $and: [
+            { company: (req.user.company && req.user.company._id) || req.user.companyId }, 
+            { role: req.user.role },
+            { user: { $exists: false } } // Only mark as read if no specific user is assigned
+          ] 
+        }
       ],
       read: false
     };
@@ -135,7 +170,18 @@ router.delete('/:id', [param('id').isMongoId()], async (req, res) => {
 
     const filter = {
       _id: req.params.id,
-      $or: [{ user: req.user.id }, { company: req.user.company?._id || req.user.companyId }]
+      $or: [
+        // Notifications specifically for this user
+        { user: req.user.id },
+        // Company-wide notifications for this role (but NOT targeted to a specific user)
+        { 
+          $and: [
+            { company: req.user.company?._id || req.user.companyId },
+            { role: req.user.role },
+            { user: { $exists: false } } // Only allow deletion if no specific user is assigned
+          ]
+        }
+      ]
     };
     const deleted = await Notification.findOneAndDelete(filter);
     if (!deleted) return res.status(404).json({ success: false, message: 'Notification not found' });
@@ -156,7 +202,20 @@ router.delete('/', async (req, res) => {
     const invalid = ids.find((id) => !id || !id.match(/^[a-f\d]{24}$/i));
     if (invalid) return res.status(400).json({ success: false, message: 'Invalid id in ids array' });
 
-    const baseFilter = { $or: [{ user: req.user.id }, { company: req.user.company?._id || req.user.companyId }] };
+    const baseFilter = { 
+      $or: [
+        // Notifications specifically for this user
+        { user: req.user.id },
+        // Company-wide notifications for this role (but NOT targeted to a specific user)
+        { 
+          $and: [
+            { company: req.user.company?._id || req.user.companyId },
+            { role: req.user.role },
+            { user: { $exists: false } } // Only allow deletion if no specific user is assigned
+          ]
+        }
+      ] 
+    };
     const result = await Notification.deleteMany({ ...baseFilter, _id: { $in: ids } });
     return res.json({ success: true, data: { deleted: result.deletedCount } });
   } catch (e) {

@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 const CompanySignupPage = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
+  const isTransitioning = useRef(false); // Track if we're moving between steps
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -36,6 +37,18 @@ const CompanySignupPage = () => {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Auto-scroll to first error field when validation fails
+  useEffect(() => {
+    if (Object.keys(errors).length > 0 && errors.submit === undefined) {
+      const firstErrorKey = Object.keys(errors)[0];
+      const element = document.getElementById(firstErrorKey) || document.querySelector(`[name="${firstErrorKey}"]`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        element.focus();
+      }
+    }
+  }, [errors]);
 
   // Dropdown options
   const industryOptions = [
@@ -153,6 +166,13 @@ const CompanySignupPage = () => {
       // Admin HR Details validation
       if (!formData.adminFullName.trim()) {
         newErrors.adminFullName = 'Full name is required';
+      } else {
+        const nameParts = formData.adminFullName.trim().split(/\s+/);
+        if (nameParts.length < 2) {
+          newErrors.adminFullName = 'Please enter your full name (first and last name)';
+        } else if (nameParts[0].length < 2 || nameParts[nameParts.length - 1].length < 2) {
+          newErrors.adminFullName = 'First and last name must be at least 2 characters each';
+        }
       }
       if (!formData.adminEmail.trim()) {
         newErrors.adminEmail = 'Email is required';
@@ -169,6 +189,9 @@ const CompanySignupPage = () => {
       if (formData.adminPassword !== formData.confirmPassword) {
         newErrors.confirmPassword = 'Passwords do not match';
       }
+      if (formData.adminPhone && !/^[\+]?[1-9][\d]{0,15}$/.test(formData.adminPhone.replace(/[\s\-\(\)]/g, ''))) {
+        newErrors.adminPhone = 'Please enter a valid phone number';
+      }
     }
 
     if (step === 3) {
@@ -182,19 +205,62 @@ const CompanySignupPage = () => {
       if (formData.website && !/^https?:\/\/.+\..+/.test(formData.website)) {
         newErrors.website = 'Please enter a valid website URL (e.g., https://company.com)';
       }
-      if (formData.adminPhone && !/^[\+]?[1-9][\d]{0,15}$/.test(formData.adminPhone.replace(/[\s\-\(\)]/g, ''))) {
-        newErrors.adminPhone = 'Please enter a valid phone number';
-      }
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleNext = () => {
-    if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+  const handleNext = async (e) => {
+    // Prevent form submission if this is called from a button click
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
     }
+    
+    console.log('handleNext called, currentStep:', currentStep);
+    
+    if (!validateStep(currentStep)) {
+      console.log('Validation failed for step', currentStep);
+      return;
+    }
+    
+    console.log('Validation passed for step', currentStep);
+    
+    // Additional backend validation for Step 1 (Company Details)
+    if (currentStep === 1) {
+      console.log('Running backend validation for Step 1');
+      try {
+        // Check if company name already exists
+        const response = await fetch('/api/auth/company/check-name', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ companyName: formData.companyName.trim() })
+        });
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+          console.log('Company name validation failed:', data.message);
+          setErrors({ companyName: data.message || 'This company name is already registered' });
+          return;
+        }
+        console.log('Company name validation passed');
+      } catch (error) {
+        console.error('Error checking company name:', error);
+        // Continue anyway if network error (will be caught at final submission)
+      }
+    }
+    
+    console.log('Moving to next step');
+    isTransitioning.current = true;
+    setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+    
+    // Reset transition flag after a brief delay
+    setTimeout(() => {
+      isTransitioning.current = false;
+      console.log('Transition complete, flag reset');
+    }, 100);
   };
 
   const handlePrevious = () => {
@@ -203,8 +269,40 @@ const CompanySignupPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateStep(currentStep)) return;
+    e.stopPropagation(); // Prevent event bubbling
+    
+    console.log('handleSubmit called, currentStep:', currentStep, 'isSubmitting:', isSubmitting, 'isTransitioning:', isTransitioning.current);
+    
+    // Prevent submission during step transitions
+    if (isTransitioning.current) {
+      console.log('Currently transitioning, ignoring submit');
+      return;
+    }
+    
+    // Prevent double submissions
+    if (isSubmitting) {
+      console.log('Already submitting, returning');
+      return;
+    }
+    
+    // Only allow submission on the final step (Step 3)
+    if (currentStep !== 3) {
+      console.log('Not on step 3, calling handleNext');
+      // If not on final step, just move to next step
+      await handleNext();
+      console.log('handleNext completed, returning from handleSubmit');
+      return;
+    }
+    
+    console.log('On step 3, proceeding with submission');
+    
+    // We're on step 3, validate before submitting
+    if (!validateStep(currentStep)) {
+      console.log('Validation failed on step 3');
+      return;
+    }
 
+    console.log('Validation passed, submitting form');
     setIsSubmitting(true);
     try {
       // Create FormData for file upload support
@@ -244,7 +342,6 @@ const CompanySignupPage = () => {
       });
 
       const data = await response.json();
-      console.log('Server response:', data); // Debug log
 
       if (data.success) {
         // Redirect to email OTP verification
@@ -253,18 +350,38 @@ const CompanySignupPage = () => {
         });
       } else {
         // Handle API validation errors
+        const newErrors = {};
+        
         if (data.errors && Array.isArray(data.errors)) {
-          const newErrors = {};
+          // Multiple validation errors
           data.errors.forEach(error => {
             newErrors[error.field] = error.message;
           });
-          console.log('Validation errors:', newErrors); // Debug log
-          setErrors(newErrors);
         } else if (data.field) {
-          setErrors({ [data.field]: data.message });
+          // Single field error
+          newErrors[data.field] = data.message;
         } else {
-          console.log('General error:', data.message); // Debug log
-          setErrors({ submit: data.message || 'Registration failed. Please try again.' });
+          // General error
+          newErrors.submit = data.message || 'Registration failed. Please try again.';
+        }
+        
+        setErrors(newErrors);
+        
+        // Navigate to the step with the error
+        if (Object.keys(newErrors).length > 0 && newErrors.submit === undefined) {
+          const errorField = Object.keys(newErrors)[0];
+          // Step 1 fields
+          if (['companyName', 'industry', 'companySize', 'headquarters', 'country', 'website', 'registrationNumber'].includes(errorField)) {
+            setCurrentStep(1);
+          }
+          // Step 2 fields
+          else if (['adminFullName', 'adminEmail', 'adminPassword', 'confirmPassword'].includes(errorField)) {
+            setCurrentStep(2);
+          }
+          // Step 3 fields
+          else if (['adminPhone', 'companyDescription', 'linkedinUrl', 'careersPageUrl', 'hiringRegions', 'remotePolicy'].includes(errorField)) {
+            setCurrentStep(3);
+          }
         }
       }
     } catch (error) {

@@ -19,6 +19,7 @@ const connectDB = () => {
     serverSelectionTimeoutMS: parseInt(process.env.MONGODB_SERVER_SELECTION_TIMEOUT_MS || '10000', 10),
     socketTimeoutMS: parseInt(process.env.MONGODB_SOCKET_TIMEOUT_MS || '45000', 10),
     family: 4, // Force IPv4 to avoid ::1 issues
+    retryWrites: false, // Disable retryable writes for standalone MongoDB (no replica set)
   };
 
   let attempt = 0;
