@@ -262,18 +262,28 @@ const HRApplicationManagement = () => {
         return 'bg-gray-400 text-white';
       case 'interview_scheduled':
         return 'bg-gray-600 text-white';
+      case 'interviewed':
+        return 'bg-purple-600 text-white dark:bg-purple-500';
       case 'interview_completed':
         return 'bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
       case 'completed':
         return 'bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
       case 'submitted':
         return 'bg-gray-700 text-white';
+      case 'offer_accepted':
+      case 'hired':
+        return 'bg-green-600 text-white dark:bg-green-500';
+      case 'offer_declined':
+        return 'bg-orange-600 text-white dark:bg-orange-500';
+      case 'withdrawn':
+        return 'bg-yellow-600 text-white dark:bg-yellow-500';
       default:
         return 'bg-gray-100 text-gray-600';
     }
   };
 
   const formatStatus = (status) => {
+    if (status === 'offer_accepted') return 'Hired';
     return String(status).replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
@@ -515,15 +525,8 @@ const HRApplicationManagement = () => {
   };
 
   const handleExportRequest = () => {
-    const hasFilters = selectedJob !== 'all' || statusFilter !== 'all' || searchTerm;
-    
-    if (!hasFilters) {
-      // Show confirmation dialog for full export
-      setShowExportConfirm(true);
-    } else {
-      // Direct export for filtered results
-      exportApplications('csv');
-    }
+    // Always allow export regardless of filters
+    exportApplications('csv');
   };
 
   const exportApplications = (format) => {
@@ -819,6 +822,10 @@ const HRApplicationManagement = () => {
                 <option value="under_review">Under Review</option>
                 <option value="shortlisted">Shortlisted</option>
                 <option value="interview_scheduled">Interview Scheduled</option>
+                <option value="interviewed">Interviewed</option>
+                <option value="offer_accepted">Hired</option>
+                <option value="offer_declined">Offer Declined</option>
+                <option value="withdrawn">Withdrawn</option>
                 <option value="rejected">Rejected</option>
               </select>
             </div>
