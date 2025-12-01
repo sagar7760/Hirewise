@@ -1217,56 +1217,7 @@ const HRApplicationManagement = () => {
                 </div>
               </div>
 
-              <div className="mb-6">
-                <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 font-['Roboto'] mb-4 transition-colors duration-300">AI Analysis</h4>
-                <div className="grid grid-cols-3 gap-4 mb-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white font-['Open_Sans'] transition-colors duration-300">
-                      {selectedApplication.aiAnalysis.skillsMatch}%
-                    </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto'] transition-colors duration-300">Skills Match</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white font-['Open_Sans'] transition-colors duration-300">
-                      {selectedApplication.aiAnalysis.experienceMatch}%
-                    </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto'] transition-colors duration-300">Experience Match</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white font-['Open_Sans'] transition-colors duration-300">
-                      {selectedApplication.aiAnalysis.overallFit}%
-                    </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400 font-['Roboto'] transition-colors duration-300">Overall Fit</div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <h5 className="text-sm font-medium text-gray-500 dark:text-gray-400 font-['Roboto'] transition-colors duration-300 mb-2">Strengths</h5>
-                    <ul className="space-y-1">
-                      {selectedApplication.aiAnalysis.strengths.map((strength, index) => (
-                        <li key={index} className="text-sm text-gray-600 font-['Roboto'] flex items-start">
-                          <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                          {strength}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <h5 className="text-sm font-medium text-gray-500 dark:text-gray-400 font-['Roboto'] transition-colors duration-300 mb-2">Concerns</h5>
-                    <ul className="space-y-1">
-                      {selectedApplication.aiAnalysis.concerns.map((concern, index) => (
-                        <li key={index} className="text-sm text-gray-600 font-['Roboto'] flex items-start">
-                          <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                          {concern}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              {/* Interview Feedback / AI Analysis */}
+              {/* Interview Feedback */}
               <div className="mb-6 border-t border-gray-200 dark:border-gray-700 pt-6">
                 <h4 className="text-lg font-medium text-gray-900 dark:text-white font-['Open_Sans'] mb-4">Interview Feedback</h4>
                 {fetchingFeedback && (
