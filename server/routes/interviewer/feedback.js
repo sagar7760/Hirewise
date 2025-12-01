@@ -27,6 +27,7 @@ router.get('/pending', [
     const filter = {
       interviewer: req.user.id,
       scheduledDate: { $lt: now },
+      status: { $ne: 'cancelled' }, // Exclude cancelled interviews
       $or: [
         { 'feedback.submittedAt': { $exists: false } },
         { 'feedback.submittedAt': null },
@@ -68,6 +69,7 @@ router.get('/pending', [
         duration: i.duration || 60,
         interviewType: i.type,
         department: i.application?.job?.department || null,
+        status: i.status,
         daysPending: diffDays,
         priority,
         hasFeedback: !!submittedAt,

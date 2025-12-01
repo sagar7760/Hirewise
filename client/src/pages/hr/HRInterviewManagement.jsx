@@ -219,16 +219,6 @@ const HRInterviewManagement = () => {
 
     try {
       switch (action) {
-        case 'confirm': {
-          const backendStatus = 'confirmed';
-          updateStatusLocal(statusDisplayMap[backendStatus]);
-          await makeJsonRequest(`/api/hr/interviews/${interviewId}/status`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: backendStatus })
-          });
-          break;
-        }
         case 'cancel': {
           const backendStatus = 'cancelled';
           updateStatusLocal(statusDisplayMap[backendStatus]);
@@ -421,12 +411,14 @@ const HRInterviewManagement = () => {
       if (!applicationId || !interviewerId || !date || !time) {
         throw new Error('Please fill required fields');
       }
-      // Client-side check: backend requires scheduledDate strictly in the future (not today)
-      const today = new Date();
-      const selected = new Date(date);
-      const todayYMD = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      if (selected <= todayYMD) {
-        throw new Error('Please select a date after today');
+      // Prevent scheduling in the past
+      const now = new Date();
+      const [hours, minutes] = time.split(':').map(Number);
+      const scheduledDateTime = new Date(date);
+      scheduledDateTime.setHours(hours, minutes, 0, 0);
+      
+      if (scheduledDateTime <= now) {
+        throw new Error('Cannot schedule interview in the past. Please select a future date and time.');
       }
       const payload = {
         applicationId,
@@ -479,6 +471,16 @@ const HRInterviewManagement = () => {
     try {
       const { id, date, time, duration, reason } = rescheduleModal;
       if (!id || !date || !time) throw new Error('Missing fields');
+      
+      // Prevent rescheduling to past time
+      const now = new Date();
+      const [hours, minutes] = time.split(':').map(Number);
+      const scheduledDateTime = new Date(date);
+      scheduledDateTime.setHours(hours, minutes, 0, 0);
+      
+      if (scheduledDateTime <= now) {
+        throw new Error('Cannot reschedule to a past time. Please select a future date and time.');
+      }
       const res = await makeJsonRequest(`/api/hr/interviews/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -727,17 +729,6 @@ const HRInterviewManagement = () => {
                             </svg>
                           </button>
                           
-                          {upcoming && interview.status === 'Scheduled' && (
-                            <button
-                              onClick={() => handleInterviewAction('confirm', interview.id)}
-                              className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 transition-colors"
-                              title="Confirm Interview"
-                            >
-                              <svg className="w-4 h-4 stroke-current" fill="none" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                            </button>
-                          )}
                           {upcoming && interview.status !== 'Cancelled' && (
                             <>
                               <button
@@ -1066,7 +1057,7 @@ const HRInterviewManagement = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Date</label>
-                    <input type="date" min={new Date(Date.now()+24*60*60*1000).toISOString().slice(0,10)} value={scheduleForm.date} onChange={e=>setScheduleForm(f=>({...f, date:e.target.value}))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700" />
+                    <input type="date" min={new Date().toISOString().slice(0,10)} value={scheduleForm.date} onChange={e=>setScheduleForm(f=>({...f, date:e.target.value}))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Time</label>

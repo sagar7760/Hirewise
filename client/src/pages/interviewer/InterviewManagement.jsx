@@ -110,9 +110,8 @@ const InterviewManagement = () => {
   // Derived & mapped summary (omitted for brevity, no dark mode changes needed here)
   const summary = useMemo(() => {
     const mapStatus = s => {
-      if (s === 'scheduled') return 'pending';
-      if (s === 'confirmed') return 'confirmed';
-      return s; // keep others
+      if (s === 'cancelled') return 'cancelled';
+      return s; // keep status as is (scheduled, confirmed, completed, etc.)
     };
     const decorate = arr => arr.map(i => ({ ...i, uiStatus: mapStatus(i.status), feedback: i.feedback || i.existingFeedback || i?.details?.feedback || null }));
     const todayItems = decorate(data.today.items);
@@ -122,13 +121,13 @@ const InterviewManagement = () => {
       today: {
         total: todayItems.length,
         confirmed: todayItems.filter(i => i.uiStatus === 'confirmed').length,
-        pending: todayItems.filter(i => i.uiStatus === 'pending').length,
+        scheduled: todayItems.filter(i => i.uiStatus === 'scheduled').length,
         items: todayItems
       },
       upcoming: {
         total: upcomingItems.length,
         confirmed: upcomingItems.filter(i => i.uiStatus === 'confirmed').length,
-        pending: upcomingItems.filter(i => i.uiStatus === 'pending').length,
+        scheduled: upcomingItems.filter(i => i.uiStatus === 'scheduled').length,
         thisWeek: upcomingItems.filter(i => {
           const now = new Date();
           const week = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -240,12 +239,13 @@ const TodaysInterviewsContent = ({ section, rawState, onRetry, onOpenDetails }) 
   const todaysInterviews = section.items;
 
   const getStatusColor = (status) => {
-    // Invert confirmed/pending backgrounds
+    // Invert confirmed/scheduled backgrounds
     if (status === 'confirmed') return 'bg-gray-100 text-gray-700 dark:bg-gray-600 dark:text-gray-100';
-    if (status === 'pending') return 'bg-orange-100 text-orange-800 dark:bg-orange-800 dark:text-orange-100';
+    if (status === 'scheduled') return 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100';
+    if (status === 'cancelled') return 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100';
     return 'bg-gray-100 text-gray-700 dark:bg-gray-600 dark:text-gray-100';
   };
-  const getStatusText = (status) => status === 'confirmed' ? 'Confirmed' : status === 'pending' ? 'Pending' : status;
+  const getStatusText = (status) => status === 'confirmed' ? 'Confirmed' : status === 'scheduled' ? 'Scheduled' : status === 'cancelled' ? 'Cancelled' : status;
 
   return (
     <div>
@@ -256,7 +256,7 @@ const TodaysInterviewsContent = ({ section, rawState, onRetry, onOpenDetails }) 
           <>
             <SummaryCard label="Total Today" value={section.total} icon="calendar" />
             <SummaryCard label="Confirmed" value={section.confirmed} icon="check" />
-            <SummaryCard label="Pending" value={section.pending} icon="clock" />
+            <SummaryCard label="Scheduled" value={section.scheduled} icon="clock" />
           </>
         )}
       </div>
@@ -296,12 +296,12 @@ const UpcomingInterviewsContent = ({ section, rawState, onRetry, onOpenDetails }
     const matches = (i.candidate || '').toLowerCase().includes(term) || (i.job || '').toLowerCase().includes(term);
     if (filter === 'all') return matches;
     if (filter === 'confirmed') return matches && i.uiStatus === 'confirmed';
-    if (filter === 'pending') return matches && i.uiStatus === 'pending';
+    if (filter === 'scheduled') return matches && i.uiStatus === 'scheduled';
     return matches;
   });
 
-  const getStatusColor = (status) => status === 'confirmed' ? 'bg-gray-100 text-gray-700 dark:bg-gray-600 dark:text-gray-100' : status === 'pending' ? 'bg-orange-100 text-orange-800 dark:bg-orange-800 dark:text-orange-100' : 'bg-gray-100 text-gray-700 dark:bg-gray-600 dark:text-gray-100';
-  const getStatusText = (status) => status === 'confirmed' ? 'Confirmed' : status === 'pending' ? 'Pending' : status;
+  const getStatusColor = (status) => status === 'confirmed' ? 'bg-gray-100 text-gray-700 dark:bg-gray-600 dark:text-gray-100' : status === 'scheduled' ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100' : status === 'cancelled' ? 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100' : 'bg-gray-100 text-gray-700 dark:bg-gray-600 dark:text-gray-100';
+  const getStatusText = (status) => status === 'confirmed' ? 'Confirmed' : status === 'scheduled' ? 'Scheduled' : status === 'cancelled' ? 'Cancelled' : status;
 
   return (
     <div>
@@ -312,7 +312,7 @@ const UpcomingInterviewsContent = ({ section, rawState, onRetry, onOpenDetails }
           <>
             <SummaryCard label="Total Upcoming" value={section.total} icon="calendar" />
             <SummaryCard label="Confirmed" value={section.confirmed} icon="check" />
-            <SummaryCard label="Pending" value={section.pending} icon="clock" />
+            <SummaryCard label="Scheduled" value={section.scheduled} icon="clock" />
             <SummaryCard label="This Week" value={section.thisWeek} icon="week" />
           </>
         )}
@@ -340,7 +340,7 @@ const UpcomingInterviewsContent = ({ section, rawState, onRetry, onOpenDetails }
               >
                 <option value="all">All Interviews</option>
                 <option value="confirmed">Confirmed</option>
-                <option value="pending">Pending Confirmation</option>
+                <option value="scheduled">Scheduled</option>
               </select>
             </div>
         </div>
@@ -610,18 +610,28 @@ const InterviewRow = ({ interview, getStatusColor, getStatusText, onViewDetails 
         </div>
       </div>
       <div className="flex flex-col gap-2 ml-4">
-        <button
-          // Join Meeting button inversion: primary black/white becomes primary indigo/white
-          className={`px-4 py-2 rounded-lg text-sm font-medium font-['Roboto'] ${
-            interview.meetingLink 
-            ? 'bg-black text-white hover:bg-gray-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 dark:text-white' 
-            : 'bg-gray-300 text-gray-600 cursor-not-allowed dark:bg-gray-600 dark:text-gray-400'
-          }`}
-          onClick={() => interview.meetingLink && window.open(interview.meetingLink, '_blank')}
-          disabled={!interview.meetingLink}
-        >
-          Join Meeting
-        </button>
+        {(() => {
+          // Only show Join Meeting button for video interviews
+          const isVideoInterview = interview.type?.toLowerCase() === 'video';
+          if (!isVideoInterview) return null;
+          
+          const meetingLink = interview.meetingLink || interview.meetingDetails?.meetingLink || interview.location;
+          
+          return (
+            <button
+              // Join Meeting button inversion: primary black/white becomes primary indigo/white
+              className={`px-4 py-2 rounded-lg text-sm font-medium font-['Roboto'] ${
+                meetingLink 
+                ? 'bg-black text-white hover:bg-gray-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 dark:text-white' 
+                : 'bg-gray-300 text-gray-600 cursor-not-allowed dark:bg-gray-600 dark:text-gray-400'
+              }`}
+              onClick={() => meetingLink && window.open(meetingLink, '_blank')}
+              disabled={!meetingLink}
+            >
+              Join Meeting
+            </button>
+          );
+        })()}
         <button
           onClick={onViewDetails}
           // Secondary button inversion
@@ -745,6 +755,8 @@ const InterviewDetailModal = ({ detail, onClose }) => {
   const canSubmitFeedback = (() => {
     try {
       if (!interview?.scheduledDate) return false;
+      // Prevent feedback for cancelled interviews
+      if (interview.status === 'cancelled' || interview.uiStatus === 'cancelled') return false;
       const now = new Date();
       const sched = new Date(interview.scheduledDate);
       return now >= sched; // backend allows submit when now >= scheduledDate
@@ -796,7 +808,7 @@ const InterviewDetailModal = ({ detail, onClose }) => {
                 <h3 className="text-lg font-medium font-['Open_Sans'] text-black dark:text-white flex items-center gap-2">
                   <span>{interview.candidate}</span>
                   {/* Status badge inversion */}
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-['Roboto'] capitalize ${uiStatus === 'confirmed' ? 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200' : uiStatus === 'pending' ? 'bg-orange-100 text-orange-800 dark:bg-orange-800 dark:text-orange-100' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200'}`}>{uiStatus}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-['Roboto'] capitalize ${uiStatus === 'confirmed' ? 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200' : uiStatus === 'scheduled' ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100' : uiStatus === 'cancelled' ? 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200'}`}>{uiStatus}</span>
                 </h3>
                 {/* Job title inversion */}
                 <p className="text-sm text-gray-600 dark:text-gray-300 font-['Roboto'] mt-1">{formatJob(interview.job)}</p>
@@ -808,8 +820,13 @@ const InterviewDetailModal = ({ detail, onClose }) => {
                 <DetailField label="Duration" value={(interview.duration ? `${interview.duration} min` : '—')} />
                 <DetailField label="Type" value={interview.type || '—'} />
                 <DetailField label="Department" value={interview.jobDepartment || '—'} />
-                {/* Meeting link inversion */}
-                <DetailField label="Meeting Link" value={interview.meetingLink ? <button onClick={() => window.open(interview.meetingLink,'_blank')} className="text-black dark:text-indigo-400 underline hover:opacity-80">Open</button> : '—'} />
+                {/* Meeting link inversion - only show for video interviews */}
+                {interview.type?.toLowerCase() === 'video' && (
+                  <DetailField label="Meeting Link" value={(() => {
+                    const meetingLink = interview.meetingLink || interview.meetingDetails?.meetingLink || interview.location;
+                    return meetingLink ? <button onClick={() => window.open(meetingLink,'_blank')} className="text-black dark:text-indigo-400 underline hover:opacity-80">Open</button> : '—';
+                  })()} />
+                )}
               </div>
               <div className="space-y-2">
                 {/* Section header inversion */}
@@ -890,7 +907,11 @@ const InterviewDetailModal = ({ detail, onClose }) => {
                       </div>
                     ) : (
                       <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
-                        <p className="text-xs text-gray-600 dark:text-gray-300 font-['Roboto']">No feedback submitted yet. You can add feedback once the scheduled time has passed.</p>
+                        {(interview.status === 'cancelled' || interview.uiStatus === 'cancelled') ? (
+                          <p className="text-xs text-red-600 dark:text-red-400 font-['Roboto']">This interview has been cancelled. Feedback cannot be submitted.</p>
+                        ) : (
+                          <p className="text-xs text-gray-600 dark:text-gray-300 font-['Roboto']">No feedback submitted yet. You can add feedback once the scheduled time has passed.</p>
+                        )}
                         <button
                           disabled={!canSubmitFeedback}
                           onClick={() => setShowFbForm(true)}
@@ -907,13 +928,21 @@ const InterviewDetailModal = ({ detail, onClose }) => {
         </div>
         {/* Modal Footer inversion */}
         <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
-          {interview.meetingLink && (
-            <button
-              onClick={() => window.open(interview.meetingLink, '_blank')}
-              // Primary button inversion (Join Meeting)
-              className="px-4 py-2 rounded-lg text-sm font-medium bg-black text-white hover:bg-gray-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 dark:text-white font-['Roboto']"
-            >Join Meeting</button>
-          )}
+          {(() => {
+            // Only show Join Meeting button for video interviews
+            const isVideoInterview = interview.type?.toLowerCase() === 'video';
+            if (!isVideoInterview) return null;
+            
+            const meetingLink = interview.meetingLink || interview.meetingDetails?.meetingLink || interview.location;
+            
+            return meetingLink ? (
+              <button
+                onClick={() => window.open(meetingLink, '_blank')}
+                // Primary button inversion (Join Meeting)
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-black text-white hover:bg-gray-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 dark:text-white font-['Roboto']"
+              >Join Meeting</button>
+            ) : null;
+          })()}
           <button
             onClick={onClose}
             // Secondary button inversion (Close)

@@ -270,27 +270,41 @@ const PendingFeedback = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {/* Priority badge inversion done via getPriorityColor */}
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full font-['Roboto'] ${getPriorityColor(interview.priority, interview.daysPending)}`}>
-                        {interview.daysPending} days
-                      </span>
+                      {interview.status === 'cancelled' ? (
+                        <span className="px-2 py-1 text-xs font-medium rounded-full font-['Roboto'] bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+                          Cancelled
+                        </span>
+                      ) : (
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full font-['Roboto'] ${getPriorityColor(interview.priority, interview.daysPending)}`}>
+                          {interview.daysPending} days
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
-                      <button
-                        onClick={() => openFeedbackForm(interview)}
-                        // Primary button inversion: bg-black -> dark:bg-indigo-600
-                        className="bg-black text-white px-4 py-2 rounded-lg text-xs font-medium dark:bg-white dark:text-gray-900 transition-colors font-['Roboto'] cursor-pointer"
-                      >
-                        {interview.hasFeedback ? (interview.editable ? 'Edit Feedback' : 'View Feedback') : 'Submit Feedback'}
-                      </button>
-                      {interview.hasFeedback && (
-                        // Secondary badge inversion
-                        <span className={`inline-flex items-center px-2 py-1 rounded text-[10px] font-['Roboto'] font-medium border ${
-                          interview.editable 
-                            ? 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900 dark:text-yellow-300 dark:border-yellow-700' 
-                            : 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600'
-                        }`}>
-                          {interview.editable ? `${interview.hoursRemaining.toFixed(1)}h left` : 'Locked'}
+                      {interview.status === 'cancelled' ? (
+                        <span className="text-xs text-red-600 dark:text-red-400 font-['Roboto'] italic">
+                          Cannot submit feedback
                         </span>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => openFeedbackForm(interview)}
+                            // Primary button inversion: bg-black -> dark:bg-indigo-600
+                            className="bg-black text-white px-4 py-2 rounded-lg text-xs font-medium dark:bg-white dark:text-gray-900 transition-colors font-['Roboto'] cursor-pointer"
+                          >
+                            {interview.hasFeedback ? (interview.editable ? 'Edit Feedback' : 'View Feedback') : 'Submit Feedback'}
+                          </button>
+                          {interview.hasFeedback && (
+                            // Secondary badge inversion
+                            <span className={`inline-flex items-center px-2 py-1 rounded text-[10px] font-['Roboto'] font-medium border ${
+                              interview.editable 
+                                ? 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900 dark:text-yellow-300 dark:border-yellow-700' 
+                                : 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600'
+                            }`}>
+                              {interview.editable ? `${interview.hoursRemaining.toFixed(1)}h left` : 'Locked'}
+                            </span>
+                          )}
+                        </>
                       )}
                     </td>
                   </tr>

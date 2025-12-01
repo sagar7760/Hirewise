@@ -441,12 +441,14 @@ const HRApplicationManagement = () => {
       if (!applicationId || !interviewerId || !date || !time) {
         throw new Error('Please fill required fields');
       }
-      // Backend requires future date (not today)
-      const today = new Date();
-      const selected = new Date(date);
-      const todayYMD = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      if (selected <= todayYMD) {
-        throw new Error('Please select a date after today');
+      // Prevent scheduling in the past
+      const now = new Date();
+      const [hours, minutes] = time.split(':').map(Number);
+      const scheduledDateTime = new Date(date);
+      scheduledDateTime.setHours(hours, minutes, 0, 0);
+      
+      if (scheduledDateTime <= now) {
+        throw new Error('Cannot schedule interview in the past. Please select a future date and time.');
       }
       const payload = {
         applicationId,
@@ -458,18 +460,33 @@ const HRApplicationManagement = () => {
         location: location || undefined,
         notes: notes || undefined
       };
+      
+      console.log('Scheduling interview with payload:', payload);
+      
       const res = await makeJsonRequest('/api/hr/interviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      if (!res?.success) throw new Error(res?.message || 'Failed to schedule');
+      
+      console.log('Schedule interview response:', res);
+      
+      if (!res?.success) {
+        // Extract detailed error message from response
+        const errorMsg = res?.message || 
+                        (res?.errors && Array.isArray(res.errors) ? res.errors.map(e => e.message || e.msg).join(', ') : null) ||
+                        (res?.error) ||
+                        'Failed to schedule interview';
+        throw new Error(errorMsg);
+      }
+      
       setShowScheduleModal(false);
       resetScheduleForm();
       setSlotState({ loading: false, slots: [], error: null });
       // Update application status locally/backend
       await handleStatusChange(applicationId, 'interview_scheduled');
     } catch (err) {
+      console.error('Schedule interview error:', err);
       const apiErrors = err?.response?.data?.errors;
       if (Array.isArray(apiErrors) && apiErrors.length) {
         setScheduleError(apiErrors.map(e => e.message).join(', '));
@@ -1446,7 +1463,7 @@ const HRApplicationManagement = () => {
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-['Roboto'] mb-2">Date</label>
                       <input
                         type="date"
-                        min={new Date(Date.now()+24*60*60*1000).toISOString().slice(0,10)}
+                        min={new Date().toISOString().slice(0,10)}
                         value={scheduleForm.date}
                         onChange={e => setScheduleForm(f => ({ ...f, date: e.target.value }))}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white font-['Roboto'] text-gray-900 dark:text-white dark:bg-gray-700"

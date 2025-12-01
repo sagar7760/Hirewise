@@ -210,16 +210,21 @@ router.post('/', [
     .withMessage('Valid interviewer ID is required'),
   body('scheduledDate')
     .isISO8601()
-    .withMessage('Scheduled date must be a valid date')
-    .custom((value) => {
-      if (new Date(value) <= new Date()) {
-        throw new Error('Scheduled date must be in the future');
+    .withMessage('Scheduled date must be a valid date'),
+  body('scheduledTime')
+    .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
+    .withMessage('Scheduled time must be in HH:mm format')
+    .custom((value, { req }) => {
+      // Validate that the combined date+time is in the future
+      const [hours, minutes] = value.split(':').map(Number);
+      const scheduledDateTime = new Date(req.body.scheduledDate);
+      scheduledDateTime.setHours(hours, minutes, 0, 0);
+      
+      if (scheduledDateTime <= new Date()) {
+        throw new Error('Interview must be scheduled for a future date and time');
       }
       return true;
     }),
-  body('scheduledTime')
-    .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
-    .withMessage('Scheduled time must be in HH:mm format'),
   body('duration')
     .isInt({ min: 15, max: 480 })
     .withMessage('Duration must be between 15 and 480 minutes'),

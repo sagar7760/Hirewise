@@ -136,6 +136,11 @@ router.post('/:id/feedback', [
     const interview = await Interview.findOne({ _id: req.params.id, interviewer: req.user.id });
     if (!interview) return res.status(404).json({ success:false, message:'Interview not found' });
 
+    // Prevent feedback for cancelled interviews
+    if (interview.status === 'cancelled') {
+      return res.status(400).json({ success:false, message:'Cannot submit feedback for cancelled interviews' });
+    }
+
     // Only allow feedback if interview is completed or scheduled/confirmed and within 24h after scheduled time
     const now = new Date();
     const scheduledEnd = new Date(interview.scheduledDate);
