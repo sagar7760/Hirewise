@@ -18,55 +18,22 @@
 ---
 
 ## Table of Contents
-1. Vision & Philosophy
-2. Core Feature Set
-3. Architecture Overview
-4. Tech Stack
-5. Data Models (Snapshot)
-6. Application Flows
-7. AI Integration Scope & Design
-8. Security & Compliance Considerations
-9. Environment Variables
-10. Local Development Setup
-11. NPM Scripts Reference
-12. Testing Strategy (Planned / Partial)
-13. Folder Structure
-14. Deployment (Vercel + Node API)
-15. Roadmap & Milestones
-16. Contribution Guidelines
-17. License
+1. Architecture Overview
+2. Tech Stack
+3. Data Models (Snapshot)
+4. Application Flows
+5. AI Integration Scope & Design
+6. Environment Variables
+7. Local Development Setup
+8. NPM Scripts Reference
+9. Folder Structure
+10. Deployment (Vercel + Node API)
+11. Contribution Guidelines
+12. License
 
 ---
 
-## 1. Vision & Philosophy
-HireWise aims to simplify and humanize the hiring lifecycle while keeping it structured, measurable, and fair:
-* Transparency: Applicants always see where they stand.
-* Fair Hiring: Standardized stages & structured feedback reduce bias.
-* Responsible AI: AI is assistive (summaries, analysis), not an opaque decision engine.
-* Fast Feedback Loops: Real‑time notifications, score breakdowns, and timeline events.
-
-## 2. Core Feature Set
-Current (implemented or partially implemented):
-* Multi‑role platform: applicant, HR, interviewer, admin.
-* Role‑aware protected routes (React Router v7).
-* Applicant job discovery, application submission (profile or custom resume).
-* Resume upload + parsing (PDF / DOCX) via `pdf-parse`, `mammoth`, custom extraction.
-* AI assistance (Gemini) for: resume fit analysis, recommended interview questions, key strengths/gaps extraction, structured JSON parsing attempts with graceful fallback.
-* Application pipeline tracking: statuses, timeline events, interview linkage.
-* Real‑time notifications (Socket.IO) + persisted Notification model.
-* Saved jobs + metadata timestamps.
-* HR management: job postings, default interview rounds scaffolding (in progress), application review, candidate scoring fields (AI analysis fields on Application model).
-* Interviewer modular profile (availability, expertise, preferences) for scheduling foundations.
-* Admin company/user oversight (initial scaffolding for organization endpoints).
-* Dark / light theme, responsive UI, marketing pages (How It Works, Features, About) using Tailwind.
-
-Planned / Emerging:
-* Interview scheduling orchestration UI.
-* Rich feedback capture & aggregation.
-* Offer workflow & acceptance tracking.
-* Analytics dashboards (conversion, funnel leaks, time‑to‑hire metrics).
-
-## 3. Architecture Overview
+## 1. Architecture Overview
 Monorepo style (frontend + backend) without a shared package layer yet.
 
 High Level:
@@ -96,7 +63,7 @@ Frontend Layers:
 * Hooks: `useApiRequest`, `useHRApplications` (data fetch / caching logic patterns).
 * UI: Tailwind utility classes + custom animation triggers (IntersectionObserver + CSS classes).
 
-## 4. Tech Stack
+## 2. Tech Stack
 | Layer | Technology |
 |-------|------------|
 | Frontend | React 19, Vite 7, Tailwind CSS 4, React Router 7 |
@@ -109,7 +76,7 @@ Frontend Layers:
 | Security | helmet, express-rate-limit, CORS configured origin |
 | Dev Tooling | nodemon, jest (initial), supertest (planned), ESLint 9 |
 
-## 5. Data Models (Snapshot Highlights)
+## 3. Data Models (Snapshot Highlights)
 ### User
 Roles: `applicant | hr | interviewer | admin`; rich applicant profile sub-document (education, experience entries, skills, projects); interviewer availability; permissions & accountStatus.
 ### Job
@@ -120,7 +87,7 @@ Status lifecycle (`submitted`→`under_review`→`shortlisted`→`interview_sche
 Target via user or company+role, stored then optionally emitted to relevant Socket.IO rooms.
 ### (Others not fully listed here) Interview, Resume, Company: scheduling, artifact management, ownership, branding.
 
-## 6. Application Flows
+## 4. Application Flows
 1. Applicant discovers job → saves or applies.
 2. Application chooses profile resume or custom upload.
 3. Resume parsed → (optional) AI analysis stored in `application.aiAnalysis`.
@@ -128,23 +95,10 @@ Target via user or company+role, stored then optionally emitted to relevant Sock
 5. Interviews scheduled (future UI) referencing Interview model; interviewer feedback eventually influences status.
 6. Notifications: status changes / interview events dispatched to user & role rooms.
 
-## 7. AI Integration Scope & Design
-`geminiService` encapsulates prompt creation and parsing heuristics (regex JSON extraction + fallbacks). All AI calls degrade gracefully: failure returns structured fallback so UI doesn’t break. Current prompts include: resume fit analysis, resume info extraction, interview question generation. No automated rejection decisions—AI is advisory.
+## 5. AI Integration Scope & Design
+`geminiService` encapsulates prompt creation and parsing heuristics (regex JSON extraction + fallbacks). All AI calls degrade gracefully: failure returns structured fallback so UI doesn't break. Current prompts include: resume fit analysis, resume info extraction, interview question generation. No automated rejection decisions—AI is advisory.
 
-## 8. Security & Compliance Considerations
-Implemented:
-* HTTP security headers (helmet).
-* Rate limiting (env configurable window/max).
-* JWT verification for protected resources & Socket.IO auth hook.
-* Environment‑based Mongo URI selection (dev vs prod).
-* Input validation (express-validator present in deps; usage to be expanded).
-Planned:
-* Centralized permission middleware (fine‑grained resource checks).
-* Audit logs for admin actions.
-* Password hashing (bcryptjs) – ensure salt rounds documented (not shown in snippet; add in auth controller logic).
-* Enhanced validation & sanitization on file uploads.
-
-## 9. Environment Variables
+## 6. Environment Variables
 Create a `.env` inside `server/` (never commit) with:
 ```
 NODE_ENV=development
@@ -169,7 +123,7 @@ EMAIL_SMTP_USER=
 EMAIL_SMTP_PASS=
 ```
 
-## 10. Local Development Setup
+## 7. Local Development Setup
 Prereqs: Node 18+ recommended (>=16), MongoDB running locally, npm.
 
 Clone & install:
@@ -198,7 +152,7 @@ Vite dev URL (default): http://localhost:5173
 
 Visit the SPA; API requests target `http://localhost:5000/api/*`.
 
-## 11. NPM Scripts Reference
+## 8. NPM Scripts Reference
 Backend (`server/package.json`):
 * `dev` – nodemon watch server.
 * `start` – production start.
@@ -216,15 +170,7 @@ Frontend (`client/package.json`):
 
 Root: (no orchestrating scripts yet) – consider adding workspaces in future.
 
-## 12. Testing Strategy (Current / Planned)
-Current: Ad-hoc scripts in `server/test-files/` plus preliminary jest config. Models & controllers lack unit test coverage.
-Planned:
-* Unit tests: model validation & service logic (geminiService parse fallbacks, notification service emission logic with mocked IO).
-* Integration tests: auth flow, application submission, AI analysis fallback.
-* E2E (future): Playwright/Cypress for applicant funnel & HR review workflow.
-* Performance snapshots: indexing & query latency on Application & Job collections.
-
-## 13. Folder Structure (Trimmed)
+## 9. Folder Structure (Trimmed)
 ```
 HireWise/
 	client/                 # React SPA
@@ -248,7 +194,7 @@ HireWise/
 	vercel.json             # Static frontend deployment config
 ```
 
-## 14. Deployment
+## 10. Deployment
 Frontend: Configured for Vercel static build (`@vercel/static-build`) using `client/package.json` scripts; all routes rewired to `index.html` via `vercel.json` fallback.
 
 Backend: Run separately (e.g. Render, Railway, Fly.io, or traditional VPS). Need environment parity (`.env`). CORS must allow deployed frontend origin. Consider creating a Procfile / Dockerfile (not yet present) for reproducible deploy.
@@ -257,32 +203,7 @@ Edge / Future:
 * Potential merge into a single container with reverse proxy.
 * Add CI (GitHub Actions) for lint + test + build checks.
 
-## 15. Roadmap & Milestones
-Completed / Initial:
-* Marketing pages (How It Works, Features, About) & branding.
-* Resume parsing pipeline.
-* AI resume analysis + question generation (Gemini) with robust fallback.
-* Multi-role data model foundations & status timeline.
-* Real-time notification infrastructure (persistence + Socket.IO emit).
-
-Upcoming (Prioritized):
-1. Interview scheduling layer (availability + slot booking UI).
-2. Interviewer feedback capture & aggregation UI.
-3. Offer management workflow (statuses + e-sign placeholder).
-4. Advanced search & filtering (composite indexes + text scoring exposure).
-5. Candidate analytics dashboards.
-6. Accessibility & SEO enhancements (ARIA timeline, skip link, structured data JSON-LD).
-7. Comprehensive test suite & CI pipeline.
-8. Email delivery integration (transactional notifications).
-9. Role-based permissions middleware refactor & policy docs.
-10. Infrastructure as Code & containerization.
-
-Stretch Ideas:
-* Skill taxonomy & auto-tagging.
-* Candidate anonymization mode for unbiased screening.
-* Multi-tenant isolated data clusters or row-level security patterns.
-
-## 16. Contribution Guidelines
+## 11. Contribution Guidelines
 1. Fork & branch naming: `feat/<area>-short-desc` or `fix/<issue>`.
 2. Run `npm run lint` (frontend) before commits; add a backend lint step (TBD).
 3. Keep PRs small & focused; include screenshots for UI changes.
@@ -290,7 +211,7 @@ Stretch Ideas:
 5. For AI prompt changes, document rationale in PR description.
 6. Add/extend tests when touching core models or services.
 
-## 17. License
+## 12. License
 MIT (see `LICENSE` once added). Add license file if absent.
 ---
 If you discover an issue or have a feature idea, open an issue or start a discussion. Feedback is highly appreciated.
