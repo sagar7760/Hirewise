@@ -25,11 +25,7 @@
 5. AI Integration Scope & Design
 6. Environment Variables
 7. Local Development Setup
-8. NPM Scripts Reference
-9. Folder Structure
-10. Deployment (Vercel + Node API)
-11. Contribution Guidelines
-12. License
+8. Deployment
 
 ---
 
@@ -152,69 +148,41 @@ Vite dev URL (default): http://localhost:5173
 
 Visit the SPA; API requests target `http://localhost:5000/api/*`.
 
-## 8. NPM Scripts Reference
-Backend (`server/package.json`):
-* `dev` – nodemon watch server.
-* `start` – production start.
-* `test` – run jest test suite (placeholder, minimal coverage yet).
-* `test:parser` – run document parser standalone.
-* `test:setup` – environment variable diagnostic.
-* `test:backend` – backend implementation quick checks.
-* `test:api` – API endpoint smoke tests.
+## 8. Deployment
 
-Frontend (`client/package.json`):
-* `dev` – Vite dev server.
-* `build` – production build (outputs to `client/dist`).
-* `preview` – locally preview built assets.
-* `lint` – ESLint over sources.
+### Frontend (Vercel)
+Configured for Vercel static build (`@vercel/static-build`) using `client/package.json` scripts. All routes are rewired to `index.html` via `vercel.json` fallback for SPA routing.
 
-Root: (no orchestrating scripts yet) – consider adding workspaces in future.
+**Deployment:**
+- Push to GitHub repository
+- Vercel auto-deploys from `main` branch
+- Build command: `npm run build` (in `client/` directory)
+- Output directory: `client/dist`
 
-## 9. Folder Structure (Trimmed)
-```
-HireWise/
-	client/                 # React SPA
-		src/
-			components/
-			contexts/           # AuthContext, ThemeContext, NotificationsContext, ToastContext
-			pages/               # marketing + role pages
-			hooks/
-			utils/
-		public/
-		vite.config.js
-	server/                 # Express API
-		config/
-		controllers/
-		middleware/
-		models/
-		routes/
-		services/
-		uploads/
-		tests/ (placeholder)
-	vercel.json             # Static frontend deployment config
+### Backend (Heroku)
+Backend is deployed on Heroku with the following configuration:
+
+**Setup:**
+1. Heroku uses `Procfile` for process definition: `web: node server.js`
+2. Environment variables configured in Heroku dashboard (see section 6)
+3. MongoDB Atlas connection via `MONGODB_URI_PROD`
+4. CORS configured to allow Vercel frontend origin
+
+**Deployment:**
+```bash
+# From project root
+cd server
+git subtree push --prefix server heroku main
+# Or use Heroku CLI auto-deploy from GitHub
 ```
 
-## 10. Deployment
-Frontend: Configured for Vercel static build (`@vercel/static-build`) using `client/package.json` scripts; all routes rewired to `index.html` via `vercel.json` fallback.
+**Requirements:**
+- Node.js buildpack enabled
+- Environment parity with local `.env`
+- MongoDB Atlas whitelist Heroku IP addresses
+- Socket.IO configured for production (sticky sessions if multiple dynos)
 
-Backend: Run separately (e.g. Render, Railway, Fly.io, or traditional VPS). Need environment parity (`.env`). CORS must allow deployed frontend origin. Consider creating a Procfile / Dockerfile (not yet present) for reproducible deploy.
-
-Edge / Future:
-* Potential merge into a single container with reverse proxy.
-* Add CI (GitHub Actions) for lint + test + build checks.
-
-## 11. Contribution Guidelines
-1. Fork & branch naming: `feat/<area>-short-desc` or `fix/<issue>`.
-2. Run `npm run lint` (frontend) before commits; add a backend lint step (TBD).
-3. Keep PRs small & focused; include screenshots for UI changes.
-4. Do not commit `.env` or uploaded assets with PII.
-5. For AI prompt changes, document rationale in PR description.
-6. Add/extend tests when touching core models or services.
-
-## 12. License
-MIT (see `LICENSE` once added). Add license file if absent.
 ---
-If you discover an issue or have a feature idea, open an issue or start a discussion. Feedback is highly appreciated.
 
 AI is currently used only for <strong>interviewer feedback analysis</strong> (sentiment + summarization). Resume parsing, scoring logic, and other workflow pieces are deterministic / rule‑driven right now with room for future ML extensions.
 
@@ -225,12 +193,6 @@ AI is currently used only for <strong>interviewer feedback analysis</strong> (se
 | `/how-it-works` | Dual flow explanation (Candidate vs Company) |
 | `/features` | Feature grid + AI feedback illustration + roadmap note |
 | `/about` | Project philosophy, mission, values, stack, milestones, personal profile, contact CTA |
-
-## Authenticated Areas (High-Level)
-- Applicant: browse jobs, apply, track applications, saved jobs, notifications.
-- HR: manage jobs, applications, interviews, notifications, profile.
-- Admin: organization setup, HR & interviewer management, jobs, notifications.
-- Interviewer: upcoming interviews, pending feedback, notifications, profile.
 
 ## Tech Stack
 | Layer | Technology |
@@ -250,28 +212,6 @@ AI is currently used only for <strong>interviewer feedback analysis</strong> (se
 - Modular page structure: `pages/global` (public) vs role-based segments
 - Hero section with feature mini-cards (About page)
 - Footer + Navbar dynamically updated as pages evolved
-
-## Folder Structure (Client Only)
-```
-client/
-	src/
-		assets/                # Images / SVGs
-		components/
-			common/              # Navbar, Footer, shared UI
-			layout/              # Layout wrappers
-			interviewer/         # Role-specific UI pieces
-		contexts/              # Auth, Theme, Toast, Notifications providers
-		hooks/                 # Custom hooks (API wrapper, data fetching)
-		pages/
-			global/              # Public marketing pages (Home, HowItWorks, Features, About)
-			applicant/           # Applicant dashboard pages
-			hr/                  # HR pages
-			admin/               # Admin pages
-			interviewer/         # Interviewer pages
-		utils/                 # Helper utilities / debugging
-		main.jsx               # App bootstrap
-		App.jsx                # Route definitions
-```
 
 ## Running the Frontend
 From repository root (or `client/` directory):
@@ -309,12 +249,6 @@ The code uses a custom `useApiRequest` hook—ensure the base URL matches the ba
 | SEO Meta | Pending | Add meta tags + JSON-LD for marketing pages. |
 | Accessibility Enhancements | Pending | Skip links, ARIA landmarks, improved keyboard outlines. |
 | Testing | Partial | No comprehensive frontend test suite included yet. |
-
-## Contributing (Internal / Early Stage)
-1. Branch from `main`.
-2. Use conventional, descriptive commit messages.
-3. Keep marketing page components lean—push shared styling into utility classes when duplication grows.
-4. Open a PR; include before/after screenshots for UI changes.
 
 ## Design Principles
 - Fairness & transparency first.
